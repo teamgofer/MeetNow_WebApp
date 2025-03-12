@@ -1,0 +1,19 @@
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# @teamgofer will be requested for review when someone 
+# opens a pull request.
+*       @teamgofer
+
+# Frontend related files
+*.ts    @teamgofer
+*.tsx   @teamgofer
+*.css   @teamgofer
+*.scss  @teamgofer
+
+# Configuration files
+*.json  @teamgofer
+*.yml   @teamgofer
+*.yaml  @teamgofer
+
+# Documentation
+*.md    @teamgofer 

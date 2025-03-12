@@ -1,0 +1,67 @@
+name: Main Branch Protection
+target: branch
+enforcement: active
+
+conditions:
+  ref_name:
+    patterns: ['refs/heads/main']
+  repository_name:
+    patterns: ['MeetNow_WebApp']
+
+rules:
+  # Require pull request before merging
+  pull_request:
+    required: true
+    dismiss_stale_reviews: true
+    require_code_owner_review: true
+    required_approving_review_count: 1
+    require_last_push_approval: true
+
+  # Required status checks
+  required_status_checks:
+    required: true
+    strict: true
+    checks:
+      - context: build
+      - context: lint
+      - context: type-check
+      - context: test
+
+  # Branch restrictions
+  creation:
+    allowed: false  # Prevent creating matching branches
+  deletion:
+    allowed: false  # Prevent deleting matching branches
+  update:
+    allowed: true   # Allow updating matching branches through PRs
+
+  # Require linear history
+  linear_history:
+    required: true
+
+  # Required commit signing
+  required_signatures:
+    required: true
+
+  # Require up-to-date branches
+  required_linear_history:
+    required: true
+
+  # Merge requirements
+  merge_requirements:
+    required: true
+    methods:
+      - squash
+      - merge
+
+  # Required deployments
+  required_deployments:
+    required: true
+    environments:
+      - Preview
+
+bypass_actors:
+  groups:
+    - name: "Administrators"
+      type: "role"
+      bypass_mode: "always" 

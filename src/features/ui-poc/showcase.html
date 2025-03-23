@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetNow UI Showcase</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      color: #333;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+      color: white;
+      padding: 50px 0;
+      text-align: center;
+      margin-bottom: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHBhdHRlcm5UcmFuc2Zvcm09InJvdGF0ZSgzMCkiPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIj48L3JlY3Q+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI3BhdHRlcm4pIj48L3JlY3Q+PC9zdmc+');
+      opacity: 0.2;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      position: relative;
+    }
+    
+    .header p {
+      margin: 15px 0 0;
+      font-size: 1.2rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+    }
+    
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 30px;
+    }
+    
+    .showcase-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      height: 100%;
+    }
+    
+    .showcase-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .showcase-header {
+      position: relative;
+      height: 200px;
+      overflow: hidden;
+    }
+    
+    .showcase-header-modern {
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+    }
+    
+    .showcase-header-luxury {
+      background: #1a1a1a;
+      position: relative;
+    }
+    
+    .showcase-header-luxury::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #DDB458, #d4af37, #DDB458);
+    }
+    
+    .showcase-header-playful {
+      background: linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%);
+    }
+    
+    .showcase-header-minimalist {
+      background: #f8f9fa;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .showcase-header-neumorphic {
+      background: #EBECF0;
+    }
+    
+    .showcase-preview {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    
+    .showcase-body {
+      padding: 25px;
+    }
+    
+    .showcase-title {
+      margin: 0 0 10px 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .showcase-description {
+      margin: 0 0 15px 0;
+      color: #666;
+      line-height: 1.5;
+    }
+    
+    .showcase-examples {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .example-tag {
+      background: #f0f4f8;
+      color: #4a90e2;
+      padding: 5px 12px;
+      border-radius: 30px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    .modern-button {
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-weight: 600;
+    }
+    
+    .luxury-button {
+      background: transparent;
+      border: 1px solid #DDB458;
+      color: #DDB458;
+      padding: 10px 25px;
+      font-family: 'Times New Roman', serif;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+    
+    .playful-button {
+      background: #4ECDC4;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-weight: 700;
+      transform: rotate(2deg);
+    }
+    
+    .minimal-button {
+      background: transparent;
+      border: 1px solid #333;
+      color: #333;
+      padding: 8px 18px;
+      font-weight: 400;
+      font-size: 0.9rem;
+    }
+    
+    .neumorphic-button {
+      background: #EBECF0;
+      color: #6D7587;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-weight: 600;
+      box-shadow: 5px 5px 10px #D1D9E6, -5px -5px 10px #FFFFFF;
+    }
+    
+    .view-all-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+      color: white;
+      text-decoration: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-top: 50px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+    }
+    
+    .view-all-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(74, 144, 226, 0.4);
+    }
+    
+    .center {
+      text-align: center;
+    }
+    
+    .nav-preview {
+      width: 100%;
+      height: 50px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-preview {
+      width: 80%;
+      height: 120px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-preview-luxury {
+      border: 1px solid #DDB458;
+    }
+    
+    .card-preview-playful {
+      border: 3px solid #FF6B6B;
+      border-radius: 20px;
+      transform: rotate(-3deg);
+    }
+    
+    .card-preview-minimalist {
+      border: 1px solid #eee;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    
+    .card-preview-neumorphic {
+      background: #EBECF0;
+      box-shadow: 8px 8px 15px #D1D9E6, -8px -8px 15px #FFFFFF;
+    }
+    
+    footer {
+      margin-top: 100px;
+      text-align: center;
+      padding: 40px 0;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>MeetNow UI Component Library</h1>
+      <p>Explore our collection of beautiful, reusable UI components designed for the MeetNow application. Multiple design systems available for different user experiences.</p>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="showcase-grid">
+      <!-- Buttons Showcase -->
+      <a href="demo.html" class="showcase-card">
+        <div class="showcase-header showcase-header-modern">
+          <div class="showcase-preview">
+            <div style="display: flex; gap: 10px;">
+              <button class="modern-button">Primary</button>
+              <button class="modern-button" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">Secondary</button>
+            </div>
+          </div>
+        </div>
+        <div class="showcase-body">
+          <h3 class="showcase-title">Button Components</h3>
+          <p class="showcase-description">Interactive buttons with various styles, animations, and states. Designed for high usability and clear call-to-actions.</p>
+          <div class="showcase-examples">
+            <span class="example-tag">5 Style Sets</span>
+            <span class="example-tag">Multiple Variants</span>
+            <span class="example-tag">Animated</span>
+          </div>
+        </div>
+      </a>
+      
+      <!-- Cards Showcase -->
+      <a href="cards.html" class="showcase-card">
+        <div class="showcase-header showcase-header-luxury">
+          <div class="showcase-preview">
+            <div class="card-preview card-preview-luxury"></div>
+          </div>
+        </div>
+        <div class="showcase-body">
+          <h3 class="showcase-title">Card Components</h3>
+          <p class="showcase-description">Beautiful card designs for displaying meetups, events, and user information with engaging hover effects.</p>
+          <div class="showcase-examples">
+            <span class="example-tag">5 Style Sets</span>
+            <span class="example-tag">Interactive</span>
+            <span class="example-tag">Responsive</span>
+          </div>
+        </div>
+      </a>
+      
+      <!-- Navigation Showcase -->
+      <a href="navigation.html" class="showcase-card">
+        <div class="showcase-header showcase-header-playful">
+          <div class="showcase-preview">
+            <div class="nav-preview"></div>
+          </div>
+        </div>
+        <div class="showcase-body">
+          <h3 class="showcase-title">Navigation Components</h3>
+          <p class="showcase-description">Header navigation, mobile menus, and tab bars optimized for both desktop and mobile experiences.</p>
+          <div class="showcase-examples">
+            <span class="example-tag">5 Style Sets</span>
+            <span class="example-tag">Mobile Ready</span>
+            <span class="example-tag">Responsive</span>
+          </div>
+        </div>
+      </a>
+      
+      <!-- Form Elements Coming Soon -->
+      <div class="showcase-card" style="opacity: 0.7; cursor: default;">
+        <div class="showcase-header showcase-header-minimalist">
+          <div class="showcase-preview">
+            <div style="font-size: 1.5rem; color: #aaa;">Coming Soon</div>
+          </div>
+        </div>
+        <div class="showcase-body">
+          <h3 class="showcase-title">Form Components</h3>
+          <p class="showcase-description">Elegant form elements including inputs, selectors, checkboxes and date pickers with validation states.</p>
+          <div class="showcase-examples">
+            <span class="example-tag">In Development</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Modals Coming Soon -->
+      <div class="showcase-card" style="opacity: 0.7; cursor: default;">
+        <div class="showcase-header showcase-header-neumorphic">
+          <div class="showcase-preview">
+            <div style="font-size: 1.5rem; color: #aaa;">Coming Soon</div>
+          </div>
+        </div>
+        <div class="showcase-body">
+          <h3 class="showcase-title">Modal & Dialog Components</h3>
+          <p class="showcase-description">Modals, alerts, confirmations and slide-over panels for effective user interactions and feedback.</p>
+          <div class="showcase-examples">
+            <span class="example-tag">In Development</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Maps Coming Soon -->
+      <div class="showcase-card" style="opacity: 0.7; cursor: default;">
+        <div class="showcase-header" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
+          <div class="showcase-preview">
+            <div style="font-size: 1.5rem; color: #fff;">Coming Soon</div>
+          </div>
+        </div>
+        <div class="showcase-body">
+          <h3 class="showcase-title">Map Components</h3>
+          <p class="showcase-description">Specialized components for location selection, map views, and geographical displays with custom markers.</p>
+          <div class="showcase-examples">
+            <span class="example-tag">In Development</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="center">
+      <a href="demo.html" class="view-all-btn">View Button Component Library</a>
+    </div>
+  </div>
+  
+  <div class="container" style="margin-top: 80px;">
+    <div style="text-align: center; margin-bottom: 40px;">
+      <h2 style="color: #333; font-size: 2rem; margin-bottom: 20px;">Featured Showcase</h2>
+      <p style="color: #666; max-width: 600px; margin: 0 auto;">Explore our advanced Neumorphic UI components with unique interactions and animations</p>
+    </div>
+    
+    <a href="neumorphic.html" style="display: block; text-decoration: none; color: inherit;">
+      <div style="background: #E0E5EC; border-radius: 20px; overflow: hidden; box-shadow: 20px 20px 40px #A3B1C6, -20px -20px 40px #FFFFFF; padding: 40px; position: relative; transition: all 0.3s ease;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: center;">
+          <div>
+            <h3 style="color: #394050; font-size: 1.8rem; margin-bottom: 20px;">Advanced Neumorphic UI</h3>
+            <p style="color: #6D7587; margin-bottom: 30px; line-height: 1.6;">Experience the latest in soft UI design with our premium neumorphic components featuring 3D effects, interactive animations, and unique user controls.</p>
+            <div style="display: inline-block; padding: 12px 25px; background: #E0E5EC; color: #4a90e2; border-radius: 50px; font-weight: 600; box-shadow: 8px 8px 15px #A3B1C6, -8px -8px 15px #FFFFFF;">Explore Now</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div style="background: #E0E5EC; border-radius: 15px; height: 120px; box-shadow: 8px 8px 15px #A3B1C6, -8px -8px 15px #FFFFFF;"></div>
+            <div style="background: #E0E5EC; border-radius: 15px; height: 120px; box-shadow: inset 5px 5px 10px #A3B1C6, inset -5px -5px 10px #FFFFFF;"></div>
+            <div style="background: #E0E5EC; border-radius: 50%; height: 120px; width: 120px; box-shadow: 8px 8px 15px #A3B1C6, -8px -8px 15px #FFFFFF;"></div>
+            <div style="background: #E0E5EC; border-radius: 15px; height: 120px; box-shadow: 8px 8px 15px #A3B1C6, -8px -8px 15px #FFFFFF; position: relative; overflow: hidden;">
+              <div style="position: absolute; bottom: 0; left: 0; height: 50%; width: 100%; background: #4a90e2; border-radius: 0 0 15px 15px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  
+  <footer>
+    <div class="container">
+      <p>MeetNow UI Component Library &copy; 2023 - Designed for the MeetNow application</p>
+      <p>All components can be used in isolation and integrated into the main app when ready</p>
+    </div>
+  </footer>
+</body>
+</html> 

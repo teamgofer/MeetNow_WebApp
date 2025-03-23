@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fog of War Map Overlay - MeetNow Neumorphic UI</title>
+  <link rel="stylesheet" href="../../components/neumorphic/neumorphic.css">
+  <style>
+    body {
+      background-color: var(--neu-primary-bg);
+      color: var(--neu-text-color);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 2.4rem;
+      margin-bottom: 0.5rem;
+      color: var(--neu-text-color-dark);
+    }
+    
+    .header p {
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto;
+      color: var(--neu-text-color-light);
+    }
+    
+    .theme-toggle-container {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .theme-toggle-label {
+      margin-right: 10px;
+      font-size: 0.9rem;
+    }
+    
+    .section {
+      margin-bottom: 3rem;
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--neu-text-color-dark);
+      position: relative;
+      display: inline-block;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(to right, var(--neu-accent-color), transparent);
+      border-radius: 3px;
+    }
+    
+    .map-demos {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    
+    .map-demo {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .map-demo-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: var(--neu-text-color-dark);
+    }
+    
+    .map-container {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--neu-shadow-medium);
+    }
+    
+    .map {
+      width: 100%;
+      height: 100%;
+      background: url('https://maps.googleapis.com/maps/api/staticmap?center=37.7749,-122.4194&zoom=12&size=600x400&scale=2&maptype=roadmap&key=YOUR_API_KEY') center/cover;
+    }
+    
+    /* Fallback map image for demo */
+    .demo-map {
+      width: 100%;
+      height: 100%;
+      background: url('../../assets/images/demo-map.jpg') center/cover;
+      /* If demo-map.jpg doesn't exist, use a gradient fallback */
+      background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+      position: relative;
+    }
+    
+    .map-pin {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      transform: translate(-50%, -100%);
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    
+    .map-pin::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 24px;
+      background-color: var(--neu-accent-color);
+      border-radius: 50% 50% 50% 0;
+      transform: translateX(-50%) rotate(-45deg);
+      box-shadow: var(--neu-shadow-small);
+    }
+    
+    .map-pin::after {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      background-color: white;
+      border-radius: 50%;
+    }
+    
+    .map-user-marker {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      transform: translate(-50%, -50%);
+      background-color: #4285F4;
+      border-radius: 50%;
+      border: 4px solid white;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      z-index: 5;
+    }
+    
+    .map-user-marker::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      background-color: white;
+      border-radius: 50%;
+    }
+    
+    .map-user-marker-pulse {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px;
+      height: 70px;
+      background-color: rgba(66, 133, 244, 0.2);
+      border-radius: 50%;
+      animation: user-marker-pulse 2s infinite;
+    }
+    
+    @keyframes user-marker-pulse {
+      0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0;
+      }
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .info-card {
+      padding: 1.5rem;
+      border-radius: 15px;
+      box-shadow: var(--neu-shadow-small);
+      background-color: var(--neu-primary-bg);
+      margin-bottom: 2rem;
+    }
+    
+    .info-card h3 {
+      margin-top: 0;
+      color: var(--neu-text-color-dark);
+    }
+    
+    .info-card p:last-child {
+      margin-bottom: 0;
+    }
+    
+    .premium-feature {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(45deg, #f5bd02, #e6a70b);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 10px;
+      margin-left: 10px;
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    }
+
+    .premium-feature-icon {
+      margin-right: 4px;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .header h1 {
+        font-size: 1.8rem;
+      }
+      
+      .header p {
+        font-size: 1rem;
+      }
+      
+      .map-demos {
+        grid-template-columns: 1fr;
+      }
+      
+      .map-container {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="theme-toggle-container">
+      <span class="theme-toggle-label">Dark Mode</span>
+      <div class="neu-switch-wrapper neu-theme-toggle">
+        <label class="neu-switch">
+          <input type="checkbox">
+          <span class="neu-switch-slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="header">
+      <h1>Fog of War Map Overlay</h1>
+      <p>Demonstrate the fog of war feature that limits visibility of map markers to a configurable radius around the user's location</p>
+    </div>
+    
+    <div class="info-card">
+      <h3>About this Feature</h3>
+      <p>The "Fog of War" feature creates a visibility radius around the user's location, hiding all map pins outside that perimeter. This premium feature allows users to focus on nearby locations and gradually discover new areas as they move around.</p>
+      <p>This demonstration showcases both the standard implementation (non-premium users with fixed radius) and the premium implementation (adjustable radius with a slider control).</p>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Feature Demonstration</h2>
+      
+      <div class="map-demos">
+        <!-- Basic (Standard User) Implementation -->
+        <div class="map-demo">
+          <h3 class="map-demo-title">Standard Implementation <span class="premium-feature"><span class="premium-feature-icon">⭐</span> Free</span></h3>
+          <div class="map-container" id="basic-map" data-fog-of-war="true" data-fog-radius="1000" data-map-scale="10" data-user-lat="37.7749" data-user-lng="-122.4194" data-map-id="map1">
+            <div class="demo-map">
+              <!-- User marker -->
+              <div class="map-user-marker" style="left: 50%; top: 50%;">
+                <div class="map-user-marker-pulse"></div>
+              </div>
+              
+              <!-- Map pins -->
+              <div class="map-pin" style="left: 30%; top: 40%;" data-lat="37.7849" data-lng="-122.4294"></div>
+              <div class="map-pin" style="left: 45%; top: 30%;" data-lat="37.7949" data-lng="-122.4194"></div>
+              <div class="map-pin" style="left: 60%; top: 55%;" data-lat="37.7649" data-lng="-122.4094"></div>
+              <div class="map-pin" style="left: 75%; top: 65%;" data-lat="37.7549" data-lng="-122.3994"></div>
+              <div class="map-pin" style="left: 55%; top: 70%;" data-lat="37.7449" data-lng="-122.4094"></div>
+              <div class="map-pin" style="left: 25%; top: 60%;" data-lat="37.7549" data-lng="-122.4394"></div>
+              <div class="map-pin" style="left: 40%; top: 75%;" data-lat="37.7349" data-lng="-122.4194"></div>
+              <div class="map-pin" style="left: 70%; top: 35%;" data-lat="37.7849" data-lng="-122.3994"></div>
+              <div class="map-pin" style="left: 20%; top: 25%;" data-lat="37.7949" data-lng="-122.4394"></div>
+              <div class="map-pin" style="left: 85%; top: 45%;" data-lat="37.7749" data-lng="-122.3894"></div>
+            </div>
+          </div>
+          
+          <div class="controls">
+            <div class="control-group">
+              <button class="neu-button neu-button-primary" id="move-user-button">Simulate User Movement</button>
+            </div>
+            <div class="control-group">
+              <span class="neu-button neu-button-minimal neu-button-disabled">Fixed 1000m Radius</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Premium Implementation -->
+        <div class="map-demo">
+          <h3 class="map-demo-title">Premium Implementation <span class="premium-feature"><span class="premium-feature-icon">⭐</span> Premium</span></h3>
+          <div class="map-container" id="premium-map" data-fog-of-war="true" data-fog-radius="2000" data-premium-toggle="true" data-map-scale="10" data-max-radius="5000" data-user-lat="37.7749" data-user-lng="-122.4194" data-map-id="map2">
+            <div class="demo-map">
+              <!-- User marker -->
+              <div class="map-user-marker" style="left: 50%; top: 50%;">
+                <div class="map-user-marker-pulse"></div>
+              </div>
+              
+              <!-- Map pins -->
+              <div class="map-pin" style="left: 30%; top: 40%;" data-lat="37.7849" data-lng="-122.4294"></div>
+              <div class="map-pin" style="left: 45%; top: 30%;" data-lat="37.7949" data-lng="-122.4194"></div>
+              <div class="map-pin" style="left: 60%; top: 55%;" data-lat="37.7649" data-lng="-122.4094"></div>
+              <div class="map-pin" style="left: 75%; top: 65%;" data-lat="37.7549" data-lng="-122.3994"></div>
+              <div class="map-pin" style="left: 55%; top: 70%;" data-lat="37.7449" data-lng="-122.4094"></div>
+              <div class="map-pin" style="left: 25%; top: 60%;" data-lat="37.7549" data-lng="-122.4394"></div>
+              <div class="map-pin" style="left: 40%; top: 75%;" data-lat="37.7349" data-lng="-122.4194"></div>
+              <div class="map-pin" style="left: 70%; top: 35%;" data-lat="37.7849" data-lng="-122.3994"></div>
+              <div class="map-pin" style="left: 20%; top: 25%;" data-lat="37.7949" data-lng="-122.4394"></div>
+              <div class="map-pin" style="left: 85%; top: 45%;" data-lat="37.7749" data-lng="-122.3894"></div>
+            </div>
+          </div>
+          
+          <div class="controls">
+            <div class="control-group">
+              <button class="neu-button neu-button-primary" id="move-premium-user-button">Simulate User Movement</button>
+            </div>
+            <div class="control-group">
+              <button class="neu-button neu-button-success" id="reveal-all-button">Reveal All Pins</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Advanced Implementation</h2>
+      
+      <div class="map-demos">
+        <!-- Map Overlay Implementation -->
+        <div class="map-demo">
+          <h3 class="map-demo-title">Map Overlay Implementation</h3>
+          <div class="map-container">
+            <div class="demo-map" id="overlay-map">
+              <!-- User marker -->
+              <div class="map-user-marker" style="left: 50%; top: 50%;">
+                <div class="map-user-marker-pulse"></div>
+              </div>
+              
+              <!-- Map pins -->
+              <div class="map-pin" style="left: 30%; top: 40%;"></div>
+              <div class="map-pin" style="left: 45%; top: 30%;"></div>
+              <div class="map-pin" style="left: 60%; top: 55%;"></div>
+              <div class="map-pin" style="left: 75%; top: 65%;"></div>
+              <div class="map-pin" style="left: 55%; top: 70%;"></div>
+              <div class="map-pin" style="left: 25%; top: 60%;"></div>
+              <div class="map-pin" style="left: 40%; top: 75%;"></div>
+              <div class="map-pin" style="left: 70%; top: 35%;"></div>
+              <div class="map-pin" style="left: 20%; top: 25%;"></div>
+              <div class="map-pin" style="left: 85%; top: 45%;"></div>
+              
+              <!-- Map Overlay -->
+              <div class="neu-map-overlay" data-overlay-type="fogOfWar" data-premium-user="true"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Integration with Other Overlays -->
+        <div class="map-demo">
+          <h3 class="map-demo-title">Integration with Weather Overlay</h3>
+          <div class="map-container">
+            <div class="demo-map" id="combined-overlay-map">
+              <!-- User marker -->
+              <div class="map-user-marker" style="left: 50%; top: 50%;">
+                <div class="map-user-marker-pulse"></div>
+              </div>
+              
+              <!-- Map pins -->
+              <div class="map-pin" style="left: 30%; top: 40%;"></div>
+              <div class="map-pin" style="left: 45%; top: 30%;"></div>
+              <div class="map-pin" style="left: 60%; top: 55%;"></div>
+              <div class="map-pin" style="left: 75%; top: 65%;"></div>
+              <div class="map-pin" style="left: 55%; top: 70%;"></div>
+              <div class="map-pin" style="left: 25%; top: 60%;"></div>
+              <div class="map-pin" style="left: 40%; top: 75%;"></div>
+              <div class="map-pin" style="left: 70%; top: 35%;"></div>
+              <div class="map-pin" style="left: 20%; top: 25%;"></div>
+              <div class="map-pin" style="left: 85%; top: 45%;"></div>
+              
+              <!-- Weather Overlay -->
+              <div class="neu-map-overlay" data-overlay-type="weather"></div>
+              
+              <!-- Fog of War Overlay (added after weather) -->
+              <div id="fog-overlay"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="../../components/neumorphic/neumorphic.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize neumorphic UI components
+      if (window.neumorphicUI) {
+        window.neumorphicUI.init();
+      }
+      
+      // Handle user movement simulation
+      const moveUserButton = document.getElementById('move-user-button');
+      const movePremiumUserButton = document.getElementById('move-premium-user-button');
+      const revealAllButton = document.getElementById('reveal-all-button');
+      
+      const basicMap = document.getElementById('basic-map');
+      const premiumMap = document.getElementById('premium-map');
+      const overlayMap = document.getElementById('overlay-map');
+      const combinedOverlayMap = document.getElementById('combined-overlay-map');
+      
+      // Add fog of war overlay to combined map
+      const fogOverlay = document.getElementById('fog-overlay');
+      fogOverlay.className = 'neu-fog-container';
+      
+      const visibilityCircle = document.createElement('div');
+      visibilityCircle.className = 'neu-fog-visibility-circle';
+      fogOverlay.appendChild(visibilityCircle);
+      
+      const fogEffect = document.createElement('div');
+      fogEffect.className = 'neu-fog-overlay';
+      fogOverlay.appendChild(fogEffect);
+      
+      // Function to move user marker randomly
+      function moveUserRandomly(map) {
+        const userMarker = map.querySelector('.map-user-marker');
+        if (!userMarker) return;
+        
+        // Get current position
+        let currentX = parseFloat(userMarker.style.left);
+        let currentY = parseFloat(userMarker.style.top);
+        
+        // Random movement (-15% to +15%)
+        const deltaX = (Math.random() - 0.5) * 30;
+        const deltaY = (Math.random() - 0.5) * 30;
+        
+        // New position (constrained to map)
+        const newX = Math.max(10, Math.min(90, currentX + deltaX));
+        const newY = Math.max(10, Math.min(90, currentY + deltaY));
+        
+        // Update position
+        userMarker.style.left = `${newX}%`;
+        userMarker.style.top = `${newY}%`;
+        
+        // Update data attributes (simulate GPS coordinates)
+        const baseLat = 37.7749;
+        const baseLng = -122.4194;
+        
+        // Convert screen coordinates to fake GPS coordinates
+        const newLat = baseLat + ((50 - newY) / 100) * 0.1;
+        const newLng = baseLng + ((newX - 50) / 100) * 0.1;
+        
+        // Update map attributes
+        map.setAttribute('data-user-lat', newLat);
+        map.setAttribute('data-user-lng', newLng);
+        map.setAttribute('data-user-x', newX);
+        map.setAttribute('data-user-y', newY);
+        
+        // Trigger custom event for location change
+        const event = new CustomEvent('userlocationchange', {
+          bubbles: true,
+          detail: {
+            mapId: map.getAttribute('data-map-id'),
+            lat: newLat,
+            lng: newLng
+          }
+        });
+        map.dispatchEvent(event);
+        
+        // Update combined overlay map
+        if (map === basicMap || map === premiumMap) {
+          // Sync user marker position in other maps
+          const userMarkerCombined = combinedOverlayMap.querySelector('.map-user-marker');
+          if (userMarkerCombined) {
+            userMarkerCombined.style.left = `${newX}%`;
+            userMarkerCombined.style.top = `${newY}%`;
+            
+            // Update visibility circle
+            updateVisibilityCircle(fogOverlay, newX, newY, 2000);
+          }
+          
+          const userMarkerOverlay = overlayMap.querySelector('.map-user-marker');
+          if (userMarkerOverlay) {
+            userMarkerOverlay.style.left = `${newX}%`;
+            userMarkerOverlay.style.top = `${newY}%`;
+          }
+        }
+      }
+      
+      // Function to update visibility circle
+      function updateVisibilityCircle(container, x, y, radius) {
+        const visibilityCircle = container.querySelector('.neu-fog-visibility-circle');
+        if (!visibilityCircle) return;
+        
+        // Map scale (pixels per meter)
+        const scale = 0.1;
+        
+        // Calculate circle size
+        const circleSize = radius * scale;
+        
+        // Update circle size and position
+        visibilityCircle.style.width = `${circleSize}px`;
+        visibilityCircle.style.height = `${circleSize}px`;
+        
+        // Calculate position in pixels (we need to get the size of the map container)
+        const map = container.closest('.map-container');
+        if (!map) return;
+        
+        const mapWidth = map.offsetWidth;
+        const mapHeight = map.offsetHeight;
+        
+        const leftPos = (mapWidth * (x / 100));
+        const topPos = (mapHeight * (y / 100));
+        
+        visibilityCircle.style.left = `${leftPos}px`;
+        visibilityCircle.style.top = `${topPos}px`;
+      }
+      
+      // Event handlers
+      if (moveUserButton) {
+        moveUserButton.addEventListener('click', function() {
+          moveUserRandomly(basicMap);
+        });
+      }
+      
+      if (movePremiumUserButton) {
+        movePremiumUserButton.addEventListener('click', function() {
+          moveUserRandomly(premiumMap);
+        });
+      }
+      
+      if (revealAllButton) {
+        revealAllButton.addEventListener('click', function() {
+          // Set a large radius to reveal all pins
+          premiumMap.setAttribute('data-fog-radius', '10000');
+          
+          // Update the fog of war
+          const currentRadius = parseInt(premiumMap.getAttribute('data-current-radius') || '2000');
+          if (typeof window.neumorphicUI.updateFogOfWar === 'function') {
+            window.neumorphicUI.updateFogOfWar(premiumMap, 10000);
+          }
+        });
+      }
+      
+      // Initialize the first time for combined overlay
+      const userMarkerCombined = combinedOverlayMap.querySelector('.map-user-marker');
+      if (userMarkerCombined) {
+        const x = parseFloat(userMarkerCombined.style.left);
+        const y = parseFloat(userMarkerCombined.style.top);
+        updateVisibilityCircle(fogOverlay, x, y, 2000);
+      }
+    });
+  </script>
+</body>
+</html> 

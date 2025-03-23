@@ -1,0 +1,101 @@
+{
+  "tag": "body",
+  "classes": [],
+  "children": [
+    {
+      "tag": "div",
+      "id": "root",
+      "classes": [],
+      "children": [
+        {
+          "tag": "div",
+          "classes": [
+            "min-h-screen",
+            "bg-gray-100"
+          ],
+          "children": [
+            {
+              "tag": "style",
+              "classes": []
+            },
+            {
+              "tag": "div",
+              "classes": [
+                "relative",
+                "w-full",
+                "h-screen"
+              ],
+              "children": [
+                {
+                  "tag": "div",
+                  "id": "map-container",
+                  "classes": [
+                    "h-full",
+                    "w-full"
+                  ],
+                  "children": [
+                    {
+                      "truncated": true
+                    }
+                  ]
+                },
+                {
+                  "tag": "div",
+                  "classes": [
+                    "absolute",
+                    "top-4",
+                    "left-4",
+                    "z-10",
+                    "w-96",
+                    "space-y-4"
+                  ],
+                  "children": [
+                    {
+                      "truncated": true
+                    }
+                  ]
+                },
+                {
+                  "tag": "div",
+                  "classes": [
+                    "absolute",
+                    "top-[10%]",
+                    "right-4",
+                    "z-10",
+                    "w-96"
+                  ],
+                  "children": [
+                    {
+                      "truncated": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tag": "button",
+              "classes": [
+                "fixed",
+                "bottom-4",
+                "left-4",
+                "bg-gray-800",
+                "text-white",
+                "px-3",
+                "py-1",
+                "text-xs",
+                "rounded",
+                "z-50",
+                "opacity-50",
+                "hover:opacity-100"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "script",
+      "classes": []
+    }
+  ]
+}

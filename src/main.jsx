@@ -1,11 +1,28 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
-import MeetNowApp from './MeetNowApp';
-import Loading from '@/components/ui/loading';
 import { ErrorBoundary } from 'react-error-boundary';
+
+// Import Leaflet and its styles first
+import 'leaflet/dist/leaflet.css';
+import 'leaflet.locatecontrol/dist/L.Control.Locate.css';
+
+// Import our components and utilities
+import MeetNowApp from './MeetNowApp';
+import Loading from './components/ui/loading.jsx';
+import { setupLeaflet } from './lib/leaflet-setup';
+import { cleanupSupabase } from './lib/supabase';
 import './global.css';
 import './index.css';
-import 'maplibre-gl/dist/maplibre-gl.css';
+
+// Initialize Leaflet with plugins
+setupLeaflet();
+
+// Handle hot module replacement
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    cleanupSupabase();
+  });
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

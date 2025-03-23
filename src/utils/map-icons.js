@@ -1,31 +1,30 @@
 import L from 'leaflet';
 
 export const createMapIcons = () => {
-  delete L.Icon.Default.prototype._getIconUrl;
-
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: '/location-marker.png',
-    iconUrl: '/location-marker.png',
-    shadowUrl: null
+  const userIcon = L.divIcon({
+    className: 'user-marker',
+    html: `<div class="user-marker-inner">
+             <div class="pulse-circle"></div>
+             <div class="marker-dot"></div>
+           </div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
   });
 
-  const userIcon = L.icon({
-    iconUrl: '/location-marker.png',
-    iconRetinaUrl: '/location-marker.png',
-    shadowUrl: null,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+  const meetupIcon = L.divIcon({
+    className: 'meetup-marker',
+    html: `<div class="meetup-marker-inner">
+             <div class="meetup-inner-dot"></div>
+             <div class="meetup-outer-ring"></div>
+           </div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
   });
 
-  const selectedIcon = L.icon({
-    iconUrl: '/location-marker2.png',
-    iconRetinaUrl: '/location-marker2.png',
-    shadowUrl: null,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
-  });
-
-  return { userIcon, selectedIcon };
+  return {
+    userIcon,
+    meetupIcon
+  };
 };
+
+export default createMapIcons;

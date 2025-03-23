@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeetNow Neumorphic Icon Components</title>
+  <style>
+    :root {
+      --neu-primary-bg: #e0e5ec;
+      --neu-primary-dark: #a3b1c6;
+      --neu-primary-light: #ffffff;
+      --neu-text-color: #333;
+      --neu-text-color-light: #666;
+      --neu-accent-teal: #4dbbbb;
+      --neu-accent-green: #4caf50;
+      --neu-accent-red: #f44336;
+      --neu-accent-purple: #9c27b0;
+      --neu-accent-orange: #ff9800;
+      
+      --neu-shadow-small: 3px 3px 6px var(--neu-primary-dark), -3px -3px 6px var(--neu-primary-light);
+      --neu-shadow-small-hover: 4px 4px 8px var(--neu-primary-dark), -4px -4px 8px var(--neu-primary-light);
+      --neu-shadow-small-pressed: inset 2px 2px 5px var(--neu-primary-dark), inset -2px -2px 5px var(--neu-primary-light);
+      
+      --neu-shadow-medium: 5px 5px 10px var(--neu-primary-dark), -5px -5px 10px var(--neu-primary-light);
+      --neu-shadow-soft: 3px 3px 5px var(--neu-primary-dark), -3px -3px 5px var(--neu-primary-light);
+      
+      --neu-transition: all 0.3s ease;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--neu-primary-bg);
+      color: var(--neu-text-color);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    #app {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-size: 1.5rem;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: var(--neu-accent-teal);
+      animation: spin 1s linear infinite;
+      margin-right: 15px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      // Here we'd normally load React and render the component
+      // For this demo, we'll just simulate loading and redirect to main app
+      setTimeout(() => {
+        document.getElementById('loading-message').textContent = 'Component library loaded!';
+        setTimeout(() => {
+          // In a real app, you'd render React components here
+          // For now, let's just show a message that it would work
+          document.getElementById('app').innerHTML = `
+            <div class="neu-container">
+              <h1 class="neu-title">MeetNow Neumorphic Icon Library</h1>
+              <p class="neu-description">
+                This would normally render the React component. In a real application, you would:
+              </p>
+              <div class="neu-section">
+                <h2>Implementation Steps</h2>
+                <ul>
+                  <li>Import React and ReactDOM</li>
+                  <li>Import the NeuIconDemo component</li>
+                  <li>Use ReactDOM.render() to mount the component</li>
+                </ul>
+                <pre>
+import React from 'react';
+import ReactDOM from 'react-dom';
+import NeuIconDemo from '../../components/neumorphic/NeuIconDemo';
+
+ReactDOM.render(
+  &lt;NeuIconDemo /&gt;,
+  document.getElementById('app')
+);
+                </pre>
+              </div>
+            </div>
+          `;
+        }, 1000);
+      }, 1500);
+    });
+  </script>
+</head>
+<body>
+  <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
+    <span id="loading-message">Loading MeetNow Neumorphic Icon Components...</span>
+  </div>
+  <div id="app"></div>
+</body>
+</html> 

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetNow UI Demo</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f7f9fc;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 40px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      letter-spacing: -0.5px;
+    }
+    
+    .header p {
+      margin: 10px 0 0;
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+    
+    .design-set {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 40px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .design-set h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 1.8rem;
+      position: relative;
+      padding-bottom: 10px;
+    }
+    
+    .design-set h2::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: #4a90e2;
+      border-radius: 3px;
+    }
+    
+    .button-section {
+      margin-bottom: 30px;
+    }
+    
+    .button-section h3 {
+      margin-bottom: 15px;
+      font-size: 1.3rem;
+      color: #555;
+    }
+    
+    .button-container {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    /* Modern Set */
+    .modern-button {
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .modern-primary {
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+    }
+    
+    .modern-secondary {
+      background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    }
+    
+    .modern-success {
+      background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    }
+    
+    .modern-danger {
+      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+    
+    .modern-small {
+      padding: 8px 18px;
+      font-size: 0.9rem;
+    }
+    
+    .modern-medium {
+      padding: 12px 24px;
+      font-size: 1rem;
+    }
+    
+    .modern-large {
+      padding: 16px 32px;
+      font-size: 1.2rem;
+    }
+    
+    .modern-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    }
+    
+    .modern-button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .modern-button::after {
+      content: "";
+      background: rgba(255, 255, 255, 0.2);
+      display: block;
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      opacity: 0;
+    }
+    
+    .modern-button:active::after {
+      animation: ripple 0.8s ease-out;
+    }
+    
+    @keyframes ripple {
+      0% {
+        transform: scale(0);
+        opacity: 0.6;
+      }
+      100% {
+        transform: scale(200);
+        opacity: 0;
+      }
+    }
+    
+    /* Playful Set */
+    .playful-button {
+      border: none;
+      border-radius: 25px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      color: white;
+      padding: 14px 28px;
+      box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.15);
+      transform: translateY(-4px);
+    }
+    
+    .playful-primary {
+      background-color: #FF6B6B;
+    }
+    
+    .playful-secondary {
+      background-color: #4ECDC4;
+    }
+    
+    .playful-success {
+      background-color: #FFE66D;
+      color: #333;
+    }
+    
+    .playful-danger {
+      background-color: #7B68EE;
+    }
+    
+    .playful-small {
+      font-size: 0.9rem;
+      padding: 10px 22px;
+    }
+    
+    .playful-medium {
+      font-size: 1.1rem;
+    }
+    
+    .playful-large {
+      font-size: 1.3rem;
+      padding: 16px 32px;
+    }
+    
+    .playful-button:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 8px 0 0 rgba(0, 0, 0, 0.15);
+    }
+    
+    .playful-button:active {
+      transform: translateY(0);
+      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Luxury Set */
+    .luxury-button {
+      font-family: 'Times New Roman', serif;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 1px;
+    }
+    
+    .luxury-primary {
+      background-color: #1a1a1a;
+      color: #DDB458;
+      border: 1px solid #DDB458;
+    }
+    
+    .luxury-secondary {
+      background-color: #DDB458;
+      color: #1a1a1a;
+      border: 1px solid #1a1a1a;
+    }
+    
+    .luxury-light {
+      background-color: #fff;
+      color: #1a1a1a;
+      border: 1px solid #DDB458;
+    }
+    
+    .luxury-small {
+      padding: 10px 20px;
+      font-size: 0.9rem;
+    }
+    
+    .luxury-medium {
+      padding: 15px 30px;
+      font-size: 1rem;
+    }
+    
+    .luxury-large {
+      padding: 18px 36px;
+      font-size: 1.1rem;
+    }
+    
+    .luxury-button:hover {
+      box-shadow: 0 0 15px rgba(221, 180, 88, 0.5);
+    }
+    
+    .luxury-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(221, 180, 88, 0.2),
+        transparent
+      );
+      transition: 0.5s;
+    }
+    
+    .luxury-button:hover::before {
+      left: 100%;
+    }
+    
+    /* Minimalist Set */
+    .minimal-button {
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      font-weight: 500;
+    }
+    
+    .minimal-primary {
+      color: #333;
+      border: 2px solid #333;
+    }
+    
+    .minimal-primary:hover {
+      color: white;
+      background: #333;
+    }
+    
+    .minimal-secondary {
+      color: #6C757D;
+      border: 2px solid #6C757D;
+    }
+    
+    .minimal-secondary:hover {
+      color: white;
+      background: #6C757D;
+    }
+    
+    .minimal-accent {
+      color: #9370DB;
+      border: 2px solid #9370DB;
+    }
+    
+    .minimal-accent:hover {
+      color: white;
+      background: #9370DB;
+    }
+    
+    .minimal-small {
+      padding: 8px 16px;
+      font-size: 0.9rem;
+    }
+    
+    .minimal-medium {
+      padding: 10px 22px;
+      font-size: 1rem;
+    }
+    
+    .minimal-large {
+      padding: 14px 30px;
+      font-size: 1.1rem;
+    }
+    
+    /* Neumorphic Set */
+    .neumorphic-button {
+      border: none;
+      color: #6D7587;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      background: #EBECF0;
+      font-weight: 600;
+      border-radius: 10px;
+    }
+    
+    .neumorphic-light {
+      box-shadow: 8px 8px 15px #D1D9E6, -8px -8px 15px #FFFFFF;
+    }
+    
+    .neumorphic-light:hover {
+      box-shadow: 6px 6px 10px #D1D9E6, -6px -6px 10px #FFFFFF;
+    }
+    
+    .neumorphic-light:active {
+      box-shadow: inset 2px 2px 5px #D1D9E6, inset -2px -2px 5px #FFFFFF;
+    }
+    
+    .neumorphic-dark {
+      background: #444857;
+      color: #d3d7e8;
+      box-shadow: 5px 5px 10px #363946, -5px -5px 10px #535768;
+    }
+    
+    .neumorphic-dark:hover {
+      box-shadow: 4px 4px 8px #363946, -4px -4px 8px #535768;
+    }
+    
+    .neumorphic-dark:active {
+      box-shadow: inset 2px 2px 5px #363946, inset -2px -2px 5px #535768;
+    }
+    
+    .neumorphic-small {
+      padding: 12px 24px;
+      font-size: 0.9rem;
+    }
+    
+    .neumorphic-medium {
+      padding: 16px 32px;
+      font-size: 1rem;
+    }
+    
+    .neumorphic-large {
+      padding: 20px 40px;
+      font-size: 1.1rem;
+    }
+    
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      padding: 30px;
+      border-top: 1px solid #eee;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>MeetNow UI Component Library</h1>
+      <p>Explore multiple design systems for your application</p>
+    </div>
+    
+    <!-- Modern Design Set -->
+    <div class="design-set">
+      <h2>Modern Design Set</h2>
+      <p>Sleek and contemporary buttons with subtle gradients and smooth animations.</p>
+      
+      <div class="button-section">
+        <h3>Button Variants</h3>
+        <div class="button-container">
+          <button class="modern-button modern-primary modern-medium">Primary</button>
+          <button class="modern-button modern-secondary modern-medium">Secondary</button>
+          <button class="modern-button modern-success modern-medium">Success</button>
+          <button class="modern-button modern-danger modern-medium">Danger</button>
+        </div>
+      </div>
+      
+      <div class="button-section">
+        <h3>Button Sizes</h3>
+        <div class="button-container">
+          <button class="modern-button modern-primary modern-small">Small</button>
+          <button class="modern-button modern-primary modern-medium">Medium</button>
+          <button class="modern-button modern-primary modern-large">Large</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Playful Design Set -->
+    <div class="design-set">
+      <h2>Playful Design Set</h2>
+      <p>Fun and energetic buttons with bold colors and bouncy animations.</p>
+      
+      <div class="button-section">
+        <h3>Button Variants</h3>
+        <div class="button-container">
+          <button class="playful-button playful-primary playful-medium">Primary</button>
+          <button class="playful-button playful-secondary playful-medium">Secondary</button>
+          <button class="playful-button playful-success playful-medium">Accent</button>
+          <button class="playful-button playful-danger playful-medium">Special</button>
+        </div>
+      </div>
+      
+      <div class="button-section">
+        <h3>Button Sizes</h3>
+        <div class="button-container">
+          <button class="playful-button playful-primary playful-small">Small</button>
+          <button class="playful-button playful-primary playful-medium">Medium</button>
+          <button class="playful-button playful-primary playful-large">Large</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Luxury Design Set -->
+    <div class="design-set">
+      <h2>Luxury Design Set</h2>
+      <p>Elegant and sophisticated buttons with gold accents and refined animations.</p>
+      
+      <div class="button-section">
+        <h3>Button Variants</h3>
+        <div class="button-container">
+          <button class="luxury-button luxury-primary luxury-medium">Primary</button>
+          <button class="luxury-button luxury-secondary luxury-medium">Secondary</button>
+          <button class="luxury-button luxury-light luxury-medium">Light</button>
+        </div>
+      </div>
+      
+      <div class="button-section">
+        <h3>Button Sizes</h3>
+        <div class="button-container">
+          <button class="luxury-button luxury-primary luxury-small">Small</button>
+          <button class="luxury-button luxury-primary luxury-medium">Medium</button>
+          <button class="luxury-button luxury-primary luxury-large">Large</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Minimalist Design Set -->
+    <div class="design-set">
+      <h2>Minimalist Design Set</h2>
+      <p>Clean and simple buttons with focused interactions and clear purpose.</p>
+      
+      <div class="button-section">
+        <h3>Button Variants</h3>
+        <div class="button-container">
+          <button class="minimal-button minimal-primary minimal-medium">Primary</button>
+          <button class="minimal-button minimal-secondary minimal-medium">Secondary</button>
+          <button class="minimal-button minimal-accent minimal-medium">Accent</button>
+        </div>
+      </div>
+      
+      <div class="button-section">
+        <h3>Button Sizes</h3>
+        <div class="button-container">
+          <button class="minimal-button minimal-primary minimal-small">Small</button>
+          <button class="minimal-button minimal-primary minimal-medium">Medium</button>
+          <button class="minimal-button minimal-primary minimal-large">Large</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Neumorphic Design Set -->
+    <div class="design-set">
+      <h2>Neumorphic Design Set</h2>
+      <p>Soft UI buttons with realistic light and shadow effects.</p>
+      
+      <div class="button-section">
+        <h3>Button Variants</h3>
+        <div class="button-container">
+          <button class="neumorphic-button neumorphic-light neumorphic-medium">Light</button>
+          <button class="neumorphic-button neumorphic-dark neumorphic-medium">Dark</button>
+        </div>
+      </div>
+      
+      <div class="button-section">
+        <h3>Button Sizes</h3>
+        <div class="button-container">
+          <button class="neumorphic-button neumorphic-light neumorphic-small">Small</button>
+          <button class="neumorphic-button neumorphic-light neumorphic-medium">Medium</button>
+          <button class="neumorphic-button neumorphic-light neumorphic-large">Large</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    MeetNow &copy; 2023 - UI Component Design System
+  </footer>
+  
+  <script>
+    // Add event listeners to buttons
+    document.querySelectorAll('button').forEach(button => {
+      button.addEventListener('click', function() {
+        // Add a small animation when clicked (adjust based on button type)
+        if (this.classList.contains('modern-button')) {
+          // Modern buttons use ripple effect (already added in CSS)
+        } else if (this.classList.contains('playful-button')) {
+          // Playful buttons use the bounce effect (in CSS)
+        } else if (this.classList.contains('luxury-button')) {
+          // Luxury buttons use shimmer effect (in CSS)
+        } else if (this.classList.contains('minimal-button')) {
+          // Minimal buttons use simple background transition (in CSS)
+        } else if (this.classList.contains('neumorphic-button')) {
+          // Neumorphic buttons use inset shadow (in CSS)
+        } else {
+          // Default animation for other buttons
+          this.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            this.style.transform = '';
+          }, 200);
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

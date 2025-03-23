@@ -1,24 +1,94 @@
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-// Debug logging for environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+declare global {
+  interface ImportMeta {
+    env: {
+      VITE_SUPABASE_URL: string;
+      VITE_SUPABASE_ANON_KEY: string;
+    }
+  }
+  // Add global instance type
+  interface Window {
+    __SUPABASE_INSTANCE__?: SupabaseClient;
+  }
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  db: {
-    schema: 'public'
-  },
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
+// Ensure environment variables are available
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Validate configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase configuration. Please check your environment variables.');
+}
+
+let instance: SupabaseClient | null = null;
+let isInitializing = false;
+let initializationPromise: Promise<SupabaseClient> | null = null;
+
+const createSupabaseClient = async (): Promise<SupabaseClient> => {
+  if (instance) return instance;
+
+  if (isInitializing) {
+    if (!initializationPromise) {
+      throw new Error('Initialization state is inconsistent');
+    }
+    return initializationPromise;
   }
-});
+
+  try {
+    isInitializing = true;
+    
+    // Create the initialization promise
+    initializationPromise = (async () => {
+      // Create client with minimal configuration
+      const client = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: true,
+          storageKey: 'meetnow-auth',
+          storage: window?.localStorage,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+          flowType: 'implicit'
+        }
+      });
+
+      // Initialize auth and wait for it to complete
+      await client.auth.initialize();
+      console.debug('Supabase auth initialized');
+
+      instance = client;
+      return client;
+    })();
+
+    return await initializationPromise;
+  } finally {
+    isInitializing = false;
+    initializationPromise = null;
+  }
+};
+
+// Export an async getter function
+export const getSupabase = async (): Promise<SupabaseClient> => {
+  if (!instance) {
+    instance = await createSupabaseClient();
+  }
+  return instance;
+};
+
+// Cleanup function
+export const cleanupSupabase = (): void => {
+  if (instance) {
+    try {
+      // Remove all subscriptions and listeners
+      instance.removeAllChannels();
+      instance.auth.onAuthStateChange(() => {});
+    } catch (err) {
+      console.error('Error during Supabase cleanup:', err);
+    }
+    instance = null;
+  }
+};
 
 // Helper function to create a new meetup
 export const createNewMeetup = async ({ 
@@ -29,31 +99,20 @@ export const createNewMeetup = async ({
   address: string;
 }) => {
   try {
-    console.log('Creating new meetup with data:', { location, address });
-
-    // Validate location data
-    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      console.error('Invalid location data:', location);
-      throw new Error('Invalid location data: must include lat and lng as numbers');
-    }
-
+    const client = await getSupabase();
     const meetupData = {
       location,
       address,
       status: 'active' as const
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('free_meetups')
       .insert([meetupData])
       .select()
       .single();
 
-    if (error) {
-      console.error('Supabase insert error:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     return { success: true as const, meetup: data };
   } catch (error) {
     console.error('Error creating meetup:', error);
@@ -61,17 +120,17 @@ export const createNewMeetup = async ({
   }
 };
 
-// Helper function to get nearby active meetups
+// Helper function to get nearby meetups
 export const getNearbyMeetups = async () => {
   try {
-    const { data, error } = await supabase
-      .from('free_meetups')
-      .select('id, location, address, created_at, expires_at, status')
+    const client = await getSupabase();
+    const { data, error } = await client
+      .from('meetups_with_expiry')
+      .select('id, location, address, created_at, expires_at, starts_at, duration_minutes, status')
       .eq('status', 'active')
       .gt('expires_at', new Date().toISOString());
 
     if (error) throw error;
-
     return { success: true as const, meetups: data };
   } catch (error) {
     console.error('Error in getNearbyMeetups:', error);
@@ -82,14 +141,14 @@ export const getNearbyMeetups = async () => {
 // Helper function to get a meetup by UUID
 export const getMeetupById = async (id: string) => {
   try {
-    const { data, error } = await supabase
-      .from('free_meetups')
-      .select('id, location, address, created_at, expires_at, status')
+    const client = await getSupabase();
+    const { data, error } = await client
+      .from('meetups_with_expiry')
+      .select('id, location, address, created_at, expires_at, starts_at, duration_minutes, status')
       .eq('id', id)
       .single();
 
     if (error) throw error;
-
     return { success: true as const, meetup: data };
   } catch (error) {
     console.error('Error in getMeetupById:', error);
@@ -100,27 +159,35 @@ export const getMeetupById = async (id: string) => {
 // Helper function to cancel a meetup
 export const cancelMeetup = async (id: string) => {
   try {
-    const { data, error } = await supabase
-      .from('free_meetups')
+    const client = await getSupabase();
+    const { data, error } = await client
+      .from('meetups')
       .update({ status: 'cancelled' })
-      .eq('id', id)
-      .select('id, location, address, created_at, expires_at, status')
-      .single();
-
+      .eq('id', id);
+      
     if (error) throw error;
-
-    return { success: true as const, meetup: data };
+    
+    // Now get the updated data from the view
+    const { data: updatedData, error: fetchError } = await client
+      .from('meetups_with_expiry')
+      .select('id, location, address, created_at, expires_at, starts_at, duration_minutes, status')
+      .eq('id', id)
+      .single();
+      
+    if (fetchError) throw fetchError;
+    
+    return { success: true as const, meetup: updatedData };
   } catch (error) {
     console.error('Error in cancelMeetup:', error);
     return { success: false as const, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
 
-// Supabase helper functions with TypeScript types
+// Database helper functions
 export const database = {
-  // Get data from a table
   get: async <T>(table: string, query = {}) => {
-    const { data, error } = await supabase
+    const client = await getSupabase();
+    const { data, error } = await client
       .from(table)
       .select('*')
       .match(query);
@@ -129,9 +196,9 @@ export const database = {
     return data as T[];
   },
 
-  // Insert data into a table
   insert: async <T>(table: string, data: Partial<T>) => {
-    const { data: result, error } = await supabase
+    const client = await getSupabase();
+    const { data: result, error } = await client
       .from(table)
       .insert([data])
       .select()
@@ -141,9 +208,9 @@ export const database = {
     return result as T;
   },
 
-  // Update data in a table
   update: async <T>(table: string, query: Record<string, any>, updates: Partial<T>) => {
-    const { data, error } = await supabase
+    const client = await getSupabase();
+    const { data, error } = await client
       .from(table)
       .update(updates)
       .match(query)
@@ -153,9 +220,9 @@ export const database = {
     return data as T[];
   },
 
-  // Delete data from a table
   delete: async (table: string, query: Record<string, any>) => {
-    const { error } = await supabase
+    const client = await getSupabase();
+    const { error } = await client
       .from(table)
       .delete()
       .match(query);
@@ -164,9 +231,9 @@ export const database = {
     return true;
   },
 
-  // Get real-time updates
-  subscribe: <T>(table: string, callback: (payload: T) => void) => {
-    const subscription = supabase
+  subscribe: async <T>(table: string, callback: (payload: T) => void) => {
+    const client = await getSupabase();
+    const subscription = client
       .channel(`public:${table}`)
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: table },

@@ -1,0 +1,90 @@
+/* Custom animations and styles for MeetNow buttons */
+
+.meetNow-button {
+  border: none;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Variants */
+.meetNow-button-primary {
+  background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+  color: white;
+}
+
+.meetNow-button-secondary {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.meetNow-button-success {
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+  color: white;
+}
+
+/* Sizes */
+.meetNow-button-small {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+
+.meetNow-button-medium {
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+.meetNow-button-large {
+  padding: 16px 32px;
+  font-size: 1.125rem;
+}
+
+/* Animations */
+.animate-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.animate-hover:active,
+.animate-press {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Ripple effect */
+.animate-hover:after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%);
+  transform-origin: 50% 50%;
+}
+
+.animate-hover:focus:not(:active)::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.5;
+  }
+  20% {
+    transform: scale(25, 25);
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(40, 40);
+  }
+} 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Card, CardContent } from '@/components/ui';
+import { Card, CardContent } from './index.js';
 
 const UserProfile = ({ onProfileUpdate }) => {
   const [bio, setBio] = useState('');

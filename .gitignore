@@ -2,3 +2,28 @@ node_modules
 node_modules
 node_modules
 .vercel
+
+# Documentation directories
+/docs/
+/DOCUMENTATION/
+*.md
+!README.md
+!CHANGELOG.md
+!LICENSE.md
+
+# Editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Build artifacts
+/dist/
+/build/
+/.next/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

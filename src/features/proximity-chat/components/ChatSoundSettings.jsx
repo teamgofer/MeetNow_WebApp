@@ -1,19 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { FaVolumeUp, FaVolumeMute, FaVolumeDown, FaBell, FaBellSlash } from 'react-icons/fa';
 import audioUtils from '../utils/audioUtils';
 import '../styles/proximity-chat.css';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 /**
  * Component for managing sound notification settings for proximity chat
  */
 const ChatSoundSettings = ({ className, compact = false }) => {
   const [preferences, setPreferences] = useState(audioUtils.getAudioPreferences());
+  const renderStartTimeRef = useRef(Date.now());
+  
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.track('chat_sound_settings_init', duration, {
+      success: true,
+      metadata: {
+        masterEnabled: preferences.masterEnabled,
+        volume: preferences.volume,
+        isCompact: compact,
+        enabledSoundTypes: Object.entries(preferences)
+          .filter(([key, value]) => key !== 'masterEnabled' && key !== 'volume' && value)
+          .map(([key]) => key)
+      }
+    });
+  }, []);
   
   // Update local state when preferences change from other components
   useEffect(() => {
     const updatePreferences = () => {
-      setPreferences(audioUtils.getAudioPreferences());
+      const startTime = Date.now();
+      const newPreferences = audioUtils.getAudioPreferences();
+      setPreferences(newPreferences);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.track('chat_sound_settings_update', duration, {
+        success: true,
+        metadata: {
+          masterEnabled: newPreferences.masterEnabled,
+          volume: newPreferences.volume,
+          isCompact: compact,
+          enabledSoundTypes: Object.entries(newPreferences)
+            .filter(([key, value]) => key !== 'masterEnabled' && key !== 'volume' && value)
+            .map(([key]) => key)
+        }
+      });
     };
     
     // Create custom event listener for preference changes
@@ -22,10 +55,11 @@ const ChatSoundSettings = ({ className, compact = false }) => {
     return () => {
       window.removeEventListener('proximityChat.preferencesChanged', updatePreferences);
     };
-  }, []);
+  }, [compact]);
   
   // Update preferences when toggles change
   const handleMasterToggle = () => {
+    const startTime = Date.now();
     const newState = audioUtils.toggleMasterSound();
     setPreferences(prev => ({ ...prev, masterEnabled: newState }));
     
@@ -33,9 +67,20 @@ const ChatSoundSettings = ({ className, compact = false }) => {
     if (newState) {
       audioUtils.testNotificationSound('connected');
     }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('chat_sound_settings_master_toggle', duration, {
+      success: true,
+      metadata: {
+        newState,
+        volume: preferences.volume,
+        isCompact: compact
+      }
+    });
   };
   
   const handleSoundTypeToggle = (soundType) => {
+    const startTime = Date.now();
     const newState = audioUtils.toggleSoundType(soundType);
     setPreferences(prev => ({ ...prev, [soundType]: newState }));
     
@@ -43,9 +88,21 @@ const ChatSoundSettings = ({ className, compact = false }) => {
     if (newState && preferences.masterEnabled) {
       audioUtils.testNotificationSound(soundType);
     }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('chat_sound_settings_type_toggle', duration, {
+      success: true,
+      metadata: {
+        soundType,
+        newState,
+        masterEnabled: preferences.masterEnabled,
+        volume: preferences.volume
+      }
+    });
   };
   
   const handleVolumeChange = (e) => {
+    const startTime = Date.now();
     const volume = parseFloat(e.target.value);
     const normalizedVolume = audioUtils.setNotificationVolume(volume);
     setPreferences(prev => ({ ...prev, volume: normalizedVolume }));
@@ -54,16 +111,61 @@ const ChatSoundSettings = ({ className, compact = false }) => {
     if (preferences.masterEnabled) {
       audioUtils.testNotificationSound('newMessage', normalizedVolume);
     }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('chat_sound_settings_volume_change', duration, {
+      success: true,
+      metadata: {
+        oldVolume: preferences.volume,
+        newVolume: normalizedVolume,
+        masterEnabled: preferences.masterEnabled,
+        isCompact: compact
+      }
+    });
   };
   
   // Determine volume icon based on level
   const getVolumeIcon = () => {
-    if (!preferences.masterEnabled) return FaVolumeMute;
-    if (preferences.volume < 0.3) return FaVolumeDown;
-    return FaVolumeUp;
+    const startTime = Date.now();
+    let icon;
+    
+    if (!preferences.masterEnabled) {
+      icon = FaVolumeMute;
+    } else if (preferences.volume < 0.3) {
+      icon = FaVolumeDown;
+    } else {
+      icon = FaVolumeUp;
+    }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('chat_sound_settings_icon_update', duration, {
+      success: true,
+      metadata: {
+        masterEnabled: preferences.masterEnabled,
+        volume: preferences.volume,
+        iconType: icon.displayName
+      }
+    });
+    
+    return icon;
   };
   
   const VolumeIcon = getVolumeIcon();
+  
+  // Track test sound playback
+  const handleTestSound = (soundType) => {
+    const startTime = Date.now();
+    audioUtils.testNotificationSound(soundType);
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('chat_sound_settings_test_sound', duration, {
+      success: true,
+      metadata: {
+        soundType,
+        masterEnabled: preferences.masterEnabled,
+        volume: preferences.volume
+      }
+    });
+  };
   
   // Compact version only shows master toggle and volume
   if (compact) {
@@ -135,7 +237,7 @@ const ChatSoundSettings = ({ className, compact = false }) => {
               <div className="toggle-controls">
                 <button 
                   className="sound-test-btn" 
-                  onClick={() => audioUtils.testNotificationSound('newMessage')}
+                  onClick={() => handleTestSound('newMessage')}
                   aria-label="Test new message sound"
                   title="Test sound"
                 >
@@ -158,7 +260,7 @@ const ChatSoundSettings = ({ className, compact = false }) => {
               <div className="toggle-controls">
                 <button 
                   className="sound-test-btn" 
-                  onClick={() => audioUtils.testNotificationSound('userNearby')}
+                  onClick={() => handleTestSound('userNearby')}
                   aria-label="Test nearby user sound"
                   title="Test sound"
                 >
@@ -181,7 +283,7 @@ const ChatSoundSettings = ({ className, compact = false }) => {
               <div className="toggle-controls">
                 <button 
                   className="sound-test-btn" 
-                  onClick={() => audioUtils.testNotificationSound('messageSent')}
+                  onClick={() => handleTestSound('messageSent')}
                   aria-label="Test message sent sound"
                   title="Test sound"
                 >
@@ -204,7 +306,7 @@ const ChatSoundSettings = ({ className, compact = false }) => {
               <div className="toggle-controls">
                 <button 
                   className="sound-test-btn" 
-                  onClick={() => audioUtils.testNotificationSound('typing')}
+                  onClick={() => handleTestSound('typing')}
                   aria-label="Test typing sound"
                   title="Test sound"
                 >
@@ -227,7 +329,7 @@ const ChatSoundSettings = ({ className, compact = false }) => {
               <div className="toggle-controls">
                 <button 
                   className="sound-test-btn" 
-                  onClick={() => audioUtils.testNotificationSound('connected')}
+                  onClick={() => handleTestSound('connected')}
                   aria-label="Test connected sound"
                   title="Test sound"
                 >
@@ -250,7 +352,7 @@ const ChatSoundSettings = ({ className, compact = false }) => {
               <div className="toggle-controls">
                 <button 
                   className="sound-test-btn" 
-                  onClick={() => audioUtils.testNotificationSound('disconnected')}
+                  onClick={() => handleTestSound('disconnected')}
                   aria-label="Test disconnected sound"
                   title="Test sound"
                 >

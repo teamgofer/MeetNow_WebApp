@@ -95,24 +95,24 @@
 
 **Symptoms:**
 - Map does not center on selected location when expected
-- Bird's Eye View doesn't show both points
-- Vicinity mode not focusing on user location
+- Focus doesn't properly update when selecting locations from search
+- Inconsistent behavior when clicking the map
 
 **Possible Causes and Solutions:**
 
-1. **Mode Switching Issues**
-   - **Problem**: Mode-specific behavior not applying correctly
+1. **Controller Integration Issues**
+   - **Problem**: MapNavigationController not properly integrated with React components
    - **Solution**:
-     - Check that currentNavigationMode state is correctly updated
-     - Verify that map handlers have access to current mode
-     - Add console logging to track mode changes
+     - Ensure MapClickHandlerWithController is included in the MapContainer
+     - Verify that navigationController has been initialized before use
+     - Check console logs to track controller initialization
 
 2. **Map Reference Issues**
    - **Problem**: Map reference (mapRef) not properly set or accessed
    - **Solution**:
      - Ensure map reference is correctly captured in whenCreated
      - Verify that mapRef.current exists before trying to use it
-     - Implement fallback behaviors when map reference is not available
+     - Use the navigation controller for all map operations
 
 3. **Coordinate Issues**
    - **Problem**: Invalid coordinates passed to map methods
@@ -201,6 +201,40 @@
      - Implement tile caching
      - Reduce initial zoom level
 
+### Image Storage Issues
+
+#### Image Upload and Display Problems
+
+**Symptoms:**
+- Images fail to upload or display
+- Broken image icons in meetup cards
+- Network errors related to S3 or Wasabi URLs
+
+**Possible Causes and Solutions:**
+
+1. **Wasabi Connectivity Issues**
+   - **Problem**: Connection to Wasabi storage failing
+   - **Solution**: 
+     - Check network connectivity to Wasabi endpoints
+     - Verify environment variables are correctly configured
+     - See detailed steps in [Wasabi Troubleshooting Guide](./WASABI_TROUBLESHOOTING.md)
+
+2. **Pre-signed URL Problems**
+   - **Problem**: Pre-signed URLs expire or are malformed
+   - **Solution**:
+     - Verify URL generation logic in wasabi-storage.js
+     - Check expiration times for URLs
+     - Implement URL refresh mechanism for long-lived pages
+
+3. **CORS Configuration**
+   - **Problem**: Cross-origin requests being blocked
+   - **Solution**:
+     - Update Wasabi bucket CORS settings
+     - Ensure proper request headers are being sent
+     - Configure the application to handle CORS preflight requests
+
+For comprehensive troubleshooting of image storage issues, refer to the [Wasabi Image Storage Troubleshooting Guide](./WASABI_TROUBLESHOOTING.md).
+
 ## Debugging Techniques
 
 ### Console Logging Strategy
@@ -285,7 +319,13 @@
      // map.setView(center, zoom);  // Avoid this
      
      // Use the controller:
-     mapNavigationController.setView(center, zoom);
+     navigationController.current.navigateTo({
+       lat: center[0],
+       lng: center[1]
+     }, {
+       zoom: zoom,
+       animate: true
+     });
      ```
 
 2. **Map Instance References**
@@ -295,12 +335,12 @@
      - Check that MapNavigationController is initialized with the correct map instance
      - Use the debug console to verify active map operations
 
-3. **Navigation Mode Conflicts**
-   - **Problem**: Navigation behavior not matching current mode
+3. **Click Handling Issues**
+   - **Problem**: Map clicks not properly processed by the controller
    - **Solution**:
-     - Verify current navigation mode in state
-     - Check MapNavigationController logs for mode detection
-     - Use DebugConsole to test navigation in different modes
+     - Verify MapClickHandlerWithController is properly mounted in MapContainer
+     - Check that the controller has onLocationSelect callback set
+     - Use the DebugConsole to test click handling
 
 #### Using Debug Tools
 
@@ -411,19 +451,19 @@
 #### Undefined Listeners or Callback Errors
 
 **Symptoms:**
-- Console errors like "undefined is not an object (evaluating 'this.listeners.location')"
+- Console errors like "undefined is not an object (evaluating 'callback')"
 - Map not responding to location changes
-- Navigation mode switching not working properly
+- Map clicks not working properly
 - Components not receiving notifications from navigation controller
 
 **Possible Causes and Solutions:**
 
 1. **Callback API Mismatches**
-   - **Problem**: The navigation controller API changed from listener arrays to callback properties
+   - **Problem**: Missing or incorrect callback properties when initializing the controller
    - **Solution**:
-     - Implement both approaches for backward compatibility
-     - Initialize `this.listeners` object in the constructor
-     - In notification methods, check both callback properties and listener arrays
+     - Ensure all required callbacks are provided when initializing the controller
+     - Use consistent callback naming following the controller's API
+     - Check for typos in callback property names
 
 2. **Component Integration Pattern Issues**
    - **Problem**: Components breaking the callback chain when multiple components subscribe to the same events
@@ -436,7 +476,62 @@
    - **Problem**: Null or undefined map references causing navigation operations to fail
    - **Solution**:
      - Check if map is ready before attempting operations with `isReadyToNavigate()`
-     - Use `waitUntilReady()` for critical operations to ensure they execute when map is available
+     - Use proper error handling for navigation operations
      - Add retry mechanisms for map registration if initially unsuccessful
 
+#### Invalid Map Reference Warnings
+
+**Symptoms:**
+- Console warnings: `Invalid map reference, not a Leaflet map`
+- Console warnings: `Could not extract valid map instance`
+- Map works partially but navigation features fail
+- Multiple initialization messages in console
+
+**Possible Causes and Solutions:**
+
+1. **Incorrect Map Reference Handling**
+   - **Problem**: Passing React ref object instead of actual map instance
+   - **Solution**:
+     ```javascript
+     // INCORRECT: Passing the React ref object
+     navigationController.current.updateMapReference(mapRef);
+     
+     // CORRECT: Passing the actual map instance from whenReady callback
+     navigationController.current.updateMapReference(mapInstance.target);
+     ```
+     - Ensure you're passing the actual Leaflet map instance to `updateMapReference`
+     - Check that `whenCreated` and `handleMapReady` functions are using the right reference
+
+2. **Multiple Initialization Attempts**
+   - **Problem**: Map initialization happening from multiple sources
+   - **Solution**:
+     ```javascript
+     // Track initialization state
+     const mapInitialized = useRef(false);
+     
+     const handleMapReady = useCallback((map) => {
+       // Guard against multiple initializations
+       if (mapInitialized.current) {
+         console.log('Map already initialized, skipping redundant initialization');
+         return;
+       }
+       
+       mapRef.current = map;
+       setIsMapReady(true);
+       mapInitialized.current = true;
+       
+       // Rest of initialization...
+     }, [/* dependencies */]);
+     ```
+     - Add a guard flag to prevent multiple initializations
+     - Consolidate initialization to a single source
+     - Check duplicate event listeners that might trigger initialization
+
+3. **Race Conditions During Initialization**
+   - **Problem**: Map reference updates happening before controller is ready
+   - **Solution**:
+     - Initialize controller before trying to use it
+     - Check that controller exists before updating references
+     - Add sequential checks to ensure components initialize in the right order
+     - Add guards for location updates when map is not initialized
 See the dedicated [Navigation Controller documentation](NAVIGATION_CONTROLLER.md) for detailed implementation guidance. 

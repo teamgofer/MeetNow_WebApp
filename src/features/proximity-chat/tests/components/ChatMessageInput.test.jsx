@@ -2,14 +2,15 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ChatMessageInput from '../../components/ChatMessageInput';
 import { useProximityChatContext } from '../../context/ProximityChatContext';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock the context
-jest.mock('../../context/ProximityChatContext', () => ({
-  useProximityChatContext: jest.fn()
+vi.mock('../../context/ProximityChatContext', () => ({
+  useProximityChatContext: vi.fn()
 }));
 
 // Mock emoji-picker-react
-jest.mock('emoji-picker-react', () => {
+vi.mock('emoji-picker-react', () => {
   return {
     __esModule: true,
     default: ({ onEmojiClick }) => (
@@ -27,8 +28,8 @@ jest.mock('emoji-picker-react', () => {
 
 describe('ChatMessageInput', () => {
   // Sample context data for testing
-  const mockSendMessageFn = jest.fn();
-  const mockSetTypingFn = jest.fn();
+  const mockSendMessageFn = vi.fn();
+  const mockSetTypingFn = vi.fn();
   
   const mockContextValue = {
     sendMessage: mockSendMessageFn,
@@ -40,7 +41,7 @@ describe('ChatMessageInput', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     useProximityChatContext.mockReturnValue(mockContextValue);
   });
   

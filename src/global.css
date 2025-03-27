@@ -26,25 +26,32 @@
     --radius: 0.5rem;
     --safe-area-top: env(safe-area-inset-top, 0px);
     --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
     --bottom-sheet-height: 70vh;
     --content-max-width: 600px;
     --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
-    --breakpoint-xs: 320px;
-    --breakpoint-sm: 360px;
-    --breakpoint-md: 390px;
+    --breakpoint-xs: 375px;
+    --breakpoint-sm: 414px;
+    --breakpoint-md: 576px;
     --breakpoint-lg: 768px;
     --breakpoint-xl: 1024px;
-    --z-map: 1;
-    --z-map-container: 2;
-    --z-map-pane: 400;
-    --z-map-controls: 600;
-    --z-popup: 650;
-    --z-floating-windows: 700;
-    --z-backdrop: 800;
-    --z-bottom-sheet: 850;
+    --breakpoint-2xl: 1536px;
+    --z-map: 100;
+    --z-map-container: 110;
+    --z-map-pane: 120;
+    --z-map-controls: 150;
+    --z-popup: 200;
+    --z-floating-windows: 300;
+    --z-backdrop: 400;
+    --z-bottom-sheet: 500;
+    --z-modal: 600;
+    --z-tooltip: 700;
     --transition-duration: 0.3s;
     --transition-duration-fast: 0.2s;
     --animation-slide: cubic-bezier(0.4, 0, 0.2, 1);
+    --touch-target-size: 44px;
+    --touch-target-size-small: 40px;
   }
  
   .dark {
@@ -748,6 +755,9 @@
   height: var(--bottom-sheet-height);
   max-height: calc(100vh - var(--safe-area-top));
   padding-bottom: var(--safe-area-bottom);
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+  will-change: transform, height;
 }
 
 .bottom-sheet.active {
@@ -765,7 +775,7 @@
   opacity: 0;
   transition: opacity 0.3s ease-out;
   pointer-events: none;
-  z-index: 800;
+  z-index: var(--z-backdrop);
 }
 
 .bottom-sheet-backdrop.active {
@@ -792,6 +802,7 @@
 .bottom-sheet button {
   position: relative;
   transition: all 0.2s ease-in-out;
+  min-height: var(--touch-target-size);
 }
 
 .bottom-sheet button::after {
@@ -869,131 +880,34 @@
   border-radius: var(--radius);
 }
 
-/* Responsive adjustments for bottom sheet */
-@media (max-width: 1024px), (max-height: 768px) {
-  .bottom-sheet {
-    height: 70vh;
-  }
-
-  .bottom-sheet-inner-content {
-    padding: 12px 16px;
-  }
-
-  /* Adjust map controls when bottom sheet is open */
-  .bottom-sheet.active ~ .leaflet-control-container .leaflet-bottom {
-    bottom: calc(40vh + 20px) !important;
-  }
-
-  .bottom-sheet.active ~ .leaflet-control-container .leaflet-control-attribution {
-    bottom: calc(40vh + 10px) !important;
-  }
-
-  /* Ensure content is visible above the safe area */
-  .InstantMeetup-content,
-  .NearbyMeetups-content {
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  }
+/* Improved Touch Target Class */
+.touch-target {
+  min-width: var(--touch-target-size);
+  min-height: var(--touch-target-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  position: relative;
 }
 
-/* Portrait mode adjustments */
-@media (orientation: portrait) {
-  .bottom-sheet {
-    height: 70vh;
-  }
+/* Create a larger invisible touch area */
+.touch-target::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  min-width: var(--touch-target-size);
+  min-height: var(--touch-target-size);
+  transform: translate(-50%, -50%);
+  z-index: -1;
 }
 
-/* Landscape mode adjustments */
-@media (orientation: landscape) and (max-height: 768px) {
-  .bottom-sheet {
-    height: 85vh;
-  }
-}
-
-/* Z-index hierarchy */
-.map-view {
-  z-index: 1;
-}
-
-.leaflet-container {
-  z-index: 2;
-}
-
-.leaflet-control-container {
-  z-index: 600;
-}
-
-.leaflet-pane {
-  z-index: 400;
-}
-
-.leaflet-top,
-.leaflet-bottom {
-  z-index: 600;
-}
-
-.bottom-sheet-backdrop {
-  z-index: 800;
-}
-
-.bottom-sheet {
-  z-index: 850;
-}
-
-/* Ensure popups appear above other map elements but below the bottom sheet */
-.leaflet-popup {
-  z-index: 650;
-}
-
-/* When bottom sheet is active, adjust map controls */
-.bottom-sheet.active ~ .leaflet-control-container {
-  z-index: 400;
-}
-
-/* Handle keyboard appearance */
-@media (max-height: 500px) {
-  .bottom-sheet {
-    --keyboard-height: 300px;
-    height: calc(100vh - var(--safe-area-top) - var(--keyboard-height)) !important;
-  }
-}
-
-/* Portrait mode adjustments */
-@media (orientation: portrait) {
-  .bottom-sheet {
-    height: calc(70vh - var(--safe-area-top));
-  }
-}
-
-/* Landscape mode adjustments */
-@media (orientation: landscape) {
-  .bottom-sheet {
-    height: calc(85vh - var(--safe-area-top));
-  }
-}
-
-/* Small screen adjustments */
-@media (max-height: 667px) {
-  .bottom-sheet {
-    height: calc(80vh - var(--safe-area-top));
-  }
-}
-
-/* Handle notched devices */
-@supports (padding-top: constant(safe-area-inset-top)) {
-  .bottom-sheet {
-    --safe-area-top: constant(safe-area-inset-top);
-    --safe-area-bottom: constant(safe-area-inset-bottom);
-  }
-}
-
-@supports (padding-top: env(safe-area-inset-top)) {
-  .bottom-sheet {
-    --safe-area-top: env(safe-area-inset-top);
-    --safe-area-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Map control positioning */
+/* Enhanced map control positioning and sizing for better touch */
 .map-control {
   margin: 10px !important;
   background: rgba(255, 255, 255, 0.9) !important;
@@ -1004,10 +918,9 @@
 }
 
 .map-control a {
-  @extend .touch-target;
-  min-width: 44px !important;
-  min-height: 44px !important;
-  line-height: 44px !important;
+  min-width: var(--touch-target-size) !important;
+  min-height: var(--touch-target-size) !important;
+  line-height: var(--touch-target-size) !important;
   font-size: 18px;
   display: flex !important;
   align-items: center !important;
@@ -1016,462 +929,129 @@
 
 /* Adjust control position when bottom sheet is open */
 .bottom-sheet.active ~ .leaflet-control-container .map-control {
-  transform: translateY(-20vh);
+  transform: translateY(calc(-1 * var(--bottom-sheet-height, 20vh)));
 }
 
-/* Right-handed optimization */
-@media (max-width: 1024px) {
-  .leaflet-right .map-control {
-    margin-right: 20px !important;
-  }
-}
-
-/* Left-handed optimization */
-@media (max-width: 1024px) {
-  .leaflet-left .map-control {
-    margin-left: 20px !important;
-  }
-}
-
-/* Ensure controls are accessible on small screens */
-@media (max-height: 500px) {
-  .map-control {
-    transform: scale(0.8);
-    transform-origin: center;
-  }
-}
-
-/* Improve touch targets on mobile */
-@media (hover: none) {
-  .map-control a {
-    min-width: 44px;
-    min-height: 44px;
-    line-height: 44px !important;
-  }
-}
-
-/* Floating windows styles */
-.floating-windows {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-width: 400px;
-  max-height: calc(100vh - 40px);
-  z-index: 700;
-  overflow: visible;
-  opacity: 1;
-  transform: translateX(0);
-  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-}
-
-.floating-windows.hidden {
-  display: none !important;
-  pointer-events: none;
-}
-
-/* Consolidated animation classes */
-.fade-transition {
-  @extend .animated;
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.fade-transition.active {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.scale-transition {
-  @extend .animated-fast;
-  transform: scale(1);
-}
-
-.scale-transition:hover {
-  transform: scale(1.05);
-}
-
-/* Consolidated safe area handling */
-@supports (padding: env(safe-area-inset-top)) or (padding: constant(safe-area-inset-top)) {
-  .safe-area-top {
-    padding-top: max(env(safe-area-inset-top, 0px), constant(safe-area-inset-top, 0px));
-  }
-
-  .safe-area-bottom {
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), constant(safe-area-inset-bottom, 0px));
-  }
-}
-
-/* Compact layout for very small screens */
-@media only screen and (max-width: 360px), (max-height: 600px) {
-  .map-view-container {
-    display: grid !important;
-    /* Adjust map/content ratio to 45/55 for better content visibility */
-    grid-template-rows: minmax(45vh, 320px) minmax(0, 1fr) !important;
-    height: 100vh !important;
-    overflow: hidden !important;
-  }
-
-  .map-view-container .leaflet-container {
-    height: 100% !important;
-    width: 100% !important;
-    border-bottom: 2px solid var(--border);
-    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-
-  /* Enhanced tab styling */
-  .compact-tabs {
-    display: flex !important;
-    background: var(--background) !important;
-    padding: 0 !important;
-    height: 44px !important; /* Increased touch target */
-    min-height: 44px !important;
-    position: relative !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-  }
-
-  .compact-tabs::after {
-    content: '' !important;
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    height: 1px !important;
-    background: var(--border) !important;
-    opacity: 0.7 !important;
-  }
-
-  .compact-tabs button {
-    flex: 1 !important;
-    font-size: 14px !important;
-    padding: 12px 8px !important;
-    border: none !important;
-    background: transparent !important;
-    color: var(--muted-foreground) !important;
-    position: relative !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    touch-action: manipulation !important;
-    -webkit-tap-highlight-color: transparent !important;
-    font-weight: 500 !important;
-  }
-
-  .compact-tabs button.active {
-    color: var(--primary) !important;
-  }
-
-  .compact-tabs button::after {
-    content: '' !important;
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 50% !important;
-    width: 0 !important;
-    height: 2px !important;
-    background: var(--primary) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    transform: translateX(-50%) !important;
-    opacity: 0 !important;
-  }
-
-  .compact-tabs button.active::after {
-    width: 100% !important;
-    opacity: 1 !important;
-  }
-
-  /* Improved content area with better transitions */
-  .compact-content-area {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
-    overflow: hidden !important;
-    background: var(--background) !important;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-
-  .compact-content {
-    flex: 1 !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    padding: 16px !important;
-    overscroll-behavior: contain !important;
-    scroll-padding-top: 16px !important;
-    scroll-padding-bottom: 16px !important;
-    position: relative !important;
-  }
-
-  /* Enhanced touch feedback */
-  .compact-content > * {
-    touch-action: pan-y !important;
-    -webkit-tap-highlight-color: transparent !important;
-  }
-
-  .compact-content > *:active {
-    transform: scale(0.98) !important;
-    transition: transform 0.1s ease-out !important;
-  }
-
-  /* Improved scrollbar */
-  .compact-content::-webkit-scrollbar {
-    width: 4px !important;
-    height: 4px !important;
-  }
-
-  .compact-content::-webkit-scrollbar-track {
-    background: transparent !important;
-    margin: 4px 0 !important;
-  }
-
-  .compact-content::-webkit-scrollbar-thumb {
-    background: var(--border) !important;
-    border-radius: 4px !important;
-    transition: background 0.2s ease !important;
-  }
-
-  .compact-content::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground) !important;
-  }
-
-  /* Enhanced touch targets for interactive elements */
-  .compact-content button,
-  .compact-content a,
-  .compact-content input,
-  .compact-content select {
-    min-height: 44px !important;
-    padding: 12px !important;
-    touch-action: manipulation !important;
-  }
-
-  /* Smooth content transitions */
-  .compact-content > * {
-    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both !important;
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Improved map controls in compact mode */
-  .map-control {
-    transform: scale(0.85) !important;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-
-  .map-control:hover {
-    transform: scale(0.9) !important;
-  }
-
-  .map-control a {
-    min-width: 40px !important;
-    min-height: 40px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 18px !important;
-    touch-action: manipulation !important;
-    -webkit-tap-highlight-color: transparent !important;
-  }
-
-  /* Active state feedback */
-  .map-control a:active {
-    transform: scale(0.95) !important;
-    transition: transform 0.1s ease-out !important;
-  }
-
-  /* Enhanced popup interactions */
-  .leaflet-popup {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-
-  .leaflet-popup-content-wrapper {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-
-  .leaflet-popup-tip {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-
-  /* Momentum scrolling for content */
-  .compact-content {
-    scroll-behavior: smooth !important;
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: contain !important;
-    scroll-snap-type: y proximity !important;
-  }
-
-  /* Snap points for scroll items */
-  .compact-content > * {
-    scroll-snap-align: start !important;
-    scroll-snap-stop: always !important;
-  }
-
-  /* Pull-to-refresh indicator space */
-  .compact-content::before {
-    content: '';
-    display: block;
-    height: 10px;
-  }
-
-  /* Safe area handling in compact mode */
-  @supports (padding-bottom: env(safe-area-inset-bottom)) {
-    .compact-content {
-      padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
-    }
-
-    .compact-tabs {
-      padding-top: env(safe-area-inset-top, 0) !important;
-    }
-  }
-
-  /* Reduced motion preferences */
-  @media (prefers-reduced-motion: reduce) {
-    .compact-content > *,
-    .compact-tabs button::after,
-    .leaflet-popup,
-    .leaflet-popup-content-wrapper,
-    .leaflet-popup-tip,
-    .map-control,
-    .compact-content-area {
-      transition: none !important;
-      animation: none !important;
-    }
-  }
-}
-
-/* Consolidated Device-Specific Media Queries */
-/* Extra Small Devices (iPhone SE, etc.) */
+/* Improved responsive breakpoints for mobile devices */
 @media (max-width: var(--breakpoint-xs)) {
   .bottom-sheet {
-    height: 80vh !important;
+    height: 85vh !important;
     max-height: calc(100vh - 16px) !important;
+    border-radius: 12px 12px 0 0;
   }
-
+  
+  .bottom-sheet-inner-content {
+    padding: 12px;
+  }
+  
   .map-control {
-    transform: scale(0.75) !important;
+    transform: scale(0.85);
+    margin: 8px !important;
   }
-
+  
   .touch-target {
-    min-width: 36px !important;
-    min-height: 36px !important;
+    min-width: 40px;
+    min-height: 40px;
+  }
+  
+  /* Adjust font sizes for readability */
+  .bottom-sheet-content {
+    font-size: 14px;
+  }
+  
+  /* Compact UI for small screens */
+  .compact-for-mobile {
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+  
+  /* Reduce visual clutter */
+  .mobile-hidden {
+  display: none !important;
   }
 }
 
-/* Small Devices (Small Android phones) */
+/* Small devices (phones) */
 @media (min-width: calc(var(--breakpoint-xs) + 1px)) and (max-width: var(--breakpoint-sm)) {
   .bottom-sheet {
     height: 75vh !important;
   }
 
   .map-control {
-    transform: scale(0.8) !important;
+    transform: scale(0.9);
   }
 
   .touch-target {
-    min-width: 40px !important;
-    min-height: 40px !important;
+    min-width: 42px;
+    min-height: 42px;
   }
 }
 
-/* Medium Devices (iPhone 8, etc.) */
+/* Medium devices (larger phones, small tablets) */
 @media (min-width: calc(var(--breakpoint-sm) + 1px)) and (max-width: var(--breakpoint-md)) {
   .bottom-sheet {
     height: 70vh !important;
   }
 
   .touch-target {
-    min-width: 44px !important;
-    min-height: 44px !important;
+    min-width: var(--touch-target-size);
+    min-height: var(--touch-target-size);
   }
 }
 
-/* Consolidated Orientation Styles */
-@media (orientation: landscape) {
-  @media (max-height: 400px) {
+/* Improved landscape handling */
+@media (orientation: landscape) and (max-height: 500px) {
     .bottom-sheet {
       height: 90vh !important;
-    }
   }
+  
+  .bottom-sheet-tabs {
+    padding: 4px 0;
+  }
+  
+  /* Hide decorative elements in landscape on small screens */
+  .decorative-element {
+    display: none !important;
+  }
+  
+  .map-control {
+    transform: scale(0.8);
+  }
+}
 
-  @media (min-height: 401px) and (max-height: 600px) {
+/* Handle notched devices and safe areas */
+@supports (padding-top: env(safe-area-inset-top)) {
     .bottom-sheet {
-      height: 85vh !important;
-    }
-  }
-}
-
-@media (orientation: portrait) {
-  @media (max-height: 667px) {
-    .bottom-sheet {
-      height: 75vh !important;
-    }
-  }
-
-  @media (min-height: 668px) and (max-height: 844px) {
-    .bottom-sheet {
-      height: 70vh !important;
-    }
-  }
-
-  @media (min-height: 845px) {
-    .bottom-sheet {
-      height: 65vh !important;
-    }
-  }
-}
-
-/* Optimized Animation Properties */
-.animated {
-  transition-property: transform, opacity;
-  transition-duration: var(--transition-duration);
-  transition-timing-function: var(--transition-timing);
-}
-
-.animated-fast {
-  transition-duration: var(--transition-duration-fast);
-}
-
-/* Z-index Hierarchy */
-.map-view { z-index: var(--z-map); }
-.leaflet-container { z-index: var(--z-map-container); }
-.leaflet-pane { z-index: var(--z-map-pane); }
-.leaflet-control-container { z-index: var(--z-map-controls); }
-.leaflet-popup { z-index: var(--z-popup); }
-.floating-windows { z-index: var(--z-floating-windows); }
-.bottom-sheet-backdrop { z-index: var(--z-backdrop); }
-.bottom-sheet { z-index: var(--z-bottom-sheet); }
-
-/* Touch Optimization Classes */
-.touch-target {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  cursor: pointer;
-}
-
-/* Consolidated Safe Area Handling */
-@supports (padding: env(safe-area-inset-top)) {
-  .safe-area-insets {
-    padding-top: env(safe-area-inset-top);
+    --safe-area-top: env(safe-area-inset-top);
+    --safe-area-bottom: env(safe-area-inset-bottom);
+    --safe-area-left: env(safe-area-inset-left);
+    --safe-area-right: env(safe-area-inset-right);
+    
     padding-bottom: env(safe-area-inset-bottom);
-    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .app-footer {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
-/* Reduced Motion */
+/* Reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation: none !important;
+  .bottom-sheet,
+  .touch-target,
+  .bottom-sheet button::after,
+  .leaflet-popup,
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip,
+  .map-control {
     transition: none !important;
-    scroll-behavior: auto !important;
+    animation: none !important;
   }
 }
 
@@ -1595,3 +1175,33 @@
     opacity: 0.8;
   }
 }
+
+/* Countdown Timer */
+.countdown-timer {
+  margin-top: 8px;
+  text-align: center;
+  color: #000000;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 0.95rem;
+  padding: 4px 0;
+  border-top: 1px solid #eaeaea;
+}
+
+.countdown-timer .flex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-text {
+  letter-spacing: 0.05em;
+  margin: 0 6px;
+}
+
+/* Ensure popup has a minimum width for better appearance */
+.meetup-popup {
+  min-width: 200px;
+  padding: 8px 4px;
+}
+

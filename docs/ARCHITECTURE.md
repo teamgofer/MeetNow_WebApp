@@ -13,9 +13,8 @@ The MeetNow application is built as a React single-page application with the fol
 
 2. **Map Components**
    - **MapContainer**: Main Leaflet map integration
-   - **MapClickHandler**: Manages map click events and reverse geocoding
-   - **MapViewControlBar**: Controls navigation modes
-   - **MiniMapComponent**: Overview map in corner of screen
+   - **MapClickHandlerWithController**: Connects map click events to the navigation controller
+   - **Markers**: User location and selected location visualization
 
 3. **UI Components**
    - Form elements for meetup creation
@@ -36,16 +35,14 @@ The application uses React's native state management with useState hooks:
 
 ```jsx
 // Primary state variables
-const [location, setLocation] = useState({ lat: 37.7749, lng: -122.4194, display_name: 'San Francisco, CA' });
-const [selectedLocation, setSelectedLocation] = useState({ lat: 37.7749, lng: -122.4194, display_name: 'San Francisco, CA' });
+const [location, setLocation] = useState(null);
+const [selectedLocation, setSelectedLocation] = useState(null);
 const [isLocationLoading, setIsLocationLoading] = useState(true);
-const [currentNavigationMode, setCurrentNavigationMode] = useState(1);
 ```
 
 Key state relationships:
 - **Location**: User's physical position (blue marker)
 - **SelectedLocation**: Point of interest/meetup location (red marker)
-- **NavigationMode**: Controls map behavior and visualization mode
 
 ### Component Interaction
 
@@ -53,7 +50,7 @@ Key state relationships:
    - Browser geolocation API → MeetNowApp → Location state → Map centering
    
 2. **Map Interaction Flow**
-   - Map click → MapClickHandler → Reverse geocoding → SelectedLocation state → UI updates
+   - Map click → MapNavigationController → Reverse geocoding → SelectedLocation state → UI updates
    
 3. **Search Flow**
    - User input → searchLocations service → Search results → SelectedLocation update → Map centering
@@ -85,40 +82,71 @@ The application extends React-Leaflet with custom behavior:
 
 ```jsx
 <MapContainer
-  key={mapKey.current}
-  center={[selectedLocation.lat, selectedLocation.lng]}
+  whenCreated={(map) => {
+    console.log('Map instance created');
+    mapRef.current = map;
+  }}
+  whenReady={(mapInstance) => handleMapReady(mapInstance.target)}
+  center={[location.lat, location.lng]}
   zoom={currentZoom}
   style={{ height: '100%', width: '100%' }}
   zoomControl={false}
-  whenCreated={(map) => {
-    mapRef.current = map;
-    setIsMapReady(true);
-  }}
 >
-  {/* Map layers and components */}
+  {/* Map layers, markers and components */}
+  <MapClickHandlerWithController navigationController={navigationController.current} />
 </MapContainer>
 ```
 
-### Custom Map Behaviors
+### Single Initialization Pattern
 
-1. **Navigation Mode 1: Free Navigation**
-   - Standard map interaction
-   - Preserves zoom level on location change
-   
-2. **Navigation Mode 2: Bird's Eye View**
-   - Shows both user location and selected location
-   - Dynamically adjusts zoom to fit both points
-   
-3. **Navigation Mode 3: Vicinity Mode**
-   - Focuses on user's location
-   - Maintains high zoom level
-   - Shows radius visualization
+The application implements a single initialization pattern to prevent redundancy and race conditions:
+
+1. **Initialization Guard**
+   - Uses a reference to track if initialization happened
+   - Prevents multiple initialization calls from different sources
+   - Ensures the map is only initialized once
+
+2. **Consistent Map Reference**
+   - Properly passes the Leaflet map instance to the controller
+   - Uses the actual map instance, not the React ref object
+   - Maintains a consistent reference throughout the application
+
+3. **Proper Cleanup**
+   - Disposes of resources on component unmount
+   - Clears references to prevent memory leaks
+   - Manages initialization state correctly for hot reloading
+
+### Map Navigation Controller
+
+The application uses a centralized navigation controller to manage map interactions:
+
+```javascript
+// Initialize the controller with callbacks
+navigationController.current = new MapNavigationController({
+  onReady: (isReady) => console.log('Navigation controller ready:', isReady),
+  onLocationSelect: (location) => handleLocationSelect(location),
+  onReverseGeocodingStart: () => setIsReverseGeocoding(true),
+  onReverseGeocodingEnd: () => setIsReverseGeocoding(false),
+  onSearchAddressUpdate: (displayName) => setSearchAddress(displayName)
+});
+
+// Update map reference
+navigationController.current.updateMapReference(map);
+
+// Set locations
+navigationController.current.setUserLocation(location);
+navigationController.current.setSelectedLocation(selectedLocation);
+
+// Navigate the map
+navigationController.current.navigateTo(location, { zoom: 15, animate: true });
+```
 
 ### Map References and Lifecycle
 
 - **mapRef**: React reference to the Leaflet map instance
-- **mapKey**: Forces map recreation when needed
-- **isMapReady**: Tracks map initialization state
+- **mapInitialized**: Flag to prevent multiple initializations
+- **isMapReady**: State to track when map is ready for other components
+- **whenCreated vs whenReady**: Ensures proper order of operations
 
 ## Location Services
 
@@ -142,16 +170,24 @@ searchLocations(null, { lat, lng })
 
 ### Data Structures
 
-Location objects follow this pattern:
+Location objects now support multiple formats that are normalized internally:
 
 ```javascript
+// All of these formats are supported:
 {
-  lat: Number,       // Latitude
-  lng: Number,       // Longitude
-  display_name: String, // Human-readable location name
-  address: Object    // Optional detailed address components
+  lat: 37.7749,     // Leaflet standard format
+  lng: -122.4194
 }
+
+{
+  latitude: 37.7749,  // Browser geolocation format
+  longitude: -122.4194
+}
+
+[37.7749, -122.4194]  // Array format
 ```
+
+The MapNavigationController automatically normalizes these formats for consistency.
 
 ## Error Handling
 
@@ -219,43 +255,34 @@ The application implements several layers of error handling:
 The MapNavigationController provides a centralized solution for managing map navigation operations:
 
 ```javascript
-// Sample usage of MapNavigationController
-import MapNavigationController from './utils/MapNavigationController';
+// Initialize once with options
+const navigationController = useRef(null);
 
-// Initialize with options including callback handlers
-const controller = new MapNavigationController({
-  onModeChange: (newMode, previousMode) => {
-    Logger.info('Navigation mode changed:', newMode);
-  },
-  onReady: () => {
-    Logger.info('Controller is ready for navigation');
-  }
-});
-
-// Register map reference
-controller.updateMapReference(mapRef);
-
-// Use navigation methods
-controller.navigateTo(latitude, longitude, zoom);
-controller.showBirdsEyeView(userLocation, selectedLocation);
-controller.showVicinityView(userLocation);
+useEffect(() => {
+  navigationController.current = new MapNavigationController({
+    onReady: (isReady) => console.log('Navigation controller ready:', isReady),
+    onLocationChange: (location) => console.log('Location changed:', location),
+    onError: (error) => console.error('Controller error:', error),
+    onLocationSelect: (location) => handleLocationSelect(location),
+    onReverseGeocodingStart: () => setIsReverseGeocoding(true),
+    onReverseGeocodingEnd: () => setIsReverseGeocoding(false),
+    onSearchAddressUpdate: (displayName) => setSearchAddress(displayName)
+  });
+  
+  return () => {
+    if (navigationController.current) {
+      navigationController.current.dispose();
+    }
+  };
+}, []);
 ```
 
 Key architectural benefits:
-- **Operation Sequencing**: Ensures navigation operations execute in order
-- **Error Resilience**: Provides graceful failure and recovery for map operations
-- **Mode Compatibility**: Adapts navigation behavior based on current mode
-- **Conflict Prevention**: Resolves race conditions between competing navigation requests
-- **Callback Architecture**: Uses property-based callbacks with backward compatibility for listener arrays
-
-The controller follows a publisher-subscriber pattern with these primary event types:
-- `onModeChange`: Called when navigation mode changes
-- `onLocationChange`: Called when user location is updated
-- `onSelectedLocationChange`: Called when selected location is updated
-- `onZoomChange`: Called when zoom level changes
-- `onReady`: Called when the controller is ready for navigation operations
-
-For detailed implementation and integration guidance, see the [Navigation Controller documentation](NAVIGATION_CONTROLLER.md).
+- **Single Initialization**: Guards against redundant initialization attempts
+- **Format Normalization**: Handles different location formats consistently
+- **Error Resilience**: Provides detailed error logging and graceful failure
+- **Clean API**: Simple, focused methods for common navigation tasks
+- **Integrated Click Handling**: Handles map clicks with reverse geocoding
 
 ### Logger Utility
 

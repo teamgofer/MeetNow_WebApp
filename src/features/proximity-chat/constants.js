@@ -50,4 +50,95 @@ export const uiConstants = {
   MAX_MESSAGE_LENGTH: 500,
   DEFAULT_AVATAR_COLOR: '#3B82F6',
   ANIMATION_DURATION: 300 // milliseconds
+};
+
+/**
+ * API endpoints for the proximity chat feature
+ */
+export const API_ENDPOINTS = {
+  // WebSocket endpoint for real-time communication
+  WEBSOCKET: 'wss://mock.meetnow.proximity-chat.dev/ws',
+  
+  // REST API endpoints
+  MESSAGES: 'https://mock.meetnow.proximity-chat.dev/messages',
+  USERS: 'https://mock.meetnow.proximity-chat.dev/users',
+  SETTINGS: 'https://mock.meetnow.proximity-chat.dev/settings',
+  
+  // Authentication endpoints
+  AUTH_TOKEN: 'https://mock.meetnow.proximity-chat.dev/auth/token'
+};
+
+/**
+ * Timing constants (in milliseconds)
+ */
+export const TIMING = {
+  // Location update interval
+  LOCATION_UPDATE_INTERVAL: 10000,  // 10 seconds
+  
+  // WebSocket reconnection base interval
+  RECONNECT_INTERVAL: 2000,  // 2 seconds
+  
+  // Typing indicator timeout
+  TYPING_TIMEOUT: 3000,  // 3 seconds
+  
+  // Message polling fallback interval (when WebSocket is not available)
+  MESSAGE_POLLING_INTERVAL: 10000  // 10 seconds
+};
+
+/**
+ * Feature configuration defaults
+ */
+export const DEFAULTS = {
+  // Default chat radius in meters
+  CHAT_RADIUS: 100,
+  
+  // Maximum chat radius allowed
+  MAX_CHAT_RADIUS: 1000,
+  
+  // Default message history limit
+  MESSAGE_HISTORY_LIMIT: 50,
+  
+  // Maximum message length
+  MAX_MESSAGE_LENGTH: 500,
+  
+  // Default location accuracy threshold in meters
+  LOCATION_ACCURACY_THRESHOLD: 100
+};
+
+/**
+ * Error messages
+ */
+export const ERROR_MESSAGES = {
+  LOCATION_PERMISSION_DENIED: 'Location permission denied. Please enable location services to use proximity chat.',
+  LOCATION_UNAVAILABLE: 'Unable to determine your location. Please try again later.',
+  CONNECTION_FAILED: 'Failed to connect to the chat server. Please check your internet connection and try again.',
+  MESSAGE_SEND_FAILED: 'Failed to send your message. Please try again.',
+  INVALID_LOCATION: 'Invalid location data. Please ensure your device has accurate location services.',
+  UNAUTHORIZED: 'You are not authorized to access this feature. Please sign in or create an account.'
+};
+
+/**
+ * Event types for WebSocket communication
+ */
+export const EVENT_TYPES = {
+  MESSAGE: 'message',
+  LOCATION_UPDATE: 'location',
+  NEARBY_USERS: 'nearby_users',
+  TYPING_STATUS: 'typing',
+  USER_JOINED: 'user_joined',
+  USER_LEFT: 'user_left',
+  ERROR: 'error',
+  CONNECTION_STATUS: 'connection_status'
+};
+
+/**
+ * Feature flags
+ */
+export const FEATURE_FLAGS = {
+  ENABLE_TYPING_INDICATORS: true,
+  ENABLE_MESSAGE_REACTIONS: true,
+  ENABLE_READ_RECEIPTS: true,
+  ENABLE_OFFLINE_SUPPORT: true,
+  ENABLE_LOCATION_SHARING: true,
+  ENABLE_MESSAGE_REPORTING: true
 }; 

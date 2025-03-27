@@ -4,6 +4,7 @@ import { formatDistance } from '../utils/locationUtils';
 import { formatRelativeTime } from '../utils/dateUtils';
 import { useProximityChatContext } from '../context/ProximityChatContext';
 import { useBlockedUsers } from '../context/BlockedUsersContext';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 /**
  * Shows a list of nearby users with their distance and status
@@ -16,6 +17,7 @@ const NearbyUsersList = ({ onUserSelect }) => {
   const [expandedUsers, setExpandedUsers] = useState({});
   const activityLogRef = useRef(null);
   const prevNearbyUsersRef = useRef([]);
+  const initStartTime = useRef(Date.now());
   
   // Maximum number of activity log entries to keep
   const MAX_ACTIVITY_LOGS = 30;
@@ -23,8 +25,22 @@ const NearbyUsersList = ({ onUserSelect }) => {
   // Maximum distance to consider users nearby
   const radius = chatSettings?.proximityRadius || 100;
   
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - initStartTime.current;
+    PerformanceMonitor.track('nearby_users_list_init', duration, {
+      success: true,
+      metadata: {
+        nearbyUsersCount: nearbyUsers.length,
+        radius,
+        currentUserId
+      }
+    });
+  }, []);
+  
   // Track enter/exit events
   useEffect(() => {
+    const startTime = Date.now();
     const prevUsers = prevNearbyUsersRef.current;
     const prevUserIds = new Set(prevUsers.map(user => user.id));
     const currentUserIds = new Set(nearbyUsers.map(user => user.id));
@@ -67,6 +83,17 @@ const NearbyUsersList = ({ onUserSelect }) => {
         // Only keep a certain number of activities to avoid memory issues
         return combined.slice(0, MAX_ACTIVITY_LOGS);
       });
+      
+      // Track activity update performance
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.track('nearby_users_activity_update', duration, {
+        success: true,
+        metadata: {
+          enteredCount: entered.length,
+          leftCount: left.length,
+          totalActivities: newActivities.length
+        }
+      });
     }
     
     // Update ref for next comparison
@@ -76,53 +103,94 @@ const NearbyUsersList = ({ onUserSelect }) => {
   // Scroll to bottom of activity log when new entries are added
   useEffect(() => {
     if (activityLogRef.current) {
+      const startTime = Date.now();
       activityLogRef.current.scrollTop = activityLogRef.current.scrollHeight;
+      const duration = Date.now() - startTime;
+      
+      PerformanceMonitor.track('nearby_users_activity_scroll', duration, {
+        success: true,
+        metadata: {
+          activitiesCount: activities.length
+        }
+      });
     }
   }, [activities]);
   
   // Toggle expanded state for a user
   const toggleUserExpanded = (userId) => {
+    const startTime = Date.now();
     setExpandedUsers(prev => ({
       ...prev,
       [userId]: !prev[userId]
     }));
+    const duration = Date.now() - startTime;
+    
+    PerformanceMonitor.track('nearby_users_toggle_expanded', duration, {
+      success: true,
+      metadata: {
+        userId,
+        action: expandedUsers[userId] ? 'collapse' : 'expand'
+      }
+    });
   };
   
   // Filter out blocked users and sort by distance
   const getFilteredUsers = () => {
-    return nearbyUsers
+    const startTime = Date.now();
+    const filteredUsers = nearbyUsers
       .filter(user => user.id !== currentUserId && !isUserBlocked(user.id))
       .filter(user => user.distance <= radius)
       .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('nearby_users_filter', duration, {
+      success: true,
+      metadata: {
+        totalUsers: nearbyUsers.length,
+        filteredCount: filteredUsers.length,
+        blockedCount: nearbyUsers.length - filteredUsers.length
+      }
+    });
+    
+    return filteredUsers;
   };
   
   const renderUserAvatar = (user) => {
-    if (user.avatarUrl) {
-      return (
-        <img 
-          src={user.avatarUrl} 
-          alt={`${user.username}'s avatar`}
-          className="nearby-user-avatar-img" 
-        />
-      );
-    } else {
-      return (
-        <div 
-          className="nearby-user-avatar-placeholder"
-          style={{ backgroundColor: user.avatarColor || '#727cf5' }}
-        >
-          {user.username.charAt(0).toUpperCase()}
-        </div>
-      );
-    }
+    const startTime = Date.now();
+    const avatar = user.avatarUrl ? (
+      <img 
+        src={user.avatarUrl} 
+        alt={`${user.username}'s avatar`}
+        className="nearby-user-avatar-img" 
+      />
+    ) : (
+      <div 
+        className="nearby-user-avatar-placeholder"
+        style={{ backgroundColor: user.avatarColor || '#727cf5' }}
+      >
+        {user.username.charAt(0).toUpperCase()}
+      </div>
+    );
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('nearby_users_avatar_render', duration, {
+      success: true,
+      metadata: {
+        userId: user.id,
+        hasAvatar: !!user.avatarUrl
+      }
+    });
+    
+    return avatar;
   };
   
   // Render a nearby user entry
   const renderUser = (user) => {
+    const startTime = Date.now();
     const isExpanded = expandedUsers[user.id] || false;
     const isAnonymous = user.isAnonymous || false;
     
-    return (
+    const userElement = (
       <li 
         key={user.id} 
         className={`nearby-user-item ${isExpanded ? 'expanded' : ''}`}
@@ -206,10 +274,24 @@ const NearbyUsersList = ({ onUserSelect }) => {
         )}
       </li>
     );
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('nearby_users_item_render', duration, {
+      success: true,
+      metadata: {
+        userId: user.id,
+        isExpanded,
+        isAnonymous,
+        hasLastActivity: !!user.lastActivity
+      }
+    });
+    
+    return userElement;
   };
   
   // Render an activity log entry
   const renderActivity = (activity) => {
+    const startTime = Date.now();
     let message;
     let iconContent;
     
@@ -239,13 +321,25 @@ const NearbyUsersList = ({ onUserSelect }) => {
         iconContent = null;
     }
     
-    return (
+    const activityElement = (
       <li key={activity.id} className={`activity-item ${activity.type}`}>
         <span className="activity-icon">{iconContent}</span>
         <span className="activity-message">{message}</span>
         <span className="activity-time">{formatRelativeTime(activity.timestamp)}</span>
       </li>
     );
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('nearby_users_activity_render', duration, {
+      success: true,
+      metadata: {
+        activityId: activity.id,
+        type: activity.type,
+        userId: activity.userId
+      }
+    });
+    
+    return activityElement;
   };
   
   const filteredUsers = getFilteredUsers();

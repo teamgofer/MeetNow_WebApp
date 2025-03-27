@@ -1,10 +1,11 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import MessageHistoryHeader from '../../components/MessageHistoryHeader';
+import { describe, it, expect } from 'vitest';
 
 // Mock the timeUtils module
-jest.mock('../../utils/timeUtils', () => ({
-  formatRelativeTime: jest.fn().mockReturnValue('5 minutes ago')
+vi.mock('../../utils/timeUtils', () => ({
+  formatRelativeTime: vi.fn().mockReturnValue('5 minutes ago')
 }));
 
 describe('MessageHistoryHeader', () => {

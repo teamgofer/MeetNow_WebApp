@@ -3,6 +3,7 @@
  * Provides structured logging, history, and export capabilities
  */
 class Logger {
+  static instance = null;
   static LEVELS = {
     DEBUG: 0,
     INFO: 1,
@@ -13,6 +14,25 @@ class Logger {
   static currentLevel = Logger.LEVELS.INFO;
   static logHistory = [];
   static subscribers = [];
+
+  constructor() {
+    if (Logger.instance) {
+      return Logger.instance;
+    }
+    
+    this.isDevelopment = process.env.NODE_ENV === 'development';
+    Logger.instance = this;
+  }
+  
+  /**
+   * Get the singleton instance
+   */
+  static getInstance() {
+    if (!Logger.instance) {
+      Logger.instance = new Logger();
+    }
+    return Logger.instance;
+  }
   
   /**
    * Set the minimum log level to capture
@@ -79,43 +99,61 @@ class Logger {
   }
   
   /**
-   * Log a debug message
-   * @param {string} component - Component name
-   * @param {string} message - Log message
-   * @param {*} data - Optional additional data
-   */
-  static debug(component, message, data) {
-    Logger.log(Logger.LEVELS.DEBUG, component, message, data);
-  }
-  
-  /**
    * Log an info message
    * @param {string} component - Component name
-   * @param {string} message - Log message
-   * @param {*} data - Optional additional data
+   * @param {string} message - The message to log
+   * @param {Object} [data] - Optional data to log
    */
-  static info(component, message, data) {
+  static info(component, message, data = null) {
     Logger.log(Logger.LEVELS.INFO, component, message, data);
   }
   
   /**
    * Log a warning message
    * @param {string} component - Component name
-   * @param {string} message - Log message
-   * @param {*} data - Optional additional data
+   * @param {string} message - The message to log
+   * @param {Object} [data] - Optional data to log
    */
-  static warn(component, message, data) {
+  static warn(component, message, data = null) {
     Logger.log(Logger.LEVELS.WARN, component, message, data);
   }
   
   /**
    * Log an error message
    * @param {string} component - Component name
-   * @param {string} message - Log message
-   * @param {*} data - Optional additional data
+   * @param {string} message - The message to log
+   * @param {Error|Object} [error] - Optional error object or data to log
    */
-  static error(component, message, data) {
-    Logger.log(Logger.LEVELS.ERROR, component, message, data);
+  static error(component, message, error = null) {
+    Logger.log(Logger.LEVELS.ERROR, component, message, error);
+  }
+  
+  /**
+   * Log a debug message
+   * @param {string} component - Component name
+   * @param {string} message - The message to log
+   * @param {Object} [data] - Optional data to log
+   */
+  static debug(component, message, data = null) {
+    Logger.log(Logger.LEVELS.DEBUG, component, message, data);
+  }
+  
+  /**
+   * Log performance metrics
+   * @param {string} operation - The operation being measured
+   * @param {number} duration - Duration in milliseconds
+   */
+  static performance(operation, duration) {
+    Logger.log(Logger.LEVELS.INFO, 'Performance', `${operation} took ${duration}ms`);
+  }
+  
+  /**
+   * Log user action
+   * @param {string} action - The user action
+   * @param {Object} [data] - Optional data about the action
+   */
+  static userAction(action, data = null) {
+    Logger.log(Logger.LEVELS.INFO, 'UserAction', action, data);
   }
   
   /**

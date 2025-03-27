@@ -1,14 +1,21 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+import LoadingSpinner from './LoadingSpinner';
 
-const Loading = () => {
+const Loading = ({ text = 'Loading...', className = '' }) => {
   return (
-    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-        <p className="text-gray-600 font-medium">Loading application...</p>
-      </div>
+    <div className={`flex flex-col items-center justify-center p-4 ${className}`}>
+      <LoadingSpinner size="large" color="blue" />
+      {text && (
+        <p className="mt-2 text-gray-600 text-sm">{text}</p>
+      )}
     </div>
   );
+};
+
+Loading.propTypes = {
+  text: PropTypes.string,
+  className: PropTypes.string
 };
 
 export default Loading;

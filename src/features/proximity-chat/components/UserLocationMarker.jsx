@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { PerformanceMonitor } from '../../../utils/PerformanceMonitor';
 
 /**
  * Component for displaying user location markers on the map
@@ -17,125 +18,199 @@ const UserLocationMarker = ({
   showAvatar = true
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const renderStartTimeRef = useRef(Date.now());
+  
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('map', 'userLocationMarkerInit', duration, {
+      success: true,
+      isCurrentUser,
+      approximateLocation,
+      anonymousMode,
+      size,
+      hasAvatar: !!user.avatar
+    });
+  }, []);
+
+  // Track hover state changes
+  useEffect(() => {
+    if (isHovered) {
+      PerformanceMonitor.trackOperationTiming('map', 'userLocationMarkerHover', 0, {
+        success: true,
+        isCurrentUser,
+        anonymousMode
+      });
+    }
+  }, [isHovered, isCurrentUser, anonymousMode]);
   
   // Size values based on the size prop
   const getSizeValues = () => {
-    switch (size) {
-      case 'small':
-        return {
-          marker: 24,
-          avatar: 18,
-          pulse: 40,
-          fontSize: 10
-        };
-      case 'large':
-        return {
-          marker: 40,
-          avatar: 32,
-          pulse: 60,
-          fontSize: 14
-        };
-      case 'medium':
-      default:
-        return {
-          marker: 32,
-          avatar: 24,
-          pulse: 50,
-          fontSize: 12
-        };
-    }
+    const startTime = Date.now();
+    const values = (() => {
+      switch (size) {
+        case 'small':
+          return {
+            marker: 24,
+            avatar: 18,
+            pulse: 40,
+            fontSize: 10
+          };
+        case 'large':
+          return {
+            marker: 40,
+            avatar: 32,
+            pulse: 60,
+            fontSize: 14
+          };
+        case 'medium':
+        default:
+          return {
+            marker: 32,
+            avatar: 24,
+            pulse: 50,
+            fontSize: 12
+          };
+      }
+    })();
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('map', 'userLocationMarkerSizeCalc', duration, {
+      success: true,
+      size,
+      values
+    });
+    
+    return values;
   };
   
   const sizeValues = getSizeValues();
   
   // Color for the marker based on user status
   const getMarkerColor = () => {
-    if (isCurrentUser) {
-      return 'var(--primary-color, #1976D2)';
-    }
+    const startTime = Date.now();
+    const color = (() => {
+      if (isCurrentUser) {
+        return 'var(--primary-color, #1976D2)';
+      }
+      
+      if (anonymousMode) {
+        return '#9E9E9E';
+      }
+      
+      if (user.isActive) {
+        return '#4CAF50';
+      }
+      
+      return '#FF9800';
+    })();
     
-    if (anonymousMode) {
-      return '#9E9E9E';
-    }
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('map', 'userLocationMarkerColorCalc', duration, {
+      success: true,
+      isCurrentUser,
+      anonymousMode,
+      isActive: user.isActive,
+      color
+    });
     
-    if (user.isActive) {
-      return '#4CAF50';
-    }
-    
-    return '#FF9800';
+    return color;
   };
   
   // Render anonymous marker or avatar
   const renderMarkerContent = () => {
-    if (anonymousMode || !showAvatar) {
-      // Anonymous marker is just a colored circle
+    const startTime = Date.now();
+    const content = (() => {
+      if (anonymousMode || !showAvatar) {
+        // Anonymous marker is just a colored circle
+        return (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              backgroundColor: getMarkerColor(),
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontSize: sizeValues.fontSize,
+              fontWeight: 'bold'
+            }}
+          >
+            {isCurrentUser ? 'Me' : ''}
+          </div>
+        );
+      }
+      
+      // Avatar with border for online status
       return (
         <div
           style={{
             width: '100%',
             height: '100%',
             borderRadius: '50%',
-            backgroundColor: getMarkerColor(),
+            backgroundColor: '#fff',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
-            fontSize: sizeValues.fontSize,
-            fontWeight: 'bold'
+            border: `2px solid ${getMarkerColor()}`,
+            overflow: 'hidden',
+            boxSizing: 'border-box'
           }}
         >
-          {isCurrentUser ? 'Me' : ''}
+          {user.avatar ? (
+            <img
+              src={user.avatar}
+              alt={user.username || 'User'}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+              onLoad={() => {
+                PerformanceMonitor.trackOperationTiming('map', 'userLocationMarkerAvatarLoad', 0, {
+                  success: true,
+                  isCurrentUser,
+                  hasUsername: !!user.username
+                });
+              }}
+              onError={(error) => {
+                PerformanceMonitor.trackError('map', 'userLocationMarkerAvatarLoad', error);
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: getMarkerColor(),
+                color: '#fff',
+                fontSize: sizeValues.fontSize,
+                fontWeight: 'bold'
+              }}
+            >
+              {user.username ? user.username.charAt(0).toUpperCase() : '?'}
+            </div>
+          )}
         </div>
       );
-    }
+    })();
     
-    // Avatar with border for online status
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          borderRadius: '50%',
-          backgroundColor: '#fff',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: `2px solid ${getMarkerColor()}`,
-          overflow: 'hidden',
-          boxSizing: 'border-box'
-        }}
-      >
-        {user.avatar ? (
-          <img
-            src={user.avatar}
-            alt={user.username || 'User'}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: getMarkerColor(),
-              color: '#fff',
-              fontSize: sizeValues.fontSize,
-              fontWeight: 'bold'
-            }}
-          >
-            {user.username ? user.username.charAt(0).toUpperCase() : '?'}
-          </div>
-        )}
-      </div>
-    );
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('map', 'userLocationMarkerRender', duration, {
+      success: true,
+      isAnonymous: anonymousMode,
+      showAvatar,
+      hasAvatar: !!user.avatar
+    });
+    
+    return content;
   };
   
   return (
@@ -147,7 +222,18 @@ const UserLocationMarker = ({
         cursor: 'pointer',
         zIndex: isHovered ? 3 : (isCurrentUser ? 2 : 1)
       }}
-      onClick={onClick}
+      onClick={() => {
+        const startTime = Date.now();
+        if (onClick) {
+          onClick();
+          const duration = Date.now() - startTime;
+          PerformanceMonitor.trackOperationTiming('map', 'userLocationMarkerClick', duration, {
+            success: true,
+            isCurrentUser,
+            anonymousMode
+          });
+        }
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="button"

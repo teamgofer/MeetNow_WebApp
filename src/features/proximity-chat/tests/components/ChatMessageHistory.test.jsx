@@ -2,12 +2,13 @@ import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import ChatMessageHistory from '../../components/ChatMessageHistory';
 import useMessageHistory from '../../hooks/useMessageHistory';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock the hooks
-jest.mock('../../hooks/useMessageHistory', () => jest.fn());
+vi.mock('../../hooks/useMessageHistory', () => vi.fn());
 
 // Mock the components used in ChatMessageHistory
-jest.mock('../../components/MessageHistoryHeader', () => ({ 
+vi.mock('../../components/MessageHistoryHeader', () => ({ 
   regionName, 
   messageCount, 
   enteredAreaTime 
@@ -18,7 +19,7 @@ jest.mock('../../components/MessageHistoryHeader', () => ({
   </div>
 ));
 
-jest.mock('../../components/MessageList', () => ({ 
+vi.mock('../../components/MessageList', () => ({ 
   messages, 
   isHistory,
   hasMore,
@@ -57,14 +58,14 @@ describe('ChatMessageHistory', () => {
     historyMessages: mockHistoryMessages,
     loading: false,
     error: null,
-    loadBeforeArrival: jest.fn(),
-    loadOlderMessages: jest.fn(),
-    markAsRead: jest.fn(),
+    loadBeforeArrival: vi.fn(),
+    loadOlderMessages: vi.fn(),
+    markAsRead: vi.fn(),
     hasMoreMessages: true
   };
   
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     useMessageHistory.mockReturnValue(mockUseMessageHistory);
   });
   
@@ -248,9 +249,10 @@ describe('ChatMessageHistory', () => {
     // Clear previous calls
     mockUseMessageHistory.loadBeforeArrival.mockClear();
     
-    // Change the regionTimeInfo
+    // Update regionTimeInfo
     const newTimeInfo = {
-      enteredAt: new Date('2023-06-13T12:00:00Z')
+      ...mockTimeInfo,
+      enteredAt: new Date('2023-06-12T13:00:00Z')
     };
     
     rerender(
@@ -260,8 +262,8 @@ describe('ChatMessageHistory', () => {
       />
     );
     
-    // Check loadBeforeArrival was called again with the new time
-    expect(mockUseMessageHistory.loadBeforeArrival).toHaveBeenCalledTimes(1);
+    // Check loadBeforeArrival was called with new time info
+    expect(mockUseMessageHistory.loadBeforeArrival).toHaveBeenCalledWith(newTimeInfo.enteredAt);
   });
   
   it('should apply custom className and style', () => {

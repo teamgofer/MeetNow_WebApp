@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLocationDetails } from '../utils/overpass';
+import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 /**
  * React hook for looking up location details from coordinates
@@ -9,6 +10,7 @@ import { getLocationDetails } from '../utils/overpass';
  */
 export function useLocationLookup(options = {}) {
   const { autoLookup = true } = options;
+  const renderStartTimeRef = useRef(Date.now());
   
   const [state, setState] = useState({
     isLoading: false,
@@ -17,6 +19,19 @@ export function useLocationLookup(options = {}) {
     coordinates: null
   });
   
+  // Track hook initialization performance
+  useEffect(() => {
+    const renderDuration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('hook', 'useLocationLookup', renderDuration, {
+      success: true,
+      action: 'initialize',
+      autoLookup
+    });
+    
+    // Reset render start time for next update
+    renderStartTimeRef.current = Date.now();
+  }, [autoLookup]);
+  
   /**
    * Look up location details from coordinates
    * @param {number|Object} lat - Latitude or location object
@@ -24,6 +39,8 @@ export function useLocationLookup(options = {}) {
    * @param {number} radius - Search radius in meters (default: 50)
    */
   const lookupLocation = useCallback(async (lat, lng, radius = 50) => {
+    const startTime = Date.now();
+    
     // Handle case where first parameter is a location object
     let latitude = lat;
     let longitude = lng;
@@ -36,6 +53,14 @@ export function useLocationLookup(options = {}) {
     
     // Skip if no coordinates provided
     if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useLocationLookup', duration, {
+        success: false,
+        action: 'lookupLocation',
+        error: 'Invalid coordinates provided',
+        input: { lat, lng }
+      });
+      
       console.error('Invalid coordinates provided:', { lat, lng });
       setState(prev => ({
         ...prev,
@@ -55,6 +80,16 @@ export function useLocationLookup(options = {}) {
       }));
       
       const locationData = await getLocationDetails(latitude, longitude, radius);
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useLocationLookup', duration, {
+        success: true,
+        action: 'lookupLocation',
+        radius,
+        hasLocationData: !!locationData,
+        locationType: locationData?.type,
+        hasAddress: !!locationData?.fullAddress
+      });
+      
       console.log('Location data received:', locationData);
       
       setState(prev => ({
@@ -65,6 +100,15 @@ export function useLocationLookup(options = {}) {
       
       return locationData;
     } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useLocationLookup', duration, {
+        success: false,
+        action: 'lookupLocation',
+        error: error.message,
+        radius,
+        coordinates: { lat: latitude, lng: longitude }
+      });
+      
       console.error('Error in location lookup:', error);
       setState(prev => ({
         ...prev,
@@ -83,6 +127,7 @@ export function useLocationLookup(options = {}) {
   const handleLocationSelect = useCallback((location) => {
     if (!location) return;
     
+    const startTime = Date.now();
     console.log('handleLocationSelect called with:', location);
     
     // Extract coordinates from location object
@@ -90,6 +135,14 @@ export function useLocationLookup(options = {}) {
     const lng = location.lng || location.lon || (location.latlng ? location.latlng.lng : null);
     
     if (!lat || !lng) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useLocationLookup', duration, {
+        success: false,
+        action: 'handleLocationSelect',
+        error: 'Invalid location object',
+        input: location
+      });
+      
       console.error('Invalid location object:', location);
       return;
     }
@@ -97,6 +150,14 @@ export function useLocationLookup(options = {}) {
     if (autoLookup) {
       lookupLocation(lat, lng);
     } else {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useLocationLookup', duration, {
+        success: true,
+        action: 'handleLocationSelect',
+        autoLookup: false,
+        coordinates: { lat, lng }
+      });
+      
       setState(prev => ({
         ...prev,
         coordinates: { lat, lng }
@@ -108,8 +169,17 @@ export function useLocationLookup(options = {}) {
   const retryWithLargerRadius = useCallback(() => {
     if (!state.coordinates) return;
     
+    const startTime = Date.now();
     // Try with 150m radius instead of default 50m
     lookupLocation(state.coordinates.lat, state.coordinates.lng, 150);
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('hook', 'useLocationLookup', duration, {
+      success: true,
+      action: 'retryWithLargerRadius',
+      originalCoordinates: state.coordinates,
+      newRadius: 150
+    });
   }, [state.coordinates, lookupLocation]);
   
   return {
@@ -133,10 +203,21 @@ export function useLocationLookup(options = {}) {
     retryWithLargerRadius,
     
     // Clear current location data
-    clearLocationData: () => setState(prev => ({
-      ...prev, 
-      locationData: null,
-      error: null
-    }))
+    clearLocationData: () => {
+      const startTime = Date.now();
+      setState(prev => ({
+        ...prev, 
+        locationData: null,
+        error: null
+      }));
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useLocationLookup', duration, {
+        success: true,
+        action: 'clearLocationData',
+        hadLocationData: !!state.locationData,
+        hadError: !!state.error
+      });
+    }
   };
 } 

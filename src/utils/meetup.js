@@ -1,6 +1,7 @@
 import supabase, { getSupabaseClient } from '../supabase';
 import { toPostGISPoint, fromPostGISPoint, processPostGISMeetups, getSearchRadiusFromZoom } from './geo-utils';
 import { searchLocations } from './location-services';
+import { uploadFile, getSignedUrlFromFullUrl, getSignedViewUrl } from './wasabi-storage';
 
 // Get server time
 export const getServerTime = async () => {
@@ -20,6 +21,81 @@ export const getServerTime = async () => {
   }
 };
 
+// Add validation functions
+const validateMeetupData = (data) => {
+  const errors = [];
+  
+  // Required fields
+  if (!data.lat || !data.lng) {
+    errors.push('Location coordinates are required');
+  }
+  if (!data.title) {
+    errors.push('Title is required');
+  }
+  
+  // Validate coordinates
+  if (data.lat && (isNaN(data.lat) || data.lat < -90 || data.lat > 90)) {
+    errors.push('Invalid latitude value');
+  }
+  if (data.lng && (isNaN(data.lng) || data.lng < -180 || data.lng > 180)) {
+    errors.push('Invalid longitude value');
+  }
+  
+  // Validate duration
+  if (data.duration && (isNaN(data.duration) || data.duration < 60)) {
+    errors.push('Duration must be at least 60 minutes');
+  }
+  
+  // Validate title length
+  if (data.title && data.title.length > 100) {
+    errors.push('Title must be less than 100 characters');
+  }
+  
+  // Validate description length
+  if (data.description && data.description.length > 1000) {
+    errors.push('Description must be less than 1000 characters');
+  }
+  
+  return errors;
+};
+
+// Add error categories
+const ERROR_CATEGORIES = {
+  VALIDATION: 'validation',
+  NETWORK: 'network',
+  STORAGE: 'storage',
+  DATABASE: 'database',
+  UNKNOWN: 'unknown'
+};
+
+// Add error handling function
+const handleMeetupError = (error, operation) => {
+  let category = ERROR_CATEGORIES.UNKNOWN;
+  
+  // Categorize the error
+  if (error.message?.includes('validation')) {
+    category = ERROR_CATEGORIES.VALIDATION;
+  } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+    category = ERROR_CATEGORIES.NETWORK;
+  } else if (error.message?.includes('storage') || error.message?.includes('upload')) {
+    category = ERROR_CATEGORIES.STORAGE;
+  } else if (error.message?.includes('database') || error.message?.includes('supabase')) {
+    category = ERROR_CATEGORIES.DATABASE;
+  }
+  
+  console.error(`Error during ${operation}:`, {
+    category,
+    error: error.message,
+    timestamp: new Date().toISOString()
+  });
+  
+  return {
+    success: false,
+    error: error.message || `Failed to ${operation}`,
+    category
+  };
+};
+
 /**
  * Creates a meetup with the given data
  * @param {Object} meetupData - The meetup data
@@ -28,56 +104,65 @@ export const getServerTime = async () => {
  * @param {string} meetupData.address - Address of the meetup
  * @param {string} meetupData.title - Title of the meetup
  * @param {string} meetupData.description - Description of the meetup
- * @param {File} meetupData.image - Image for the meetup
+ * @param {File|string} meetupData.image - Image for the meetup
+ * @param {string} [meetupData.imageSignedUrl] - Optional pre-signed URL for viewing the image
  * @param {number} meetupData.duration - Duration of the meetup in minutes (default: 60)
  * @returns {Promise<Object>} - The created meetup
  */
-export const createMeetup = async ({ lat, lng, address, title, description, image, duration = 60, user_id = null }) => {
-  // Validate parameters
-  if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-      throw new Error('Invalid location coordinates');
-    }
-
-  // Always get a proper address from coordinates before storing in database
-  // This ensures we never store "Your location" or coordinate strings
-  let addressToStore = address;
-  
-  // If address is missing or looks like a placeholder, get a real address from coordinates
-  if (!address || 
-      typeof address !== 'string' || 
-      address.includes('Your location') ||
-      address.includes('Location at') ||
-      address.includes('coordinates')) {
-    
-    console.log('Getting proper address from coordinates for storage in database');
-    try {
-      const locationData = await searchLocations(`${lat},${lng}`, 1);
-      if (locationData && locationData.length > 0 && locationData[0].display_name) {
-        addressToStore = locationData[0].display_name;
-        console.log('Successfully geocoded address for database:', addressToStore);
-      } else {
-        addressToStore = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-        console.log('Geocoding failed, using coordinates as fallback:', addressToStore);
-      }
-    } catch (error) {
-      console.error('Error during reverse geocoding:', error);
-      addressToStore = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    }
-  }
-
-  if (!title) {
-    title = 'Instant Meetup';
-  }
-
-  // Ensure duration is a number and at least 60 minutes
-  duration = Number(duration) || 60;
-  if (duration < 60) {
-    duration = 60;
-  }
-
-  // Server should calculate expiry time based on duration (current time + duration)
-  // We're simply preparing the data to send to the server
+export const createMeetup = async ({ 
+  lat, 
+  lng, 
+  address, 
+  title, 
+  description, 
+  image, 
+  imageSignedUrl = null, 
+  duration = 60, 
+  user_id = null 
+}) => {
   try {
+    // Validate input data
+    const validationErrors = validateMeetupData({ lat, lng, title, description, duration });
+    if (validationErrors.length > 0) {
+      throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
+    }
+
+    // If address is missing or looks like a placeholder, get a real address from coordinates
+    let addressToStore = address;
+    if (!address || 
+        typeof address !== 'string' || 
+        address.includes('Your location') ||
+        address.includes('Location at') ||
+        address.includes('coordinates')) {
+      
+      console.log('Getting proper address from coordinates for storage in database');
+      try {
+        const locationData = await searchLocations(`${lat},${lng}`, 1);
+        if (locationData && locationData.length > 0 && locationData[0].display_name) {
+          addressToStore = locationData[0].display_name;
+          console.log('Successfully geocoded address for database:', addressToStore);
+        } else {
+          addressToStore = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+          console.log('Geocoding failed, using coordinates as fallback:', addressToStore);
+        }
+      } catch (error) {
+        console.error('Error during reverse geocoding:', error);
+        addressToStore = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      }
+    }
+
+    if (!title) {
+      title = 'Instant Meetup';
+    }
+
+    // Ensure duration is a number and at least 60 minutes
+    duration = Number(duration) || 60;
+    if (duration < 60) {
+      duration = 60;
+    }
+
+    // Server should calculate expiry time based on duration (current time + duration)
+    // We're simply preparing the data to send to the server
     const supabase = getSupabaseClient();
 
     if (!supabase) {
@@ -103,29 +188,33 @@ export const createMeetup = async ({ lat, lng, address, title, description, imag
 
     // Upload image if provided
     if (image) {
-      // Generate a unique filename
-      const timestamp = Date.now();
-      const extension = image.name.split('.').pop();
-      const filename = `meetup_${timestamp}.${extension}`;
-      const filePath = `meetups/${filename}`;
+      try {
+        // If image is already a string (path), just use it
+        if (typeof image === 'string') {
+          meetupData.image_url = image;
+        } else {
+          // Generate a unique filename
+          const timestamp = Date.now();
+          const extension = image.name.split('.').pop();
+          const filename = `meetup_${timestamp}.${extension}`;
+          const filePath = `meetups/${filename}`;
 
-      // Upload the image to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('meetup-images')
-        .upload(filePath, image);
+          // Upload the image to Wasabi Storage
+          const { success, url, error } = await uploadFile(image, filePath);
 
-      if (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        throw new Error('Failed to upload image');
-      }
+          if (!success || error) {
+            console.error('Error uploading image to Wasabi:', error);
+            throw new Error('Failed to upload image');
+          }
 
-      // Get the public URL for the uploaded image
-      const { data: urlData } = supabase.storage
-        .from('meetup-images')
-        .getPublicUrl(filePath);
-
-      if (urlData && urlData.publicUrl) {
-        meetupData.image_url = urlData.publicUrl;
+          // Use the path from Wasabi
+          if (url) {
+            meetupData.image_url = url;
+          }
+        }
+      } catch (uploadError) {
+        console.error('Error during image upload:', uploadError);
+        // Continue creating the meetup without an image if upload fails
       }
     }
 
@@ -148,8 +237,8 @@ export const createMeetup = async ({ lat, lng, address, title, description, imag
 
     return data;
   } catch (error) {
-    console.error('Create meetup error:', error);
-    throw error;
+    const handledError = handleMeetupError(error, 'create meetup');
+    throw new Error(handledError.error);
   }
 };
 
@@ -160,11 +249,20 @@ export const createMeetup = async ({ lat, lng, address, title, description, imag
  * @param {string} meetupData.address - Address of the meetup
  * @param {string} meetupData.title - Title of the meetup
  * @param {string} meetupData.description - Description of the meetup
- * @param {File} meetupData.image - Image for the meetup
+ * @param {File|string} meetupData.image - Image for the meetup
+ * @param {string} [meetupData.imageSignedUrl] - Optional pre-signed URL for viewing the image
  * @param {number} meetupData.duration - Duration of the meetup in minutes (default: 60)
  * @returns {Promise<Object>} - The created meetup
  */
-export const createFreeMeetup = async ({ location, address, title, description, image, duration = 60 }) => {
+export const createFreeMeetup = async ({ 
+  location, 
+  address, 
+  title, 
+  description, 
+  image, 
+  imageSignedUrl = null,
+  duration = 60 
+}) => {
   try {
     // Get the current user if logged in
     const supabase = getSupabaseClient();
@@ -184,6 +282,7 @@ export const createFreeMeetup = async ({ location, address, title, description, 
       title,
       description,
       image,
+      imageSignedUrl,
       duration,
       user_id: userId
     });
@@ -483,28 +582,33 @@ export const cancelFreeMeetup = async (meetupId) => {
   }
 };
 
-export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filters = {}) => {
+export const getNearbyFreeMeetups = async (
+  lat,
+  lng,
+  radius = 5000,
+  options = {}
+) => {
   try {
     // Check if arguments are valid
-    if (userLat === null || userLng === null || 
-        userLat === undefined || userLng === undefined) {
-      console.error('getNearbyFreeMeetups called with invalid coordinates:', { userLat, userLng });
+    if (lat === null || lng === null || 
+        lat === undefined || lng === undefined) {
+      console.error('getNearbyFreeMeetups called with invalid coordinates:', { lat, lng });
       return { success: false, error: 'Invalid user location' };
     }
 
     // Ensure numeric values
-    const lat = parseFloat(userLat);
-    const lng = parseFloat(userLng);
+    const userLat = parseFloat(lat);
+    const userLng = parseFloat(lng);
 
     // Validate lat/lng values
-    if (isNaN(lat) || isNaN(lng) ||
-        lat < -90 || lat > 90 ||
-        lng < -180 || lng > 180) {
-      console.error('getNearbyFreeMeetups called with invalid coordinate values:', { lat, lng });
+    if (isNaN(userLat) || isNaN(userLng) ||
+        userLat < -90 || userLat > 90 ||
+        userLng < -180 || userLng > 180) {
+      console.error('getNearbyFreeMeetups called with invalid coordinate values:', { userLat, userLng });
       return { success: false, error: 'Invalid latitude or longitude values' };
     }
 
-    console.log('Fetching nearby meetups for USER location:', { lat, lng }, 'with radius:', radius);
+    console.log('Fetching nearby meetups for user location:', { userLat, userLng }, 'with radius:', radius);
     
     // Calculate radius based on zoom level to get appropriate search distance
     const getRadiusFromZoom = (zoom) => {
@@ -521,7 +625,7 @@ export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filt
     const radiusMeters = radiusKm * 1000;
 
     // Use client-side filtering with the user's current location
-    console.log(`Using client-side filtering with USER location and radius ${radiusMeters}m`);
+    console.log(`Using client-side filtering with user location and radius ${radiusMeters}m`);
     
     // Fetch all active meetups
     const { data, error } = await supabase
@@ -540,7 +644,7 @@ export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filt
       return { success: true, meetups: [] };
     }
 
-    console.log(`Found ${data.length} active meetups, filtering by distance from USER...`);
+    console.log(`Found ${data.length} active meetups, filtering by distance from user...`);
     console.log('[DEBUG] Active meetups:', data.map(m => ({
       id: m.id, 
       title: m.title,
@@ -606,7 +710,7 @@ export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filt
     
     // Continue processing meetups with valid locations
     const filteredMeetups = meetupsWithValidLocation
-      // Calculate distance from USER's location and add it to each meetup
+      // Calculate distance from user's location and add it to each meetup
       .map(meetup => {
         let meetupLat, meetupLng;
         
@@ -637,10 +741,10 @@ export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filt
           meetupLng = meetup.location.lng || meetup.location.lon || meetup.location.longitude;
         }
         
-        // Calculate distance using Haversine formula from USER location
+        // Calculate distance using Haversine formula from user location
         const distanceKm = calculateDistance(
-          lat, 
-          lng, 
+          userLat, 
+          userLng, 
           meetupLat, 
           meetupLng
         );
@@ -656,7 +760,7 @@ export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filt
           distance_formatted = `${(distance / 1000).toFixed(1)}km`;
         }
         
-        console.log(`[DEBUG] Meetup ${meetup.id} distance: ${distance}m (${distanceKm}km) from ${lat},${lng} to ${meetupLat},${meetupLng}`);
+        console.log(`[DEBUG] Meetup ${meetup.id} distance: ${distance}m (${distanceKm}km) from ${userLat},${userLng} to ${meetupLat},${meetupLng}`);
         
         return {
           ...meetup,
@@ -665,7 +769,7 @@ export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filt
           location: { lat: meetupLat, lng: meetupLng } // Normalize location format
         };
       })
-      // Filter by distance from USER
+      // Filter by distance from user
       .filter(meetup => {
         const isNearby = meetup.distance_meters <= radiusMeters;
         if (!isNearby) {
@@ -673,12 +777,12 @@ export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filt
         }
         return isNearby;
       })
-      // Sort by distance from USER (closest first)
+      // Sort by distance from user (closest first)
       .sort((a, b) => a.distance_meters - b.distance_meters)
       // Apply limit
       .slice(0, 50);
 
-    console.log(`Found ${filteredMeetups.length} nearby meetups after client-side filtering based on USER location`);
+    console.log(`Found ${filteredMeetups.length} nearby meetups after client-side filtering based on user location`);
     
     // If debugging, show the ones we found
     if (filteredMeetups.length > 0) {
@@ -690,7 +794,9 @@ export const getNearbyFreeMeetups = async (userLat, userLng, radius = 5000, filt
       })));
     }
     
-    return { success: true, meetups: filteredMeetups };
+    // Add signed image URLs to the meetups
+    const enhancedMeetups = await addSignedImageUrlsToMeetups(filteredMeetups);
+    return { success: true, meetups: enhancedMeetups };
   } catch (error) {
     console.error('Error fetching nearby free meetups:', error);
     console.error('Error details:', {
@@ -908,3 +1014,114 @@ export async function isMeetupExpired(meetupId) {
     throw error;
   }
 }
+/**
+ * Update a meetup's image
+ * 
+ * @param {string} meetupId - The ID of the meetup to update
+ * @param {string} imageUrl - The URL of the uploaded image
+ * @returns {Promise<Object>} Result object with success/error info
+ */
+export const updateMeetupImage = async (meetupId, imageUrl) => {
+  try {
+    console.log(`Updating meetup ${meetupId} with image URL: ${imageUrl}`);
+    
+    if (!meetupId || !imageUrl) {
+      throw new Error('Meetup ID and image URL are required');
+    }
+    
+    // Ensure user is logged in
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.user) {
+      throw new Error('You must be logged in to update a meetup');
+    }
+    
+    // Update the meetup with the new image URL
+    const { data, error } = await supabase
+      .from('meetups')
+      .update({ 
+        image_url: imageUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', meetupId)
+      .select('id, image_url');
+    
+    if (error) {
+      console.error('Error updating meetup image:', error);
+      throw new Error(error.message || 'Failed to update meetup image');
+    }
+    
+    if (!data || data.length === 0) {
+      throw new Error('Meetup not found or you do not have permission to update it');
+    }
+    
+    return {
+      success: true,
+      meetup: data[0]
+    };
+  } catch (error) {
+    console.error('Error in updateMeetupImage:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to update meetup image'
+    };
+  }
+};
+
+/**
+ * Get a meetup with a pre-signed URL for its image
+ * @param {string} meetupId - The ID of the meetup to get
+ * @returns {Promise<Object>} - The meetup with a signed image URL
+ */
+export const getMeetupWithSignedImageUrl = async (meetupId) => {
+  try {
+    const meetup = await getMeetup(meetupId);
+    if (!meetup) return null;
+
+    // If the meetup has an image, generate a signed URL for it
+    if (meetup.image_url) {
+      try {
+        // The image_url is now just the path
+        const signedUrl = await getSignedViewUrl(meetup.image_url, 86400, meetup.is_anonymous);
+        meetup.image_url = signedUrl;
+      } catch (error) {
+        console.error('Error generating signed URL for meetup image:', error);
+        // Keep the original image_url if signed URL generation fails
+      }
+    }
+
+    return meetup;
+  } catch (error) {
+    console.error('Error getting meetup with signed image URL:', error);
+    return null;
+  }
+};
+
+/**
+ * Enhance meetups with signed image URLs
+ * @param {Array} meetups - Array of meetups to enhance
+ * @returns {Promise<Array>} - Enhanced meetups with signed image URLs
+ */
+export const addSignedImageUrlsToMeetups = async (meetups) => {
+  if (!Array.isArray(meetups) || meetups.length === 0) return meetups;
+  
+  try {
+    // Process meetups in parallel
+    const enhancedMeetups = await Promise.all(meetups.map(async (meetup) => {
+      if (meetup && meetup.image_url) {
+        try {
+          const signedUrl = await getSignedUrlFromFullUrl(meetup.image_url, 86400, meetup.is_anonymous);
+          return { ...meetup, signed_image_url: signedUrl };
+        } catch (err) {
+          console.error('Error generating signed URL for meetup:', err);
+          // Keep the original meetup if signed URL generation fails
+        }
+      }
+      return meetup;
+    }));
+    
+    return enhancedMeetups;
+  } catch (error) {
+    console.error('Error enhancing meetups with signed URLs:', error);
+    return meetups; // Return original meetups if enhancement fails
+  }
+};

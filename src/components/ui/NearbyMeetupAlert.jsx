@@ -1,11 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { FaMapMarkerAlt, FaTimes } from 'react-icons/fa';
+import { FaBell, FaTimes, FaMapMarkerAlt } from 'react-icons/fa';
 
 /**
- * A notification component that appears when meetups are found near the user's location
+ * A notification component that appears when a single meetup is found near the user's location
  */
-const NearbyMeetupAlert = ({ 
+const SingleMeetupAlert = ({ 
+  meetup, 
+  onDismiss, 
+  onJoin,
+  className = '' 
+}) => {
+  if (!meetup) return null;
+
+  return (
+    <div className={`bg-white rounded-lg shadow-lg p-4 ${className}`}>
+      <div className="flex items-start">
+        <div className="flex-shrink-0">
+          <FaBell className="h-5 w-5 text-blue-500" />
+        </div>
+        <div className="ml-3 flex-1">
+          <h3 className="text-sm font-medium text-gray-900">
+            New Meetup Nearby
+          </h3>
+          <div className="mt-1 text-sm text-gray-500">
+            <p className="font-medium">{meetup.title}</p>
+            <p className="mt-1">{meetup.location?.display_name}</p>
+            <p className="mt-1">
+              {new Date(meetup.start_time).toLocaleString()}
+            </p>
+          </div>
+          <div className="mt-3 flex space-x-3">
+            <button
+              type="button"
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={() => onJoin?.(meetup)}
+            >
+              Join Meetup
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={() => onDismiss?.()}
+            >
+              <FaTimes className="mr-1" />
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * A notification component that appears when multiple meetups are found near the user's location
+ */
+const MultipleMeetupsAlert = ({ 
   meetups = [], 
   onView,
   onClose,
@@ -188,11 +239,38 @@ const NearbyMeetupAlert = ({
   );
 };
 
-NearbyMeetupAlert.propTypes = {
-  meetups: PropTypes.array,
+SingleMeetupAlert.propTypes = {
+  meetup: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    location: PropTypes.shape({
+      display_name: PropTypes.string
+    }),
+    start_time: PropTypes.string.isRequired
+  }),
+  onDismiss: PropTypes.func,
+  onJoin: PropTypes.func,
+  className: PropTypes.string
+};
+
+MultipleMeetupsAlert.propTypes = {
+  meetups: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    location: PropTypes.shape({
+      display_name: PropTypes.string
+    }),
+    distance_meters: PropTypes.number,
+    distance_formatted: PropTypes.string,
+    start_time: PropTypes.string.isRequired
+  })),
   onView: PropTypes.func,
   onClose: PropTypes.func,
   autoHideAfter: PropTypes.number
 };
 
-export default NearbyMeetupAlert; 
+// Export both components
+export { SingleMeetupAlert, MultipleMeetupsAlert };
+
+// Default export for backward compatibility
+export default MultipleMeetupsAlert; 

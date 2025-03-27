@@ -85,6 +85,18 @@ function YourComponent() {
 
 ## Technical Implementation
 
+### Isolated Development Approach
+
+This feature is being developed as a completely self-contained module that will not interfere with the current functioning of the site. Key isolation principles:
+
+- **Independent State Management**: Uses its own context provider with no dependencies on app-level state
+- **Feature Flagging**: All functionality is behind feature flags defined in `constants/index.js`
+- **Isolated CSS**: Uses CSS modules with unique class names to prevent style conflicts
+- **Dedicated API**: Communicates with dedicated API endpoints that don't affect existing app data
+- **Error Boundary**: Wrapped in error boundaries to prevent cascading failures
+- **Fallback Handling**: Graceful degradation if any part of the feature fails
+- **Independent Testing**: Complete test suite isolated from main app tests
+
 ### State Management
 
 The feature uses React Context for state management, with a carefully designed reducer to handle various chat actions. This approach keeps state updates predictable and allows any component to access the chat state when needed.
@@ -126,6 +138,31 @@ See the [Development Journal](./DEVELOPMENT_JOURNAL.md) for ongoing progress, de
 
 - `locationUtils` - Utilities for location calculations and formatting
 - `messageUtils` - Utilities for message handling and formatting
+
+## Integration Guidelines
+
+When the proximity chat feature is ready for integration with the main application, follow these guidelines:
+
+1. **Feature Flag Control**: 
+   - Enable the feature gradually using the feature flags in `constants/index.js`
+   - Consider enabling by region or user segment
+
+2. **Integration Points**:
+   - Add `<ProximityChatProvider>` to the app's component hierarchy
+   - Mount `<ProximityChat>` component at the appropriate UI level
+   - Integrate UI controls for toggling chat visibility
+
+3. **Testing During Integration**:
+   - Run the full test suite with the feature enabled
+   - Conduct regression testing on all existing features
+   - Verify performance metrics aren't impacted
+
+4. **Rollback Plan**:
+   - Maintain ability to disable the feature completely via feature flags
+   - Create monitoring alerts for any errors in the proximity chat module
+   - Document the process for emergency disabling if needed
+
+Remember: The feature must be fully perfected in isolation before integration with the main application.
 
 ## Contributing
 

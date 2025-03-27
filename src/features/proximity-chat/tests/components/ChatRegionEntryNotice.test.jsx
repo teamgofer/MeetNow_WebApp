@@ -1,25 +1,26 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import ChatRegionEntryNotice from '../../components/ChatRegionEntryNotice';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock timeUtils module
-jest.mock('../../utils/timeUtils', () => ({
-  formatRelativeTime: jest.fn().mockReturnValue('10 minutes ago')
+vi.mock('../../utils/timeUtils', () => ({
+  formatRelativeTime: vi.fn().mockReturnValue('10 minutes ago')
 }));
 
 describe('ChatRegionEntryNotice', () => {
   // Mock function for loading previous messages
-  const mockLoadPreviousMessages = jest.fn().mockResolvedValue([]);
+  const mockLoadPreviousMessages = vi.fn().mockResolvedValue([]);
   
   // Set up timers for testing auto-hide
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
   
   afterEach(() => {
-    jest.clearAllTimers();
-    jest.clearAllMocks();
-    jest.useRealTimers();
+    vi.clearAllTimers();
+    vi.clearAllMocks();
+    vi.useRealTimers();
   });
   
   const defaultProps = {
@@ -78,7 +79,7 @@ describe('ChatRegionEntryNotice', () => {
       resolvePromise = resolve;
     });
     
-    const loadingMock = jest.fn().mockReturnValue(loadingPromise);
+    const loadingMock = vi.fn().mockReturnValue(loadingPromise);
     
     render(
       <ChatRegionEntryNotice 
@@ -126,7 +127,7 @@ describe('ChatRegionEntryNotice', () => {
     
     // Advance timers by less than the hideAfter time
     act(() => {
-      jest.advanceTimersByTime(4000);
+      vi.advanceTimersByTime(4000);
     });
     
     // Notice should still be visible
@@ -134,7 +135,7 @@ describe('ChatRegionEntryNotice', () => {
     
     // Advance timers past the hideAfter time
     act(() => {
-      jest.advanceTimersByTime(1001);
+      vi.advanceTimersByTime(1001);
     });
     
     // Notice should be hidden
@@ -155,7 +156,7 @@ describe('ChatRegionEntryNotice', () => {
     
     // Advance timers past the hideAfter time
     act(() => {
-      jest.advanceTimersByTime(10000);
+      vi.advanceTimersByTime(10000);
     });
     
     // Notice should still be visible

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { getChatMessages, getChatSettings } from '../services/chatService';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -13,39 +13,27 @@ import {
   createReceiptUpdateMessage 
 } from '../utils/readReceiptUtils';
 import { chatSocketService } from '../services/chatSocketService';
-import { locationService } from '../services/locationService';
+import { LocationService } from '../services/LocationService';
 import messageHistoryService from '../services/messageHistoryService';
+import { WebSocketService } from '../services/WebSocketService';
+import { MessageService } from '../services/MessageService';
+import { FEATURES, INTEGRATION } from '../constants';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 // Initial state
 const initialState = {
   isConnected: false,
   messages: [],
   nearbyUsers: [],
-  currentUserId: null,
+  sessionId: null,
   userLocation: null,
   typingUsers: {},
   chatSettings: {
-    maxDistance: 1000, // meters
-    refreshRate: 30, // seconds
-    messageTimeout: 12, // hours
-    anonymousMode: false,
+    radius: 500, // default radius in meters
+    anonymousMode: true, // default to anonymous for all users
     notifications: true,
-    proximityRadius: 100,
-    showTimestamps: true,
-    autoScroll: true,
-    locationSharing: {
-      isEnabled: true,
-      precisionLevel: 'exact',
-      sharingSchedule: 'always',
-      customSchedule: {
-        startTime: '09:00',
-        endTime: '21:00',
-        daysOfWeek: [0, 1, 2, 3, 4, 5, 6]
-      },
-      autoDisableWhenInactive: true,
-      inactivityTimeout: 30,
-      excludedUsers: []
-    }
+    locationPrecision: 'exact', // 'exact', 'approximate', 'area'
   },
   isLoading: false,
   error: null,
@@ -57,112 +45,69 @@ const initialState = {
 // Create the context
 const ProximityChatContext = createContext(initialState);
 
+// Action types
+const ActionTypes = {
+  SET_CONNECTED: 'SET_CONNECTED',
+  SET_MESSAGES: 'SET_MESSAGES',
+  ADD_MESSAGE: 'ADD_MESSAGE',
+  UPDATE_NEARBY_USERS: 'UPDATE_NEARBY_USERS',
+  SET_USER_LOCATION: 'SET_USER_LOCATION',
+  SET_SESSION_ID: 'SET_SESSION_ID',
+  SET_TYPING_STATUS: 'SET_TYPING_STATUS',
+  UPDATE_CHAT_SETTINGS: 'UPDATE_CHAT_SETTINGS',
+  SET_LOADING: 'SET_LOADING',
+  SET_ERROR: 'SET_ERROR',
+  RESET_STATE: 'RESET_STATE',
+  SET_ENTERED_REGION: 'SET_ENTERED_REGION',
+  SET_LOADING_HISTORY: 'SET_LOADING_HISTORY',
+  SET_REACHED_END_OF_HISTORY: 'SET_REACHED_END_OF_HISTORY',
+  ADD_HISTORICAL_MESSAGES: 'ADD_HISTORICAL_MESSAGES',
+  UPDATE_LOCATION_SHARING: 'UPDATE_LOCATION_SHARING',
+};
+
 // Reducer to handle state updates
-function chatReducer(state, action) {
+const chatReducer = (state, action) => {
   switch (action.type) {
-    case 'SET_CONNECTION_STATUS':
+    case ActionTypes.SET_CONNECTED:
       return {
         ...state,
         isConnected: action.payload,
+        error: action.payload ? null : state.error,
       };
-    case 'SET_CURRENT_USER':
-      return {
-        ...state,
-        currentUserId: action.payload,
-      };
-    case 'SET_USER_LOCATION':
-      return {
-        ...state,
-        userLocation: action.payload,
-      };
-    case 'SET_MESSAGES':
+    case ActionTypes.SET_MESSAGES:
       return {
         ...state,
         messages: action.payload,
       };
-    case 'ADD_MESSAGE': {
-      // Play sound for new messages (if not from current user)
-      if (action.payload.userId !== state.currentUserId) {
-        playNotificationSound('newMessage');
-      } else {
-        playNotificationSound('messageSent');
-      }
-      
-      // Add receipt information if it's the current user's message
-      let message = action.payload;
-      if (message.userId === state.currentUserId) {
-        message = updateMessageReceipt(message, ReceiptStatus.SENT, state.currentUserId);
-      }
-      
+    case ActionTypes.ADD_MESSAGE:
       return {
         ...state,
-        messages: [...state.messages, message],
+        messages: [...state.messages, action.payload],
       };
-    }
-    case 'UPDATE_MESSAGE': {
-      // Find and update a specific message
-      const index = state.messages.findIndex(
-        (msg) => msg.id === action.payload.id
-      );
-      
-      if (index === -1) return state;
-      
-      const updatedMessages = [...state.messages];
-      updatedMessages[index] = action.payload;
-      
-      return {
-        ...state,
-        messages: updatedMessages,
-      };
-    }
-    case 'UPDATE_MESSAGE_RECEIPTS': {
-      // Update receipt status for specific messages
-      const { messageIds, status, userId } = action.payload;
-      
-      // If no message IDs provided, don't update anything
-      if (!messageIds || !messageIds.length) return state;
-      
-      const updatedMessages = state.messages.map(message => {
-        if (messageIds.includes(message.id)) {
-          return updateMessageReceipt(message, status, userId);
-        }
-        return message;
-      });
-      
-      return {
-        ...state,
-        messages: updatedMessages,
-      };
-    }
-    case 'SET_NEARBY_USERS':
-      // Check if there are new nearby users that weren't there before
-      const newUsers = action.payload.filter(user => 
-        !state.nearbyUsers.some(existingUser => existingUser.id === user.id)
-      );
-      
-      // Play sound if new users appear nearby
-      if (newUsers.length > 0 && state.nearbyUsers.length > 0) {
-        playNotificationSound('userNearby');
-      }
-      
+    case ActionTypes.UPDATE_NEARBY_USERS:
       return {
         ...state,
         nearbyUsers: action.payload,
       };
-    case 'SET_TYPING_STATUS':
-      // Play typing sound if someone starts typing (and wasn't already typing)
-      const wasTyping = state.typingUsers[action.payload.userId];
-      if (action.payload.isTyping && !wasTyping && action.payload.userId !== state.currentUserId) {
-        playNotificationSound('typing');
-      }
+    case ActionTypes.SET_USER_LOCATION:
+      return {
+        ...state,
+        userLocation: action.payload,
+      };
+    case ActionTypes.SET_SESSION_ID:
+      return {
+        ...state,
+        sessionId: action.payload,
+      };
+    case ActionTypes.SET_TYPING_STATUS:
       return {
         ...state,
         typingUsers: {
           ...state.typingUsers,
-          [action.payload.userId]: action.payload.isTyping,
+          [action.payload.sessionId]: action.payload.isTyping,
         },
       };
-    case 'SET_CHAT_SETTINGS':
+    case ActionTypes.UPDATE_CHAT_SETTINGS:
       return {
         ...state,
         chatSettings: {
@@ -170,22 +115,50 @@ function chatReducer(state, action) {
           ...action.payload,
         },
       };
-    case 'SET_LOADING':
+    case ActionTypes.SET_LOADING:
       return {
         ...state,
         isLoading: action.payload,
       };
-    case 'SET_ERROR':
+    case ActionTypes.SET_ERROR:
       return {
         ...state,
         error: action.payload,
+        isLoading: false,
       };
-    case 'RESET_STATE':
+    case ActionTypes.RESET_STATE:
       return {
         ...initialState,
-        currentUserId: state.currentUserId, // Keep the user ID
+        sessionId: state.sessionId,
+        chatSettings: state.chatSettings,
       };
-    case 'UPDATE_LOCATION_SHARING':
+    case ActionTypes.SET_ENTERED_REGION:
+      return {
+        ...state,
+        enteredRegions: {
+          ...state.enteredRegions,
+          [action.payload.regionId]: action.payload.timestamp
+        }
+      };
+    case ActionTypes.SET_LOADING_HISTORY:
+      return {
+        ...state,
+        loadingHistory: action.payload
+      };
+    case ActionTypes.SET_REACHED_END_OF_HISTORY:
+      return {
+        ...state,
+        reachedEndOfHistory: {
+          ...state.reachedEndOfHistory,
+          [action.payload.regionId]: action.payload.reachedEnd
+        }
+      };
+    case ActionTypes.ADD_HISTORICAL_MESSAGES:
+      return {
+        ...state,
+        messages: [...action.payload, ...state.messages]
+      };
+    case ActionTypes.UPDATE_LOCATION_SHARING:
       return {
         ...state,
         chatSettings: {
@@ -196,286 +169,290 @@ function chatReducer(state, action) {
           }
         }
       };
-    case 'SET_ENTERED_REGION':
-      return {
-        ...state,
-        enteredRegions: {
-          ...state.enteredRegions,
-          [action.payload.regionId]: action.payload.timestamp
-        }
-      };
-    case 'SET_LOADING_HISTORY':
-      return {
-        ...state,
-        loadingHistory: action.payload
-      };
-    case 'SET_REACHED_END_OF_HISTORY':
-      return {
-        ...state,
-        reachedEndOfHistory: {
-          ...state.reachedEndOfHistory,
-          [action.payload.regionId]: action.payload.reachedEnd
-        }
-      };
-    case 'ADD_HISTORICAL_MESSAGES':
-      return {
-        ...state,
-        messages: [...action.payload, ...state.messages]
-      };
     default:
       return state;
   }
-}
+};
+
+// Custom error handler
+const handleProximityChatError = (error, errorInfo) => {
+  console.error('ProximityChat Error:', error, errorInfo);
+  
+  // Based on integration settings, handle the error appropriately
+  switch (INTEGRATION.ERROR_HANDLING) {
+    case 'log':
+      console.error('ProximityChat Error:', error);
+      break;
+    case 'alert':
+      if (process.env.NODE_ENV !== 'production') {
+        alert(`ProximityChat Error: ${error.message}`);
+      }
+      break;
+    case 'silent':
+    default:
+      // Just log to internal error tracking, don't alert user
+      break;
+  }
+  
+  // You could also send to an error tracking service here
+};
 
 // Provider component
-export function ProximityChatProvider({ children, userId }) {
+export function ProximityChatProvider({ children }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
+  const renderStartTimeRef = React.useRef(Date.now());
   
-  // Set the current user ID when it's provided
+  // Track context initialization
   useEffect(() => {
-    if (userId) {
-      dispatch({ type: 'SET_CURRENT_USER', payload: userId });
-    }
-  }, [userId]);
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('proximity_chat_context_init', duration, {
+      hasInitialState: !!state,
+      hasWebSocketService: !!chatSocketService,
+      hasLocationService: !!LocationService,
+      hasMessageService: !!messageHistoryService
+    });
+  }, []);
   
-  // Initialize the WebSocket connection
-  const { 
-    sendMessage, 
-    lastMessage, 
-    connectionStatus, 
-    connect, 
-    disconnect 
-  } = useWebSocket();
+  // Check if the feature is enabled
+  const isFeatureEnabled = useMemo(() => FEATURES.PROXIMITY_CHAT_ENABLED, []);
   
-  // Use the geolocation hook
-  const { 
-    position, 
-    error: locationError, 
-    startTracking, 
-    stopTracking 
-  } = useGeolocation();
+  // If feature is disabled, render children without the provider
+  if (!isFeatureEnabled) {
+    return <>{children}</>;
+  }
   
-  // Handle WebSocket connection status changes
+  // Initialize services
+  const webSocketService = useMemo(() => new WebSocketService(), []);
+  const locationService = useMemo(() => new LocationService(), []);
+  const messageService = useMemo(() => new MessageService(), []);
+
+  // Generate a session ID if we don't have one
   useEffect(() => {
-    const isConnected = connectionStatus === 'OPEN';
-    dispatch({ type: 'SET_CONNECTION_STATUS', payload: isConnected });
-    
-    // Play connection/disconnection sounds
-    if (isConnected) {
-      playNotificationSound('connected');
-    } else if (connectionStatus === 'CLOSED' && state.isConnected) {
-      playNotificationSound('disconnected');
-    }
-  }, [connectionStatus, state.isConnected]);
-  
-  // Handle location updates
-  useEffect(() => {
-    if (position) {
-      const location = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        timestamp: position.timestamp,
-      };
-      dispatch({ type: 'SET_USER_LOCATION', payload: location });
+    if (!state.sessionId) {
+      const newSessionId = `anon_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      dispatch({ type: ActionTypes.SET_SESSION_ID, payload: newSessionId });
       
-      // Send location update to server if connected
-      if (state.isConnected && state.currentUserId) {
-        sendMessage({
-          type: 'UPDATE_LOCATION',
-          payload: {
-            userId: state.currentUserId,
-            location,
-            settings: state.chatSettings,
-          },
-        });
+      // Store it in localStorage for session persistence across page reloads
+      try {
+        localStorage.setItem('proximityChatSessionId', newSessionId);
+      } catch (e) {
+        console.warn('Failed to store session ID in localStorage', e);
       }
     }
-    
-    if (locationError) {
-      dispatch({ 
-        type: 'SET_ERROR', 
-        payload: `Location error: ${locationError.message}` 
-      });
-    }
-  }, [position, locationError, state.isConnected, state.currentUserId, state.chatSettings, sendMessage]);
-  
-  // Handle incoming WebSocket messages
+  }, [state.sessionId]);
+
+  // Set up WebSocket connection
   useEffect(() => {
-    if (!lastMessage) return;
-    
-    try {
-      const data = JSON.parse(lastMessage.data);
-      
-      switch (data.type) {
-        case 'NEW_MESSAGE':
-          dispatch({ type: 'ADD_MESSAGE', payload: data.payload });
-          
-          // Automatically mark as delivered if it's not our own message
-          if (data.payload.userId !== state.currentUserId) {
-            const receiptUpdate = createReceiptUpdateMessage(
-              data.payload.id, 
-              ReceiptStatus.DELIVERED,
-              state.currentUserId
-            );
-            sendMessage(receiptUpdate);
-          }
-          break;
-        case 'NEARBY_USERS':
-          dispatch({ type: 'SET_NEARBY_USERS', payload: data.payload });
-          break;
-        case 'TYPING_STATUS':
-          dispatch({ 
-            type: 'SET_TYPING_STATUS', 
-            payload: data.payload
-          });
-          break;
-        case 'RECEIPT_UPDATE':
-          // Handle receipt updates from other users
-          dispatch({
-            type: 'UPDATE_MESSAGE_RECEIPTS',
-            payload: {
-              messageIds: [data.payload.messageId],
-              status: data.payload.status,
-              userId: data.payload.userId
-            }
-          });
-          break;
-        case 'ERROR':
-          dispatch({ type: 'SET_ERROR', payload: data.payload });
-          break;
-        default:
-          console.log('Unknown message type:', data.type);
-      }
-    } catch (error) {
-      console.error('Failed to parse WebSocket message:', error);
-    }
-  }, [lastMessage, state.currentUserId, sendMessage]);
-  
-  // Fetch messages and settings when connected
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      if (state.isConnected && state.currentUserId) {
-        dispatch({ type: 'SET_LOADING', payload: true });
-        
-        try {
-          // Fetch chat settings
-          const settings = await getChatSettings(state.currentUserId);
-          dispatch({ type: 'SET_CHAT_SETTINGS', payload: settings });
-          
-          // Fetch messages
-          const messages = await getChatMessages(state.currentUserId);
-          dispatch({ type: 'SET_MESSAGES', payload: messages });
-        } catch (error) {
-          dispatch({ 
-            type: 'SET_ERROR', 
-            payload: `Failed to fetch initial data: ${error.message}` 
-          });
-        } finally {
-          dispatch({ type: 'SET_LOADING', payload: false });
-        }
-      }
+    // Set up WebSocket event handlers
+    const handleConnectionStatus = (isConnected) => {
+      dispatch({ type: ActionTypes.SET_CONNECTED, payload: isConnected });
     };
     
-    fetchInitialData();
-  }, [state.isConnected, state.currentUserId]);
-  
-  // Connect to chat functionality
-  const connectToChat = useCallback(() => {
-    if (!state.currentUserId) {
-      dispatch({ 
-        type: 'SET_ERROR', 
-        payload: 'Cannot connect: User ID is required' 
-      });
-      return;
-    }
+    const handleMessage = (message) => {
+      dispatch({ type: ActionTypes.ADD_MESSAGE, payload: message });
+    };
     
-    connect();
-    startTracking(state.chatSettings.refreshRate);
-  }, [connect, startTracking, state.currentUserId, state.chatSettings.refreshRate]);
-  
-  // Disconnect from chat
-  const disconnectFromChat = useCallback(() => {
-    disconnect();
-    stopTracking();
-    dispatch({ type: 'RESET_STATE' });
-  }, [disconnect, stopTracking]);
-  
-  // Update user location manually (for testing or forcing updates)
-  const updateLocation = useCallback(() => {
-    startTracking(state.chatSettings.refreshRate, true); // Force an immediate update
-  }, [startTracking, state.chatSettings.refreshRate]);
-  
-  // Send a message
-  const sendChatMessage = useCallback((content, metadata = {}) => {
-    if (!state.isConnected || !state.currentUserId || !state.userLocation) {
+    const handleNearbyUsers = (users) => {
+      dispatch({ type: ActionTypes.UPDATE_NEARBY_USERS, payload: users });
+    };
+    
+    const handleTypingStatus = (sessionId, isTyping) => {
       dispatch({ 
-        type: 'SET_ERROR', 
-        payload: 'Cannot send message: Not connected or missing user info' 
+        type: ActionTypes.SET_TYPING_STATUS, 
+        payload: { sessionId, isTyping } 
+      });
+    };
+    
+    const handleError = (error) => {
+      dispatch({ type: ActionTypes.SET_ERROR, payload: error });
+    };
+    
+    // Register event handlers
+    webSocketService.onConnectionStatus(handleConnectionStatus);
+    webSocketService.onMessage(handleMessage);
+    webSocketService.onNearbyUsersUpdate(handleNearbyUsers);
+    webSocketService.onTypingStatus(handleTypingStatus);
+    webSocketService.onError(handleError);
+    
+    // Clean up event handlers when component unmounts
+    return () => {
+      webSocketService.offConnectionStatus(handleConnectionStatus);
+      webSocketService.offMessage(handleMessage);
+      webSocketService.offNearbyUsersUpdate(handleNearbyUsers);
+      webSocketService.offTypingStatus(handleTypingStatus);
+      webSocketService.offError(handleError);
+    };
+  }, [webSocketService]);
+
+  // Connect to chat when we have a session ID and location
+  useEffect(() => {
+    if (state.sessionId && state.userLocation && !state.isConnected) {
+      dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+      
+      webSocketService.connect(state.userLocation, { 
+        sessionId: state.sessionId
+      }).then(() => {
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      }).catch(error => {
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      });
+    }
+  }, [state.sessionId, state.userLocation, state.isConnected, webSocketService]);
+  
+  // Get user location when component mounts
+  useEffect(() => {
+    dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+    
+    locationService.getCurrentLocation()
+      .then(location => {
+        dispatch({ type: ActionTypes.SET_USER_LOCATION, payload: location });
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      })
+      .catch(error => {
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      });
+      
+    // Set up periodic location updates
+    const locationInterval = setInterval(() => {
+      if (state.isConnected) {
+        locationService.getCurrentLocation()
+          .then(location => {
+            dispatch({ type: ActionTypes.SET_USER_LOCATION, payload: location });
+            webSocketService.updateLocation(location);
+          })
+          .catch(error => {
+            console.error('Failed to update location:', error);
+          });
+      }
+    }, 60000); // Update every minute
+    
+    // Clean up interval when component unmounts
+    return () => {
+      clearInterval(locationInterval);
+    };
+  }, [locationService, webSocketService, state.isConnected]);
+
+  // Connection functions
+  const connect = useCallback(async () => {
+    if (!state.userLocation) {
+      try {
+        dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+        const location = await locationService.getCurrentLocation();
+        dispatch({ type: ActionTypes.SET_USER_LOCATION, payload: location });
+        
+        // Now that we have a location, the useEffect will trigger the connection
+      } catch (error) {
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      }
+    } else if (!state.isConnected) {
+      // If we already have a location but are not connected
+      dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+      
+      try {
+        await webSocketService.connect(state.userLocation, { 
+          sessionId: state.sessionId
+        });
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      } catch (error) {
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      }
+    }
+  }, [state.userLocation, state.isConnected, state.sessionId, locationService, webSocketService]);
+
+  const disconnect = useCallback(() => {
+    webSocketService.disconnect();
+  }, [webSocketService]);
+
+  // Send a message
+  const sendMessage = useCallback((content) => {
+    if (!state.isConnected || !state.userLocation || !state.sessionId) {
+      dispatch({ 
+        type: ActionTypes.SET_ERROR, 
+        payload: 'Cannot send message: Not connected or missing location/session' 
       });
       return;
     }
     
     const message = {
-      id: `msg_${Date.now()}_${state.currentUserId.substring(0, 6)}`,
-      userId: state.currentUserId,
+      id: `msg_${Date.now()}_${state.sessionId.substring(0, 8)}`,
+      sessionId: state.sessionId,
       content,
       timestamp: new Date().toISOString(),
       location: state.userLocation,
-      metadata,
+      isAnonymous: state.chatSettings.anonymousMode,
     };
     
-    sendMessage({
-      type: 'NEW_MESSAGE',
-      payload: message,
-    });
-    
-    // Optimistically add to local state
-    dispatch({ type: 'ADD_MESSAGE', payload: message });
-    
-    return message;
-  }, [state.isConnected, state.currentUserId, state.userLocation, sendMessage]);
-  
-  // Update typing status
-  const updateTypingStatus = useCallback((isTyping) => {
-    if (!state.isConnected || !state.currentUserId) return;
-    
-    sendMessage({
-      type: 'TYPING_STATUS',
-      payload: {
-        userId: state.currentUserId,
-        isTyping,
-      },
-    });
-  }, [state.isConnected, state.currentUserId, sendMessage]);
-  
-  // Update chat settings
-  const updateChatSettings = useCallback((settings) => {
-    dispatch({ type: 'SET_CHAT_SETTINGS', payload: settings });
-    
-    // If connected, send the updated settings to the server
-    if (state.isConnected && state.currentUserId) {
-      sendMessage({
-        type: 'UPDATE_SETTINGS',
-        payload: {
-          userId: state.currentUserId,
-          settings,
-        },
+    webSocketService.sendMessage(message);
+  }, [state.isConnected, state.userLocation, state.sessionId, state.chatSettings.anonymousMode, webSocketService]);
+
+  // Update location manually
+  const updateLocation = useCallback(async () => {
+    const startTime = Date.now();
+    try {
+      dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+      const location = await locationService.getCurrentLocation();
+      dispatch({ type: ActionTypes.SET_USER_LOCATION, payload: location });
+      
+      if (state.isConnected) {
+        webSocketService.updateLocation(location);
+      }
+      
+      dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('location_update', duration, {
+        success: true,
+        hasLocation: !!location,
+        isConnected: state.isConnected
+      });
+    } catch (error) {
+      dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
+      dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('location_update', duration, {
+        success: false,
+        error: error.message
       });
     }
-    
-    // If refresh rate changed and tracking is active, restart tracking
-    if (settings.refreshRate && state.isConnected) {
-      stopTracking();
-      startTracking(settings.refreshRate);
+  }, [locationService, webSocketService, state.isConnected]);
+
+  // Set typing status
+  const setTypingStatus = useCallback((isTyping) => {
+    const startTime = Date.now();
+    if (state.isConnected && state.sessionId) {
+      webSocketService.setTypingStatus(state.sessionId, isTyping);
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('typing_status_update', duration, {
+        success: true,
+        isTyping,
+        hasSessionId: !!state.sessionId
+      });
     }
-  }, [state.isConnected, state.currentUserId, sendMessage, startTracking, stopTracking]);
-  
+  }, [webSocketService, state.isConnected, state.sessionId]);
+
+  // Update chat settings
+  const updateChatSettings = useCallback((newSettings) => {
+    const startTime = Date.now();
+    dispatch({ type: ActionTypes.UPDATE_CHAT_SETTINGS, payload: newSettings });
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('chat_settings_update', duration, {
+      success: true,
+      hasNewSettings: !!newSettings,
+      settingsKeys: Object.keys(newSettings)
+    });
+  }, []);
+
   // Get nearby messages filtered by distance
   const getNearbyMessages = useCallback(() => {
+    const startTime = Date.now();
     if (!state.userLocation) return [];
     
-    return state.messages.filter(message => {
+    const messages = state.messages.filter(message => {
       if (!message.location) return false;
       
       const distance = calculateDistance(
@@ -487,15 +464,25 @@ export function ProximityChatProvider({ children, userId }) {
       
       return distance <= state.chatSettings.maxDistance;
     });
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('nearby_messages_filter', duration, {
+      success: true,
+      totalMessages: state.messages.length,
+      filteredCount: messages.length,
+      hasUserLocation: !!state.userLocation
+    });
+    
+    return messages;
   }, [state.messages, state.userLocation, state.chatSettings.maxDistance]);
   
   // Mark messages as read
   const markMessagesAsRead = useCallback((messageIds = null) => {
-    if (!state.isConnected || !state.currentUserId) return;
+    if (!state.isConnected || !state.sessionId) return;
     
     // If no message IDs provided, find all unread messages not from the current user
     const idsToMark = messageIds || 
-      getUnreadMessages(state.messages, state.currentUserId)
+      getUnreadMessages(state.messages, state.sessionId)
         .map(message => message.id);
     
     if (!idsToMark.length) return;
@@ -506,7 +493,7 @@ export function ProximityChatProvider({ children, userId }) {
       payload: {
         messageIds: idsToMark,
         status: ReceiptStatus.READ,
-        userId: state.currentUserId
+        userId: state.sessionId
       }
     });
     
@@ -515,15 +502,15 @@ export function ProximityChatProvider({ children, userId }) {
       const receiptUpdate = createReceiptUpdateMessage(
         id, 
         ReceiptStatus.READ,
-        state.currentUserId
+        state.sessionId
       );
       sendMessage(receiptUpdate);
     });
-  }, [state.isConnected, state.currentUserId, state.messages, sendMessage]);
+  }, [state.isConnected, state.sessionId, state.messages, sendMessage]);
   
   // Update location sharing
   const updateLocationSharing = async (locationSettings) => {
-    if (!state.currentUserId) return;
+    if (!state.sessionId) return;
     
     try {
       dispatch({ 
@@ -536,7 +523,7 @@ export function ProximityChatProvider({ children, userId }) {
         const message = {
           type: 'UPDATE_PRESENCE',
           payload: {
-            userId: state.currentUserId,
+            userId: state.sessionId,
             isLocationSharingEnabled: false
           }
         };
@@ -546,7 +533,7 @@ export function ProximityChatProvider({ children, userId }) {
       
       // If it was re-enabled, update presence with new location
       if (locationSettings.isEnabled && state.userLocation && state.isConnected) {
-        updateUserLocation(state.userLocation);
+        updateLocation();
       }
       
       // Also update the server with new settings
@@ -696,7 +683,7 @@ export function ProximityChatProvider({ children, userId }) {
     isConnected: state.isConnected,
     messages: state.messages,
     nearbyUsers: state.nearbyUsers,
-    currentUserId: state.currentUserId,
+    sessionId: state.sessionId,
     userLocation: state.userLocation,
     typingUsers: state.typingUsers,
     chatSettings: state.chatSettings,
@@ -707,7 +694,7 @@ export function ProximityChatProvider({ children, userId }) {
     sendMessage,
     updateLocation,
     updateChatSettings,
-    setTypingStatus: updateTypingStatus,
+    setTypingStatus,
     markMessageAsRead: markMessagesAsRead,
     updateLocationSharing,
     trackRegionEntry,
@@ -716,19 +703,21 @@ export function ProximityChatProvider({ children, userId }) {
     loadMessagesBeforeArrival,
     loadOlderMessages,
     resetHistoryStatus,
-    markMessagesAsRead
+    markMessagesAsRead,
+    getNearbyMessages
   };
   
   return (
-    <ProximityChatContext.Provider value={contextValue}>
-      {children}
-    </ProximityChatContext.Provider>
+    <ErrorBoundary onError={handleProximityChatError} fallback={<>{children}</>}>
+      <ProximityChatContext.Provider value={contextValue}>
+        {children}
+      </ProximityChatContext.Provider>
+    </ErrorBoundary>
   );
 }
 
 ProximityChatProvider.propTypes = {
   children: PropTypes.node.isRequired,
-  userId: PropTypes.string,
 };
 
 // Custom hook to use the context

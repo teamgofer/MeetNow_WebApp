@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadForAnonymousMeetups",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::*:user/S54H5QP3640HB0E6WPRE"
+      },
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::meetup-photos-west-coast/meetups/*"
+    },
+    {
+      "Sid": "AllowPublicAccess",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::meetup-photos-west-coast/meetups/meetup_anonymous_*"
+    }
+  ]
+}

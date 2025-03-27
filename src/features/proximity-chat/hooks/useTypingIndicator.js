@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProximityChatContext } from '../context/ProximityChatContext';
+import { TIMING } from '../constants';
+import { PerformanceMonitor } from '../../../utils/PerformanceMonitor.js';
 
 /**
  * Custom hook for managing typing indicators in the proximity chat
@@ -17,17 +19,34 @@ const useTypingIndicator = ({
   typingTimeoutMs = 2000,
   enabled = true
 } = {}) => {
+  const { currentUserId } = useProximityChatContext();
+  const [typingUsers, setTypingUsers] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
-  const { typingUsers, startTyping: contextStartTyping, stopTyping: contextStopTyping } = useProximityChatContext();
-  const typingTimeoutRef = useRef(null);
+  const typingTimeoutsRef = useRef({});
+  const renderStartTimeRef = useRef(Date.now());
+  
+  // Track hook initialization performance
+  useEffect(() => {
+    const renderDuration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('hook', 'useTypingIndicator', renderDuration, {
+      success: true,
+      action: 'initialize',
+      currentUserId
+    });
+    
+    // Reset render start time for next update
+    renderStartTimeRef.current = Date.now();
+  }, [currentUserId]);
   
   /**
    * Clears any existing typing timeout
    */
   const clearTypingTimeout = useCallback(() => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
+    if (typingTimeoutsRef.current) {
+      Object.values(typingTimeoutsRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+      typingTimeoutsRef.current = {};
     }
   }, []);
   
@@ -40,19 +59,18 @@ const useTypingIndicator = ({
     // Only trigger if we weren't already typing
     if (!isTyping) {
       setIsTyping(true);
-      contextStartTyping();
     }
     
     // Clear any existing timeout
     clearTypingTimeout();
     
     // Set timeout to auto-reset typing status
-    typingTimeoutRef.current = setTimeout(() => {
+    const startTime = Date.now();
+    typingTimeoutsRef.current[currentUserId] = setTimeout(() => {
       setIsTyping(false);
-      contextStopTyping();
-      typingTimeoutRef.current = null;
+      typingTimeoutsRef.current[currentUserId] = null;
     }, typingTimeoutMs);
-  }, [enabled, isTyping, contextStartTyping, contextStopTyping, clearTypingTimeout, typingTimeoutMs]);
+  }, [enabled, isTyping, currentUserId, clearTypingTimeout, typingTimeoutMs]);
   
   /**
    * Notifies that the user has stopped typing
@@ -61,9 +79,8 @@ const useTypingIndicator = ({
     if (!enabled || !isTyping) return;
     
     setIsTyping(false);
-    contextStopTyping();
     clearTypingTimeout();
-  }, [enabled, isTyping, contextStopTyping, clearTypingTimeout]);
+  }, [enabled, isTyping, clearTypingTimeout]);
   
   /**
    * Handle input changes to trigger typing status
@@ -87,25 +104,116 @@ const useTypingIndicator = ({
     stopTyping();
   }, [stopTyping]);
   
-  // Clean up timeout on unmount
+  // Handle typing status updates
+  const handleTypingChange = useCallback((userId, isTyping) => {
+    const startTime = Date.now();
+    
+    setTypingUsers(prevUsers => {
+      const newUsers = isTyping
+        ? [...prevUsers, { id: userId, timestamp: Date.now() }]
+        : prevUsers.filter(user => user.id !== userId);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useTypingIndicator', duration, {
+        success: true,
+        userId,
+        isTyping,
+        userCount: newUsers.length,
+        action: 'updateTypingStatus'
+      });
+      
+      return newUsers;
+    });
+    
+    // Set timeout to remove typing status
+    if (isTyping) {
+      if (typingTimeoutsRef.current[userId]) {
+        clearTimeout(typingTimeoutsRef.current[userId]);
+      }
+      
+      const timeoutStartTime = Date.now();
+      typingTimeoutsRef.current[userId] = setTimeout(() => {
+        const timeoutDuration = Date.now() - timeoutStartTime;
+        PerformanceMonitor.trackOperationTiming('hook', 'useTypingIndicator', timeoutDuration, {
+          success: true,
+          userId,
+          action: 'typingTimeout',
+          timeout: TIMING.TYPING_TIMEOUT
+        });
+        
+        handleTypingChange(userId, false);
+      }, TIMING.TYPING_TIMEOUT);
+    }
+  }, []);
+  
+  // Handle user typing status cleanup
+  useEffect(() => {
+    const startTime = Date.now();
+    
+    // Cleanup expired typing statuses
+    const now = Date.now();
+    setTypingUsers(prevUsers => {
+      const activeUsers = prevUsers.filter(user => 
+        now - user.timestamp < TIMING.TYPING_TIMEOUT
+      );
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useTypingIndicator', duration, {
+        success: true,
+        totalUsers: prevUsers.length,
+        activeUsers: activeUsers.length,
+        action: 'cleanupExpired'
+      });
+      
+      return activeUsers;
+    });
+  }, []);
+  
+  // Handle typing status changes
+  useEffect(() => {
+    const startTime = Date.now();
+    const hasTypingUsers = typingUsers.length > 0;
+    
+    if (hasTypingUsers !== isTyping) {
+      setIsTyping(hasTypingUsers);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useTypingIndicator', duration, {
+        success: true,
+        typingUsersCount: typingUsers.length,
+        action: 'statusChange',
+        state: hasTypingUsers ? 'typing' : 'idle'
+      });
+    }
+  }, [typingUsers.length, isTyping]);
+  
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
-      if (isTyping) {
-        contextStopTyping();
-      }
-      clearTypingTimeout();
+      const startTime = Date.now();
+      Object.values(typingTimeoutsRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useTypingIndicator', duration, {
+        success: true,
+        timeoutCount: Object.keys(typingTimeoutsRef.current).length,
+        action: 'cleanup'
+      });
     };
-  }, [isTyping, contextStopTyping, clearTypingTimeout]);
+  }, []);
   
   return {
-    isTyping,
     typingUsers,
+    isTyping,
     hasTypingUsers: typingUsers.length > 0,
     typingUsersCount: typingUsers.length,
     handleInputChange,
     handleSubmit,
     startTyping,
-    stopTyping
+    stopTyping,
+    handleTypingChange
   };
 };
 

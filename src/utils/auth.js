@@ -116,4 +116,67 @@ export const setupProfileSync = () => {
     // Cleanup function to unsubscribe
     subscription?.unsubscribe();
   };
+};
+
+/**
+ * Comprehensive logout function that clears all auth tokens and sessions
+ * @returns {Promise<{success: boolean, error?: string}>} Result of the logout operation
+ */
+export const logoutCompletely = async () => {
+  try {
+    console.log("Starting complete logout process...");
+    
+    // 1. Sign out from Supabase with global scope (invalidates all sessions)
+    const { error } = await supabase.auth.signOut({
+      scope: 'global'
+    });
+    
+    if (error) {
+      console.error("Error during Supabase signOut:", error);
+    }
+    
+    // 2. Clear localStorage tokens
+    const authKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('supabase') || key.includes('auth') || key.includes('token'))) {
+        authKeys.push(key);
+      }
+    }
+    
+    authKeys.forEach(key => {
+      console.log(`Removing localStorage key: ${key}`);
+      localStorage.removeItem(key);
+    });
+    
+    // 3. Clear sessionStorage tokens
+    const sessionAuthKeys = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && (key.includes('supabase') || key.includes('auth') || key.includes('token'))) {
+        sessionAuthKeys.push(key);
+      }
+    }
+    
+    sessionAuthKeys.forEach(key => {
+      console.log(`Removing sessionStorage key: ${key}`);
+      sessionStorage.removeItem(key);
+    });
+    
+    // 4. Clear cookies related to authentication
+    document.cookie.split(';').forEach(cookie => {
+      const [name] = cookie.trim().split('=');
+      if (name && (name.includes('supabase') || name.includes('auth') || name.includes('token'))) {
+        console.log(`Clearing cookie: ${name}`);
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      }
+    });
+    
+    console.log("Logout complete - all auth tokens and sessions cleared");
+    
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error during logout:", err);
+    return { success: false, error: err.message };
+  }
 }; 

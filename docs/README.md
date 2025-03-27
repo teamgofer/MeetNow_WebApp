@@ -10,6 +10,9 @@ The primary handover document provides a high-level overview of the application,
 ### [Technical Architecture](./ARCHITECTURE.md)
 Detailed explanation of the application's technical structure, component hierarchy, data flow, and key technologies. This document is essential for understanding how the different parts of the application interact.
 
+### [Navigation System](./NAVIGATION_SYSTEM.md)
+Documentation of the simplified navigation system, including implementation details, error handling, and best practices for working with the MapNavigationController.
+
 ### [Troubleshooting Guide](./TROUBLESHOOTING.md)
 Solutions for common issues, debugging techniques, and recovery procedures. Refer to this document when you encounter problems or unexpected behavior.
 
@@ -27,6 +30,7 @@ The MeetNow application follows this high-level structure:
 │   │   └── ui/            # General UI components
 │   ├── features/          # Feature-specific code
 │   ├── utils/             # Utility functions
+│   │   └── MapNavigationController.js  # Core navigation controller
 │   └── MeetNowApp.jsx     # Main application component
 ├── supabase/              # Backend configuration
 └── ...                    # Configuration files
@@ -44,7 +48,9 @@ The MeetNow application follows this high-level structure:
 When making changes to the application, please follow these guidelines:
 
 1. Maintain the separation between user location and selected location
-2. Preserve the three navigation modes and their specific behaviors
+2. Use the controller-based approach for map interactions
 3. Follow the existing code style and conventions
 4. Test all changes thoroughly in different browsers and devices
-5. Update documentation when adding/changing significant functionality 
+5. Update documentation when adding/changing significant functionality
+6. Always ensure navigation operations are properly error-handled
+7. For navigation operations, check `navigationController.isReadyToNavigate()` before performing them 

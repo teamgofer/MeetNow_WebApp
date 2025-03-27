@@ -1,42 +1,52 @@
 import Logger from './Logger';
-
-// Navigation modes
-const FREE_NAVIGATION = 1;
-const BIRDS_EYE_VIEW = 2;
-const VICINITY_MODE = 3;
+import { searchLocations } from './location-services';
+import ErrorHandlingService from './ErrorHandlingService';
+import { PerformanceMonitor } from './PerformanceMonitor';
+import L, { Map } from 'leaflet';
 
 /**
- * Manages all map navigation operations to ensure consistent behavior
- * and prevent conflicts between multiple navigation requests.
+ * Simplified Map Navigation Controller
+ * Provides basic map navigation functionality with mobile optimizations
  */
 class MapNavigationController {
   /**
-   * Creates a new MapNavigationController instance
-   * @param {Object} options - Configuration options
-   * @param {Object|null} options.mapRef - Optional initial map reference
-   * @param {number} options.defaultZoom - Default zoom level (default: 15)
-   * @param {number} options.maxZoom - Maximum zoom level (default: 18)
-   * @param {number} options.minZoom - Minimum zoom level (default: 5)
-   * @param {number} options.defaultMode - Default navigation mode (default: FREE_NAVIGATION)
-   * @param {function} options.onModeChange - Mode change callback
-   * @param {function} options.onReady - Ready state callback
-   * @param {boolean} options.debug - Whether to enable debug logging
+   * Create a new map navigation controller
+   * @param {Object} [options] - Configuration options
    */
   constructor(options = {}) {
-    const {
-      mapRef = null,
-      defaultZoom = 15,
-      maxZoom = 18,
-      minZoom = 5,
-      defaultMode = FREE_NAVIGATION,
-      onModeChange = null,
-      onReady = null,
-      debug = false
-    } = options;
+    // Define a tag for logging
+    this.TAG = 'MapNavigationController';
     
-    // Map reference
-    this.mapRef = null;
-    this._directMapInstance = null;  // Direct reference to map instance
+    // Initialize state
+    this._mapRef = null;
+    this._mapInstance = null;
+    this._isReady = false;
+    this._userLocation = null;
+    this._selectedLocation = null;
+    this._isReverseGeocoding = false;
+    
+    // Default options
+    this.defaultZoom = options.defaultZoom || 15;
+    this.animateTransitions = options.animateTransitions !== false;
+    
+    // Mobile-specific settings
+    this._isMobile = window.innerWidth < 768;
+    this._touchStartTime = 0;
+    this._touchStartLocation = null;
+    this._lastTouchEnd = 0;
+    this._touchDebounceTime = 300; // ms
+    
+    // Store callbacks
+    this.onReady = options.onReady;
+    this.onLocationChange = options.onLocationChange;
+    this.onError = options.onError;
+    
+    // Map click handling callbacks
+    this.onMapClick = options.onMapClick;
+    this.onLocationSelect = options.onLocationSelect;
+    this.onReverseGeocodingStart = options.onReverseGeocodingStart;
+    this.onReverseGeocodingEnd = options.onReverseGeocodingEnd;
+    this.onSearchAddressUpdate = options.onSearchAddressUpdate;
     
     // Cache for map methods
     this._cachedSetView = null;
@@ -44,1326 +54,975 @@ class MapNavigationController {
     this._cachedPanTo = null;
     this._cachedGetZoom = null;
     
-    // Navigation state
-    this.currentMode = defaultMode;
-    this.currentZoom = defaultZoom;
-    this.maxZoom = maxZoom;
-    this.minZoom = minZoom; 
-    this.selectedLocation = null;
-    this.userLocation = null;
-    this.previousLocation = null;
-    this.lastModeChangeTime = Date.now();
-    this.isProcessing = false;
-    this.navigationQueue = [];
+    // Reference to the map click handler to properly remove it later
+    this._mapClickHandler = null;
+    this._clickHandlerInitialized = false;
     
-    // Event handlers
-    this.onModeChange = onModeChange;
-    this.onReady = onReady;
-    this.onLocationChange = null;
-    this.onSelectedLocationChange = null;
-    this.onZoomChange = null;
+    // Add operation queue and state management
+    this._operationQueue = [];
+    this._isProcessingQueue = false;
+    this._currentOperation = null;
+    this._lastNavigationTime = 0;
+    this._navigationDebounceTime = 300; // ms
     
-    // Legacy listener arrays for backward compatibility
-    this.listeners = {
-      mode: [],
-      location: [],
-      ready: [],
-      selectedLocation: [],
-      zoom: []
-    };
+    // Initialize error handling
+    this._errorHandler = ErrorHandlingService;
     
-    // State tracking
-    this.isReady = false;
-    this.vicinityModeActive = false;
-    this.birdsModeActive = false;
-    this.debug = debug;
+    // Add window resize handler for mobile detection
+    this._handleResize = this._handleResize.bind(this);
+    window.addEventListener('resize', this._handleResize);
     
-    // Tracking for debounce and mode protection
-    this.lastSetModeTime = 0;
-    this.lastVicinityModeEnterTime = 0;
+    // Register navigation-specific recovery strategies
+    this._errorHandler.registerRecoveryStrategy('navigation', async (error) => {
+      // Try to clear the queue and retry the last operation
+      this._clearQueue();
+      if (this._currentOperation) {
+        return this._processOperation(this._currentOperation);
+      }
+      return false;
+    });
     
-    // Initialize map reference if provided
-    if (mapRef) {
-      this.updateMapReference(mapRef);
+    // Log initialization
+    Logger.info(this.TAG, 'Initialized with options:', options);
+  }
+  
+  /**
+   * Handle window resize events
+   * @private
+   */
+  _handleResize() {
+    const newIsMobile = window.innerWidth < 768;
+    if (newIsMobile !== this._isMobile) {
+      this._isMobile = newIsMobile;
+      Logger.debug(this.TAG, `Device type changed to ${newIsMobile ? 'mobile' : 'desktop'}`);
+      
+      // Update map settings for mobile
+      if (this._mapInstance) {
+        this._updateMapSettingsForDevice();
+      }
     }
   }
   
   /**
-   * Attempt to initialize map early with exponential backoff
+   * Update map settings based on device type
    * @private
    */
-  _attemptEarlyMapInitialization() {
-    // Check if we've tried too many times already
-    if (this._initializeAttempts >= this._maxInitAttempts) {
-      Logger.warn('MapNavigationController', 'Max initialization attempts reached');
+  _updateMapSettingsForDevice() {
+    if (!this._mapInstance) return;
+    
+    // Adjust zoom control position for mobile
+    if (this._mapInstance.zoomControl) {
+      this._mapInstance.zoomControl.setPosition(this._isMobile ? 'bottomright' : 'topleft');
+    }
+    
+    // Adjust attribution control position for mobile
+    if (this._mapInstance.attributionControl) {
+      this._mapInstance.attributionControl.setPosition(this._isMobile ? 'bottomleft' : 'bottomright');
+    }
+    
+    // Set appropriate zoom limits for mobile
+    this._mapInstance.setMinZoom(this._isMobile ? 5 : 3);
+    this._mapInstance.setMaxZoom(this._isMobile ? 18 : 20);
+  }
+  
+  /**
+   * Updates the map reference
+   * @param {Object} mapReference - Reference to the map instance or React ref
+   * @returns {boolean} - Whether the update was successful
+   */
+  updateMapReference(mapReference) {
+    const startTime = Date.now();
+    Logger.info(this.TAG, 'Updating map reference');
+    
+    // Clean up previous click handler if it exists
+    if (this._mapInstance && this._mapClickHandler) {
+      Logger.debug(this.TAG, 'Cleaning up previous click handler');
+      this._mapInstance.off('click', this._mapClickHandler);
+      this._mapClickHandler = null;
+    }
+    
+    // Handle both direct map instances and React ref objects
+    // If it's a ref object (has a 'current' property), use the current value
+    if (mapReference && typeof mapReference === 'object') {
+      if (mapReference.current) {
+        this._mapRef = mapReference.current;
+      } else {
+        this._mapRef = mapReference;
+      }
+    } else {
+      this._mapRef = mapReference;
+    }
+    
+    // Log map reference details for debugging
+    if (this._mapRef) {
+      Logger.debug(this.TAG, 'Map reference details:');
+      Logger.debug(this.TAG, '- Type:', typeof this._mapRef);
+      Logger.debug(this.TAG, '- Has getContainer?', !!this._mapRef.getContainer);
+      
+      // Check if it's a valid map by checking for essential methods
+      const hasLatlng = !!this._mapRef.latLngToContainerPoint;
+      const hasSetView = !!this._mapRef.setView;
+      const hasAddHandler = !!this._mapRef.on;
+      
+      Logger.debug(this.TAG, '- Core methods present:', { hasLatlng, hasSetView, hasAddHandler });
+    }
+    
+    // Try to extract the map instance
+    const success = this._extractMapInstance();
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('map', 'mapReferenceUpdate', duration, {
+      success,
+      hasMapRef: !!this._mapRef,
+      hasMapInstance: !!this._mapInstance,
+      hasLatlng: !!this._mapRef?.latLngToContainerPoint,
+      hasSetView: !!this._mapRef?.setView,
+      hasAddHandler: !!this._mapRef?.on
+    });
+    
+    if (success) {
+      Logger.info(this.TAG, 'Map reference updated successfully');
+      
+      // Set up map click handler
+      this._setupMapClickHandler();
+      
+      // Mark the controller as ready
+      this._isReady = true;
+      
+      // Call the ready callback if provided
+      if (this.onReady && typeof this.onReady === 'function') {
+        this.onReady(true);
+      }
+    } else {
+      Logger.warn(this.TAG, 'Failed to update map reference - invalid map');
+    }
+    
+    // Return whether we have a valid map instance
+    return success && !!this._mapInstance;
+  }
+  
+  /**
+   * Set up the map click handler
+   * @private
+   */
+  _setupMapClickHandler() {
+    const startTime = Date.now();
+    
+    if (!this._mapInstance) {
+      Logger.warn(this.TAG, 'Cannot set up click handler - no map instance');
+      PerformanceMonitor.trackOperationTiming('map', 'mapClickHandlerSetup', 0, {
+        success: false,
+        reason: 'noMapInstance'
+      });
       return;
     }
     
-    this._initializeAttempts++;
-    const mapInstance = this.getMapInstance();
+    // Clean up previous handler if it exists
+    if (this._mapClickHandler) {
+      Logger.debug(this.TAG, 'Removing existing click handler');
+      this._mapInstance.off('click', this._mapClickHandler);
+      this._mapClickHandler = null;
+    }
     
-    if (mapInstance) {
-      // Success - cache methods and mark as ready
-      Logger.info('MapNavigationController', 'Early map initialization successful');
+    // Only setup click handling if we have a callback to handle the selected location
+    if (this.onLocationSelect && typeof this.onLocationSelect === 'function') {
+      // Create a fresh handler with proper binding
+      this._mapClickHandler = this._handleMapClick.bind(this);
       
-      if (typeof mapInstance.setView === 'function') {
-        this._cachedSetView = mapInstance.setView.bind(mapInstance);
-      }
-      if (typeof mapInstance.flyTo === 'function') {
-        this._cachedFlyTo = mapInstance.flyTo.bind(mapInstance);
-      }
-      if (typeof mapInstance.panTo === 'function') {
-        this._cachedPanTo = mapInstance.panTo.bind(mapInstance);
-      }
+      // Add the click handler to the map
+      this._mapInstance.on('click', this._mapClickHandler);
+      Logger.info(this.TAG, 'Map click handler set up successfully');
       
-      this.isReady = true;
-      this._notifyReady();
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('map', 'mapClickHandlerSetup', duration, {
+        success: true,
+        hasMapInstance: !!this._mapInstance,
+        hasClickHandler: !!this._mapClickHandler,
+        hasLocationSelectCallback: !!this.onLocationSelect
+      });
     } else {
-      // Failed - try again with exponential backoff
-      const delay = Math.min(100 * Math.pow(2, this._initializeAttempts), 2000);
-      Logger.debug('MapNavigationController', `Map not ready, retrying in ${delay}ms (attempt ${this._initializeAttempts})`);
-      
-      setTimeout(() => {
-        this._attemptEarlyMapInitialization();
-      }, delay);
+      Logger.info(this.TAG, 'No location select callback provided, click handler not initialized');
+      PerformanceMonitor.trackOperationTiming('map', 'mapClickHandlerSetup', 0, {
+        success: false,
+        reason: 'noLocationSelectCallback'
+      });
     }
   }
   
   /**
-   * Process the queue of navigation operations one at a time
+   * Handle map clicks with reverse geocoding
    * @private
+   * @param {Object} e - Leaflet click event
    */
-  async processQueue() {
-    // If already processing or queue is empty, just return
-    if (this.isProcessing || this.navigationQueue.length === 0) return;
+  async _handleMapClick(e) {
+    const startTime = Date.now();
+    const { lat, lng } = e.latlng;
+    Logger.debug(this.TAG, 'Map clicked at:', { lat, lng });
     
-    // Set processing flag to prevent concurrent processing
-    this.isProcessing = true;
+    // Call the raw map click callback if provided
+    if (this.onMapClick && typeof this.onMapClick === 'function') {
+      this.onMapClick(e);
+    }
     
-    try {
-      // Get the next operation from the queue
-      const operation = this.navigationQueue.shift();
-      
-      // Execute the operation with proper error handling
+    // If we have a location select callback, handle the click
+    if (this.onLocationSelect && typeof this.onLocationSelect === 'function') {
       try {
-        await operation();
+        // Create a location object with temporary data
+        const tempLocation = {
+          lat: lat,
+          lng: lng,
+          lon: lng, // Add lon property for compatibility
+          display_name: "Finding location...",
+          _source: 'map' // Add source to indicate this came from a map click
+        };
+        
+        // First, update our internal selected location
+        this.setSelectedLocation(tempLocation);
+        
+        // Call the location select callback with temporary data
+        this.onLocationSelect(tempLocation);
+        
+        // Start reverse geocoding process
+        if (this.onReverseGeocodingStart) {
+          this.onReverseGeocodingStart();
+        }
+        
+        try {
+          // Perform reverse geocoding - pass 'map' as the source to preserve it
+          const locationWithAddress = await this._handleReverseGeocoding(lat, lng, 'map');
+          
+          // We don't need to call this.onLocationSelect again here since _handleReverseGeocoding does it
+          // This avoids duplicate location updates that might cause re-renders
+          
+          const duration = Date.now() - startTime;
+          PerformanceMonitor.trackOperationTiming('map', 'mapClick', duration, {
+            success: true
+          });
+          
+          return locationWithAddress;
+        } catch (error) {
+          throw error; // Let the outer catch handle it
+        } finally {
+          // Notify that reverse geocoding is done
+          if (this.onReverseGeocodingEnd) {
+            this.onReverseGeocodingEnd();
+          }
+        }
       } catch (error) {
-        Logger.error('MapNavigationController', 'Navigation operation failed', error);
-        // We continue processing the queue even if an operation fails
-      }
-    } catch (error) {
-      // Catch any unexpected errors in the queue processing itself
-      Logger.error('MapNavigationController', 'Unexpected error in navigation queue processing', error);
-    } finally {
-      // Always reset processing flag and continue with next operation
-      this.isProcessing = false;
-      // Process next item if available
-      if (this.navigationQueue.length > 0) {
-        this.processQueue();
+        Logger.error(this.TAG, 'Error handling map click:', error);
+        
+        // Create an error location
+        const errorLocation = {
+          lat,
+          lng,
+          lon: lng, // Add lon property for compatibility
+          display_name: "Unable to find address",
+          _source: 'map' // Add source to indicate this came from a map click
+        };
+        
+        // Update our internal selected location
+        this.setSelectedLocation(errorLocation);
+        
+        // Notify with the error location
+        if (this.onLocationSelect) {
+          this.onLocationSelect(errorLocation);
+        }
+        
+        // Call error callback if provided
+        if (this.onError) {
+          this.onError(error);
+        }
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('map', 'mapClick', duration, {
+          success: false,
+          error: error.message
+        });
+        
+        return errorLocation;
       }
     }
+    
+    return null;
+  }
+  
+  /**
+   * Determine the best display name from geocoding result
+   * @private
+   * @param {Object} result - The geocoding result
+   * @returns {string} The display name
+   */
+  _determineDisplayName(result) {
+    const startTime = Date.now();
+    
+    // By default, use the full address
+    let displayName = result.display_name;
+    
+    // Try to find a place name to prioritize
+    if (result.name) {
+      // Direct name property - use this if available
+      displayName = result.name;
+    } else if (result.tags && result.tags.name) {
+      // OSM tags may have a name
+      displayName = result.tags.name;
+    } else if (result.address) {
+      const address = result.address;
+      
+      // Try to find the most specific name (from most to least specific)
+      const placeName = address.attraction || 
+                      address.building ||
+                      address.amenity ||
+                      address.leisure ||
+                      address.tourism ||
+                      address.shop ||
+                      address.historic || 
+                      address.natural ||
+                      address.office ||
+                      address.healthcare || 
+                      address.place_of_worship;
+      
+      // If a specific place name was found, use it
+      if (placeName) {
+        displayName = placeName;
+      }
+    }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('map', 'determineDisplayName', duration, {
+      success: true,
+      hasDisplayName: !!displayName,
+      hasName: !!result.name,
+      hasTags: !!result.tags,
+      hasAddress: !!result.address
+    });
+    
+    return displayName;
   }
   
   /**
    * Check if the controller is ready to navigate
-   * @returns {boolean} True if ready to navigate
+   * @returns {boolean} Whether the controller is ready
    */
   isReadyToNavigate() {
-    return this.isReady && this.mapRef && this.mapRef.current;
+    return this._isReady;
   }
   
   /**
-   * Waits until the controller is ready to navigate
-   * @returns {Promise} Resolves when controller is ready
+   * Sets the user's current location
+   * @param {Object} location - The user's location
    */
-  waitUntilReady() {
-    if (this.isReadyToNavigate()) {
-      return Promise.resolve();
+  setUserLocation(location) {
+    const normalizedLocation = this._normalizeLocation(location);
+    
+    if (!normalizedLocation) {
+      Logger.warn(this.TAG, 'Invalid user location provided:', location);
+      return false;
     }
     
-    return new Promise(resolve => {
-      const unsubscribe = this.onReady(() => {
-        unsubscribe();
-        resolve();
+    this._userLocation = normalizedLocation;
+    Logger.debug(this.TAG, 'User location updated:', normalizedLocation);
+    
+    // Call the location change callback if provided
+    if (this.onLocationChange && typeof this.onLocationChange === 'function') {
+      this.onLocationChange(normalizedLocation);
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Sets the user's selected location
+   * @param {Object} location - The selected location
+   */
+  setSelectedLocation(location) {
+    const normalizedLocation = this._normalizeLocation(location);
+    
+    if (!normalizedLocation) {
+      Logger.warn(this.TAG, 'Invalid selected location provided:', location);
+      return false;
+    }
+    
+    this._selectedLocation = normalizedLocation;
+    Logger.debug(this.TAG, 'Selected location updated:', normalizedLocation);
+    
+    return true;
+  }
+  
+  /**
+   * Queue and process a navigation operation
+   * @private
+   * @param {Object} operation - Navigation operation
+   * @returns {Promise} - Operation result
+   */
+  async _queueOperation(operation) {
+    return new Promise((resolve, reject) => {
+      // Add operation to queue
+      this._operationQueue.push({
+        ...operation,
+        resolve,
+        reject
       });
+
+      // Start processing if not already processing
+      if (!this._isProcessingQueue) {
+        this._processQueue();
+      }
     });
   }
   
   /**
-   * Subscribe to mode changes
-   * @param {Function} callback - Function to call when mode changes
-   * @returns {Function} Unsubscribe function
-   */
-  onModeChange(callback) {
-    // If a callback is being registered via legacy method
-    if (typeof callback === 'function') {
-      // Store in listeners array for backward compatibility
-      this.listeners.mode.push(callback);
-      
-      // Call immediately with current value
-      callback(this.currentMode);
-      
-      // Return unsubscribe function
-      return () => {
-        this.listeners.mode = this.listeners.mode.filter(cb => cb !== callback);
-      };
-    }
-    
-    // Otherwise, return the callback property's current value
-    return this.onModeChange;
-  }
-  
-  /**
-   * Subscribe to user location changes
-   * @param {Function} callback - Function to call when location changes
-   * @returns {Function} Unsubscribe function
-   */
-  onLocationChange(callback) {
-    // If a callback is being registered via legacy method
-    if (typeof callback === 'function') {
-      // Store in listeners array
-      this.listeners.location.push(callback);
-      
-      // Call immediately with current value if available
-      if (this.userLocation) {
-        callback(this.userLocation);
-      }
-      
-      // Return unsubscribe function
-      return () => {
-        this.listeners.location = this.listeners.location.filter(cb => cb !== callback);
-      };
-    }
-    
-    // Otherwise, return the callback property's current value
-    return this.onLocationChange;
-  }
-  
-  /**
-   * Subscribe to selected location changes
-   * @param {Function} callback - Function to call when selected location changes
-   * @returns {Function} Unsubscribe function
-   */
-  onSelectedLocationChange(callback) {
-    // If a callback is being registered via legacy method
-    if (typeof callback === 'function') {
-      // Store in listeners array
-      this.listeners.selectedLocation.push(callback);
-      
-      // Call immediately with current value if available
-      if (this.selectedLocation) {
-        callback(this.selectedLocation);
-      }
-      
-      // Return unsubscribe function
-      return () => {
-        this.listeners.selectedLocation = this.listeners.selectedLocation.filter(cb => cb !== callback);
-      };
-    }
-    
-    // Otherwise, return the callback property's current value
-    return this.onSelectedLocationChange;
-  }
-  
-  /**
-   * Subscribe to zoom changes
-   * @param {Function} callback - Function to call when zoom changes
-   * @returns {Function} Unsubscribe function
-   */
-  onZoomChange(callback) {
-    // If a callback is being registered via legacy method
-    if (typeof callback === 'function') {
-      // Store in listeners array
-      this.listeners.zoom.push(callback);
-      
-      // Call immediately with current value
-      callback(this.currentZoom);
-      
-      // Return unsubscribe function
-      return () => {
-        this.listeners.zoom = this.listeners.zoom.filter(cb => cb !== callback);
-      };
-    }
-    
-    // Otherwise, return the callback property's current value
-    return this.onZoomChange;
-  }
-  
-  /**
-   * Subscribe to controller ready state
-   * @param {Function} callback - Function to call when controller becomes ready
-   * @returns {Function} Unsubscribe function
-   */
-  onReady(callback) {
-    // If a callback is being registered via legacy method
-    if (typeof callback === 'function') {
-      // If already ready, call immediately
-      if (this.isReadyToNavigate()) {
-        callback();
-        return () => {}; // Empty unsubscribe function
-      }
-      
-      // Store in listeners array
-      this.listeners.ready.push(callback);
-      
-      // Return unsubscribe function
-      return () => {
-        this.listeners.ready = this.listeners.ready.filter(cb => cb !== callback);
-      };
-    }
-    
-    // Otherwise, return the callback property's current value
-    return this.onReady;
-  }
-  
-  /**
-   * Update the map reference to the current map
-   * @param {Object} mapRef - A reference to the map object (either a React ref or direct map object)
-   * @returns {boolean} - Whether a valid map instance was found and stored
-   */
-  updateMapReference(mapRef) {
-    try {
-      if (!mapRef) {
-        Logger.warn('MapNavigationController', 'Null or undefined map reference provided');
-        return false;
-      }
-
-      // Store the raw reference
-      this.mapRef = mapRef;
-      
-      // Try to extract the map instance from various reference types
-      let mapInstance = null;
-      let source = 'unknown';
-      
-      // Handle React refs
-      if (mapRef.current) {
-        source = 'react-ref';
-        // React ref with a current property
-        if (mapRef.current instanceof Object) {
-          Logger.debug('MapNavigationController', 'Map reference is a React ref with current as object');
-          
-          // If current is the map instance (has expected methods)
-          if (typeof mapRef.current.setView === 'function' || 
-              typeof mapRef.current.flyTo === 'function' ||
-              typeof mapRef.current.panTo === 'function') {
-            mapInstance = mapRef.current;
-          }
-          // If current has a mapObject property (old pattern)
-          else if (mapRef.current.mapObject && typeof mapRef.current.mapObject === 'object') {
-            mapInstance = mapRef.current.mapObject;
-            source = 'react-ref-mapObject';
-          }
-          // If current has a leafletElement property (react-leaflet pattern)
-          else if (mapRef.current.leafletElement && typeof mapRef.current.leafletElement === 'object') {
-            mapInstance = mapRef.current.leafletElement;
-            source = 'react-ref-leaflet';
-          }
-        }
-      }
-      // Handle direct map objects
-      else if (typeof mapRef === 'object') {
-        // If it has map methods directly
-        if (typeof mapRef.setView === 'function' || 
-            typeof mapRef.flyTo === 'function' ||
-            typeof mapRef.panTo === 'function') {
-          mapInstance = mapRef;
-          source = 'direct-map';
-        }
-        // If it's a wrapper with a map property
-        else if (mapRef.map && typeof mapRef.map === 'object') {
-          mapInstance = mapRef.map;
-          source = 'wrapper-map';
-        }
-        // If it's a wrapper with a mapObject property
-        else if (mapRef.mapObject && typeof mapRef.mapObject === 'object') {
-          mapInstance = mapRef.mapObject;
-          source = 'wrapper-mapObject';
-        }
-      }
-      
-      if (!mapInstance) {
-        Logger.warn('MapNavigationController', 'Could not extract map instance from reference', { 
-          hasRef: !!mapRef,
-          hasCurrent: !!(mapRef && mapRef.current),
-          type: mapRef ? typeof mapRef : 'null'
-        });
-        return false;
-      }
-      
-      // Store the direct map instance for stability
-      this._directMapInstance = mapInstance;
-      
-      Logger.info('MapNavigationController', `Map reference updated (source: ${source})`);
-      
-      // Cache the commonly used map methods for faster access and stability
-      if (typeof mapInstance.setView === 'function') {
-        this._cachedSetView = mapInstance.setView.bind(mapInstance);
-      }
-      
-      if (typeof mapInstance.flyTo === 'function') {
-        this._cachedFlyTo = mapInstance.flyTo.bind(mapInstance);
-      }
-      
-      if (typeof mapInstance.panTo === 'function') {
-        this._cachedPanTo = mapInstance.panTo.bind(mapInstance);
-      }
-      
-      if (typeof mapInstance.getZoom === 'function') {
-        this._cachedGetZoom = mapInstance.getZoom.bind(mapInstance);
-        // Update our current zoom level with the actual map zoom
-        this.currentZoom = mapInstance.getZoom();
-      }
-      
-      // Check if we're now ready for navigation
-      this.checkReadyStatus();
-      
-      return true;
-    } catch (error) {
-      Logger.error('MapNavigationController', 'Error updating map reference', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Get the current map instance from the reference
-   * @returns {Object|null} - The map instance if available, null otherwise
-   */
-  getMapInstance() {
-    try {
-      // First, try to use our cached direct map instance (most reliable)
-      if (this._directMapInstance) {
-        // Verify it's still valid by checking for a key method
-        if (typeof this._directMapInstance.setView === 'function') {
-          return this._directMapInstance;
-        } else {
-          Logger.warn('MapNavigationController', 'Cached direct map instance is no longer valid');
-        }
-      }
-      
-      // Next, try to use the current reference
-      const { mapRef } = this;
-      
-      if (!mapRef) {
-        Logger.warn('MapNavigationController', 'No map reference available');
-        return null;
-      }
-      
-      let mapInstance = null;
-      
-      // Try React ref pattern
-      if (mapRef.current) {
-        // Check if current is directly the map
-        if (mapRef.current && typeof mapRef.current.setView === 'function') {
-          mapInstance = mapRef.current;
-        }
-        // Check for various wrapper patterns
-        else if (mapRef.current.mapObject && typeof mapRef.current.mapObject.setView === 'function') {
-          mapInstance = mapRef.current.mapObject;
-        }
-        else if (mapRef.current.leafletElement && typeof mapRef.current.leafletElement.setView === 'function') {
-          mapInstance = mapRef.current.leafletElement;
-        }
-      }
-      // Try direct object pattern
-      else if (typeof mapRef.setView === 'function') {
-        mapInstance = mapRef;
-      }
-      // Try wrapper patterns
-      else if (mapRef.map && typeof mapRef.map.setView === 'function') {
-        mapInstance = mapRef.map;
-      }
-      else if (mapRef.mapObject && typeof mapRef.mapObject.setView === 'function') {
-        mapInstance = mapRef.mapObject;
-      }
-      
-      // If we found a valid instance, update our cache and return it
-      if (mapInstance) {
-        this._directMapInstance = mapInstance;
-        return mapInstance;
-      }
-      
-      // If we still don't have a map instance, log the issue
-      Logger.warn('MapNavigationController', 'Could not extract map instance from reference', {
-        hasRef: !!mapRef,
-        hasCurrent: !!(mapRef && mapRef.current),
-        refType: mapRef ? typeof mapRef : 'null'
-      });
-      
-      return null;
-    } catch (error) {
-      Logger.error('MapNavigationController', 'Error getting map instance', error);
-      return null;
-    }
-  }
-  
-  /**
-   * Reset any mode-specific overrides on the map
-   * @param {number} targetMode - The mode to set (1=Free, 2=BirdEye, 3=Vicinity)
+   * Process the operation queue
    * @private
    */
-  resetModeOverrides(targetMode = 1) {
-    const map = this.getMapInstance();
-    if (!map) return;
-    
-    // Clear any mode-specific constraints
-    if (map._overrideCenter) map._overrideCenter = false;
-    if (map._birdEyeViewActive && targetMode !== 2) map._birdEyeViewActive = false;
-    if (map._vicinityActive && targetMode !== 3) map._vicinityActive = false;
-    
-    // Reset to specified navigation mode if needed
-    if (map._directSetMode && targetMode !== undefined) {
-      map._directSetMode(targetMode);
-      Logger.debug('MapNavigationController', `Set map mode to ${targetMode}`);
+  async _processQueue() {
+    if (this._isProcessingQueue || this._operationQueue.length === 0) {
+              return;
+            }
+            
+    this._isProcessingQueue = true;
+
+    try {
+      while (this._operationQueue.length > 0) {
+        // Check debounce condition
+        if (this._lastNavigationTime) {
+          const timeSinceLastNav = Date.now() - this._lastNavigationTime;
+          if (timeSinceLastNav < this._navigationDebounceTime) {
+            await new Promise(resolve => 
+              setTimeout(resolve, this._navigationDebounceTime - timeSinceLastNav)
+            );
+          }
+        }
+
+        const operation = this._operationQueue.shift();
+        this._currentOperation = operation;
+
+        try {
+          const result = await this._processOperation(operation);
+          operation.resolve(result);
+        } catch (error) {
+          // Handle error with recovery attempt
+          const recovered = await this._errorHandler.handleError(error, 'navigation', {
+            operation,
+            queueLength: this._operationQueue.length
+          });
+
+          if (recovered) {
+            operation.resolve(recovered);
+          } else {
+            operation.reject(error);
+          }
+        }
+
+        this._lastNavigationTime = Date.now();
+        this._currentOperation = null;
+      }
+    } catch (error) {
+      console.error('[MapNavigationController] Queue processing error:', error);
+      this._errorHandler.handleError(error, 'navigation', {
+        queueLength: this._operationQueue.length
+      });
+    } finally {
+      this._isProcessingQueue = false;
     }
   }
   
   /**
-   * Set the current navigation mode
-   * @param {number} mode - Target navigation mode (FREE_NAVIGATION, BIRDS_EYE_VIEW, VICINITY_MODE)
-   * @param {Object} options - Options for mode change
-   * @param {boolean} options.animate - Whether to animate the transition
-   * @param {boolean} options.immediate - Skip debounce checks
-   * @param {boolean} options.silent - Don't notify listeners
-   * @param {boolean} options.force - Force mode change even if same mode
-   * @returns {Promise} Resolves when mode change completes
+   * Process a navigation operation
+   * @private
+   * @param {Object} operation - The operation to process
+   * @returns {Promise<boolean>} - Operation result
    */
-  setNavigationMode(mode, options = {}) {
-    const { animate = true, immediate = false, silent = false, force = false } = options;
-    
-    Logger.debug('MapNavigationController', `Requested mode change to ${mode}`, options);
-    
-    // Don't change to the same mode unless forced to do so
-    if (mode === this.currentMode && !force) {
-      Logger.debug('MapNavigationController', `Already in mode ${mode}, ignoring request`);
-      return Promise.resolve();
+  async _processOperation(operation) {
+    const { location, options = {}, onEnd } = operation;
+
+    if (!this._mapInstance) {
+      const error = new Error('Map instance not initialized');
+      return this._errorHandler.handleError(error, 'navigation', { operation });
     }
-    
-    // Get current time for debounce checks
-    const now = Date.now();
-    
-    // Debounce mode changes to prevent rapid switching
-    if (!immediate && now - this.lastSetModeTime < 500) {
-      Logger.debug('MapNavigationController', 'Ignoring mode change request (debounced)');
-      return Promise.resolve();
+
+    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+      const error = new Error('Invalid location provided');
+      return this._errorHandler.handleError(error, 'navigation', { 
+        operation,
+        location,
+        context: 'Invalid location format'
+      });
     }
-    
-    // Extra protection for vicinity mode to prevent accidental exit
-    if (this.currentMode === VICINITY_MODE && mode !== VICINITY_MODE) {
-      // If we just entered vicinity mode within the last 2 seconds, don't allow leaving it
-      if (now - this.lastVicinityModeEnterTime < 2000) {
-        Logger.debug('MapNavigationController', 'Blocking quick exit from vicinity mode');
-        return Promise.resolve();
-      }
+
+    // Skip recentering for map clicks unless explicitly forced
+    if (location._source === 'map' && !options.forceCenter) {
+      Logger.debug(this.TAG, 'Skipping map centering for map click source', location);
+      return true; // Return success without changing map view
     }
-    
-    // Store the time of this mode change
-    this.lastSetModeTime = now;
-    
-    // If entering vicinity mode, record the time
-    if (mode === VICINITY_MODE) {
-      this.lastVicinityModeEnterTime = now;
-    }
-    
-    // Save previous mode
-    const previousMode = this.currentMode;
-    
-    // Update current mode
-    this.currentMode = mode;
-    
-    Logger.info('MapNavigationController', `Navigation mode changed from ${previousMode} to ${mode}`);
-    
-    // Notify listeners of mode change
-    if (!silent && typeof this.onModeChange === 'function') {
+
+    return new Promise((resolve, reject) => {
       try {
-        this.onModeChange(mode, previousMode);
+        // Determine zoom level to use
+        const zoomToUse = options?.zoom || this._mapInstance.getZoom();
+        
+        // Adjust animation duration for mobile
+        const duration = this._isMobile ? 1 : 1.5;
+        const easeLinearity = this._isMobile ? 0.3 : 0.25;
+        
+        // Choose animation method based on options or defaults
+        const method = options?.method === 'flyTo' ? 'flyTo' : 'setView';
+        
+        if (method === 'flyTo' && typeof this._mapInstance.flyTo === 'function') {
+          this._mapInstance.flyTo(
+            [location.lat, location.lng],
+            zoomToUse,
+            {
+              animate: options?.animate !== false,
+              duration: options?.duration || duration,
+              easeLinearity,
+              onEnd: () => {
+                if (onEnd) onEnd();
+                resolve(true);
+              }
+            }
+          );
+        } else {
+          this._mapInstance.setView(
+            [location.lat, location.lng],
+            zoomToUse,
+            {
+              animate: options?.animate !== false,
+              duration: options?.duration || duration,
+              easeLinearity,
+              onEnd: () => {
+                if (onEnd) onEnd();
+                resolve(true);
+              }
+            }
+          );
+        }
       } catch (error) {
-        Logger.error('MapNavigationController', 'Error in onModeChange callback', error);
+        Logger.error(this.TAG, 'Error during map view change:', error);
+        reject(error);
       }
-    }
-    
-    return Promise.resolve();
-  }
-  
-  /**
-   * Get the current navigation mode
-   * @returns {number} The current mode
-   */
-  getNavigationMode() {
-    return this.currentMode;
-  }
-  
-  /**
-   * Set the user's location
-   * @param {Object} location - The user's location
-   */
-  setUserLocation(location) {
-    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      Logger.warn('MapNavigationController', 'Invalid user location', location);
-      return;
-    }
-    
-    this.userLocation = location;
-    
-    // Store on map instance for other components
-    const map = this.getMapInstance();
-    if (map) {
-      map._userLocation = location;
-    }
-    
-    // Notify listeners
-    this._notifyLocationChange();
-  }
-  
-  /**
-   * Get the user's location
-   * @returns {Object|null} The user's location or null
-   */
-  getUserLocation() {
-    return this.userLocation;
-  }
-  
-  /**
-   * Set the selected location
-   * @param {Object} location - The selected location
-   */
-  setSelectedLocation(location) {
-    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      Logger.warn('MapNavigationController', 'Invalid selected location', location);
-      return;
-    }
-    
-    this.selectedLocation = location;
-    
-    // Store on map instance for other components
-    const map = this.getMapInstance();
-    if (map) {
-      map._selectedLocation = location;
-    }
-    
-    // Notify listeners
-    this._notifySelectedLocationChange();
-  }
-  
-  /**
-   * Get the selected location
-   * @returns {Object|null} The selected location or null
-   */
-  getSelectedLocation() {
-    return this.selectedLocation;
-  }
-  
-  /**
-   * Set the current zoom level
-   * @param {number} zoom - The zoom level
-   */
-  setZoom(zoom) {
-    this.currentZoom = zoom;
-    
-    const map = this.getMapInstance();
-    if (map && typeof map.setZoom === 'function') {
-      map.setZoom(zoom);
-    }
-    
-    // Notify listeners
-    this._notifyZoomChange();
-  }
-  
-  /**
-   * Get the current zoom level
-   * @returns {number} The current zoom
-   */
-  getZoom() {
-    const map = this.getMapInstance();
-    if (map && typeof map.getZoom === 'function') {
-      // Always get the latest from the map
-      this.currentZoom = map.getZoom();
-    }
-    return this.currentZoom;
+    });
   }
   
   /**
    * Navigate to a specific location
-   * @param {Object} location - Location with lat/lng properties
-   * @param {Object} options - Navigation options
-   * @param {number|string} options.mode - Target navigation mode (1/free, 2/birdseye, 3/vicinity) or animation style (smooth, instant, pan)
-   * @param {number|null} options.zoom - Zoom level, or null to use current zoom
-   * @param {boolean} options.resetMode - Whether to reset mode overrides
-   * @param {boolean} options.animate - Whether to animate the transition
-   * @returns {Promise} Resolves when navigation completes or fails
+   * @param {Object} location - Target location
+   * @param {Object} [options] - Navigation options
+   * @returns {Promise<boolean>} Whether navigation was successful
    */
   navigateTo(location, options = {}) {
-    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      Logger.error('MapNavigationController', 'Invalid location', location);
-      return Promise.reject(new Error('Invalid location'));
+    Logger.debug(this.TAG, 'Navigating to:', location, 'with options:', options);
+    
+    // Normalize the location to ensure consistent format
+    const normalizedLocation = this._normalizeLocation(location);
+    
+    if (!normalizedLocation) {
+      Logger.warn(this.TAG, 'Invalid location for navigation:', location);
+      return Promise.resolve(false);
     }
     
-    Logger.info('MapNavigationController', 'Queuing navigation to location', {
-      location: [location.lat, location.lng],
-      options
-    });
+    // Skip map view change if this location came from a map click
+    // This prevents the reverse geocoding result from re-centering the map
+    if (normalizedLocation._source === 'map' && !options.forceCenter) {
+      Logger.debug(this.TAG, 'Skip centering view for map click source:', normalizedLocation);
+      return Promise.resolve(true);
+    }
     
-    // Queue this navigation operation
-    const promise = new Promise((resolve, reject) => {
-      this.navigationQueue.push(async () => {
-        return new Promise((innerResolve) => {
-          setTimeout(() => {
-            try {
-              // Target location coordinates
-              const locationArray = Array.isArray(location) 
-                ? location 
-                : [location.lat, location.lng];
-              
-              // Parse options
-              const { 
-                mode = this.currentMode, // Use current mode if not specified
-                zoom = null, 
-                resetMode = true,
-                animate = true,
-                duration = 0.5
-              } = options;
-              
-              // Get zoom level to use
-              const currentZoom = zoom !== null ? zoom : this.currentZoom;
-              this.currentZoom = currentZoom;
-              
-              // Process navigation mode changes if needed
-              let animationStyle = 'setView'; // default
-              
-              // Handle string modes (smooth, instant, pan)
-              if (typeof mode === 'string') {
-                switch (mode.toLowerCase()) {
-                  case 'smooth':
-                  case 'fly':
-                    animationStyle = 'flyTo';
-                    break;
-                  case 'instant':
-                  case 'set':
-                    animationStyle = 'setView';
-                    break;
-                  case 'pan':
-                    animationStyle = 'panTo';
-                    break;
-                  default:
-                    animationStyle = 'setView';
-                }
-              } else if (typeof mode === 'number') {
-                // If a numeric navigation mode was specified, update it
-                if (mode !== this.currentMode) {
-                  this.setNavigationMode(mode, { silent: true });
-                }
-                // Use smooth animation for mode transitions by default
-                animationStyle = animate ? 'flyTo' : 'setView';
-              }
-              
-              // Determine the navigation method to use
-              let navigationMethod = null;
-              let navigationParams = null;
-              
-              // Try to use cached methods first (most reliable)
-              switch (animationStyle) {
-                case 'flyTo':
-                  if (this._cachedFlyTo) {
-                    navigationMethod = this._cachedFlyTo;
-                    navigationParams = [locationArray, currentZoom, { duration, animate }];
-                  }
-                  break;
-                case 'panTo':
-                  if (this._cachedPanTo) {
-                    navigationMethod = this._cachedPanTo;
-                    navigationParams = [locationArray, { animate }];
-                  }
-                  break;
-                case 'setView':
-                default:
-                  if (this._cachedSetView) {
-                    navigationMethod = this._cachedSetView;
-                    navigationParams = [locationArray, currentZoom, { animate }];
-                  }
-                  break;
-              }
-              
-              // If we don't have a cached method, try to get the map instance
-              if (!navigationMethod) {
-                const map = this.getMapInstance();
-                
-                if (!map) {
-                  Logger.error('MapNavigationController', 'Map instance not available for navigation');
-                  reject(new Error('Map instance not available'));
-                  innerResolve();
-                  return;
-                }
-                
-                // Now try to use the map's methods
-                switch (animationStyle) {
-                  case 'flyTo':
-                    if (typeof map.flyTo === 'function') {
-                      navigationMethod = map.flyTo.bind(map);
-                      navigationParams = [locationArray, currentZoom, { duration, animate }];
-                    } else if (typeof map.setView === 'function') {
-                      // Fallback to setView if flyTo not available
-                      Logger.warn('MapNavigationController', 'flyTo not available, falling back to setView');
-                      navigationMethod = map.setView.bind(map);
-                      navigationParams = [locationArray, currentZoom, { animate }];
-                    }
-                    break;
-                  case 'panTo':
-                    if (typeof map.panTo === 'function') {
-                      navigationMethod = map.panTo.bind(map);
-                      navigationParams = [locationArray, { animate }];
-                    } else if (typeof map.setView === 'function') {
-                      // Fallback to setView if panTo not available
-                      Logger.warn('MapNavigationController', 'panTo not available, falling back to setView');
-                      navigationMethod = map.setView.bind(map);
-                      navigationParams = [locationArray, currentZoom, { animate }];
-                    }
-                    break;
-                  case 'setView':
-                  default:
-                    if (typeof map.setView === 'function') {
-                      navigationMethod = map.setView.bind(map);
-                      navigationParams = [locationArray, currentZoom, { animate }];
-                    }
-                    break;
-                }
-              }
-              
-              // If we still don't have a method, we can't navigate
-              if (!navigationMethod) {
-                Logger.error('MapNavigationController', 'No navigation methods available');
-                reject(new Error('No navigation methods available'));
-                innerResolve();
-                return;
-              }
-              
-              // Finally, execute the navigation
-              try {
-                Logger.debug('MapNavigationController', `Navigating using ${animationStyle}`, {
-                  lat: location.lat,
-                  lng: location.lng,
-                  zoom: currentZoom
-                });
-                
-                // Apply the navigation
-                navigationMethod(...navigationParams);
-                
-                // Update the selected location if requested
-                if (options.updateSelectedLocation) {
-                  this.setSelectedLocation(location);
-                }
-                
-                resolve();
-              } catch (error) {
-                Logger.error('MapNavigationController', 'Error during navigation execution', error);
-                reject(error);
-              }
-              
-              innerResolve();
-            } catch (error) {
-              Logger.error('MapNavigationController', 'Error during navigation', error);
-              reject(error);
-              innerResolve();
-            }
-          }, 0);
-        });
-      });
-      
-      // Start processing the queue if it's not already being processed
-      if (!this.isProcessing) {
-        this.processQueue();
+    // Construct a navigation operation
+    const operation = {
+      type: 'navigateTo',
+      location: normalizedLocation,
+      options: {
+        // Default options
+        zoom: options.zoom || this._mapInstance?.getZoom() || this.defaultZoom,
+        animate: options.animate !== false && this.animateTransitions,
+        method: options.method || 'flyTo', // 'flyTo', 'setView', etc.
+        duration: options.duration || 1, // seconds
+        ...(options || {})
       }
-    });
+    };
     
-    return promise;
+    // Queue the navigation operation
+    return this._queueOperation(operation);
   }
   
   /**
-   * Show both user location and selected location with an aerial view
-   * @param {Object} locationA - The first location (typically user location)
-   * @param {Object} locationB - The second location (typically selected location)
-   * @param {Object} options - Additional options
-   * @returns {Promise} Resolves when navigation completes
+   * Center on user's location
+   * @param {Object} [options] - Navigation options
+   * @returns {Promise<boolean>} Whether centering was successful
    */
-  showBirdsEyeView(locationA, locationB, options = {}) {
-    return new Promise((resolve, reject) => {
-      this.navigationQueue.push(async () => {
-        try {
-          // Validate locations first
-          if (!locationA || !locationB || 
-              typeof locationA.lat !== 'number' || typeof locationA.lng !== 'number' ||
-              typeof locationB.lat !== 'number' || typeof locationB.lng !== 'number') {
-            Logger.error('MapNavigationController', 'Invalid locations for Bird\'s Eye View', {
-              locationA,
-              locationB
-            });
-            reject(new Error('Invalid locations for Bird\'s Eye View'));
-            return;
-          }
-
-          const map = this.getMapInstance();
-          if (!map) {
-            throw new Error('Map instance not available');
-          }
-          
-          // Always make sure we're in Bird's Eye View mode
-          this.currentMode = 2;
-          this._notifyModeChange();
-          
-          // Set flag on map to indicate bird's eye mode
-          map._birdEyeViewActive = true;
-          
-          // Calculate the center and distance between points
-          const centerLat = (locationA.lat + locationB.lat) / 2;
-          const centerLng = (locationA.lng + locationB.lng) / 2;
-          const center = L.latLng(centerLat, centerLng);
-          
-          // Calculate distance between points in meters
-          const distance = map.distance(
-            [locationA.lat, locationA.lng],
-            [locationB.lat, locationB.lng]
-          );
-          
-          // Create a bounds object that includes both points
-          const bounds = L.latLngBounds(
-            [locationA.lat, locationA.lng],
-            [locationB.lat, locationB.lng]
-          );
-          
-          // Handle case where points are identical or very nearly identical
-          const isIdentical = Math.abs(locationA.lat - locationB.lat) < 0.000001 && 
-                             Math.abs(locationA.lng - locationB.lng) < 0.000001;
-                             
-          if (isIdentical) {
-            Logger.warn('MapNavigationController', 'Identical points in Bird\'s Eye View, adding offset');
-            // Create a slightly expanded bounds
-            bounds.extend([locationA.lat + 0.001, locationA.lng + 0.001]);
-          }
-          
-          // Add padding to the bounds - higher padding for longer distances
-          // This ensures a consistent aerial perspective regardless of distance
-          const paddingFactor = Math.min(1, Math.max(0.3, distance / 5000)); // 0.3 to 1 based on distance
-          const paddedBounds = bounds.pad(paddingFactor);
-          
-          // Store the original bounds on the map
-          map._birdEyeViewBounds = paddedBounds;
-          
-          // Fire an event to notify components
-          if (map.fire) {
-            map.fire('birdseyeview', {
-              active: true,
-              bounds: paddedBounds,
-              center: center,
-              locationA,
-              locationB
-            });
-          }
-          
-          // Choose an appropriate navigation method based on distance
-          if (distance < 100 || isIdentical) {
-            // Very close together - use a centered approach with fixed zoom
-            // Use a high zoom level for nearby points
-            map.flyTo([center.lat, center.lng], 17, {
-              animate: options.animate !== false,
-              duration: options.duration || 1
-            });
-          } else if (distance < 500) {
-            // Somewhat close - use moderate zoom
-            map.flyTo([center.lat, center.lng], 16, {
-              animate: options.animate !== false,
-              duration: options.duration || 1
-            });
-          } else {
-            // Normal or far distance - use bounds approach
-            // This automatically calculates the right zoom level
-            map.flyToBounds(paddedBounds, {
-              animate: options.animate !== false,
-              duration: options.duration || 1,
-              easeLinearity: 0.5,
-              maxZoom: 16,
-              padding: options.padding || [50, 50]
-            });
-          }
-          
-          // Update internal zoom state after navigation
-          setTimeout(() => {
-            if (map && map.getZoom) {
-              this.currentZoom = map.getZoom();
-              this._notifyZoomChange();
-            }
-            resolve();
-          }, 1000);
-        } catch (error) {
-          Logger.error('MapNavigationController', 'Error in Bird\'s Eye View', error);
-          reject(error);
-        }
-      });
-      
-      // Start processing the queue
-      this.processQueue();
-    });
-  }
-  
-  /**
-   * Show vicinity view centered on user location
-   * @param {Object} userLocation - User location
-   * @param {Object} options - Additional options
-   * @returns {Promise} Resolves when navigation completes
-   */
-  showVicinityView(userLocation, options = {}) {
-    return new Promise((resolve, reject) => {
-      this.navigationQueue.push(async () => {
-        try {
-          const map = this.getMapInstance();
-          if (!map) {
-            throw new Error('Map instance not available');
-          }
-          
-          // Set the current mode
-          this.currentMode = 3;
-          this._notifyModeChange();
-          
-          // Set flag on map to indicate vicinity mode
-          map._vicinityActive = true;
-          
-          // Calculate appropriate zoom level for vicinity view
-          const vicinityZoom = options.zoom || 18;
-          
-          // Navigate to user location
-          map.setView([userLocation.lat, userLocation.lng], vicinityZoom, {
-            animate: options.animate !== false,
-            duration: options.duration || 0.75
-          });
-          
-          // Update internal zoom state
-          this.currentZoom = vicinityZoom;
-          this._notifyZoomChange();
-          
-          // Fire an event to notify components
-          if (map.fire) {
-            map.fire('vicinitymode', {
-              active: true,
-              center: [userLocation.lat, userLocation.lng],
-              zoom: vicinityZoom
-            });
-          }
-          
-          resolve();
-        } catch (e) {
-          Logger.error('MapNavigationController', 'Vicinity view failed', e);
-          reject(e);
-        }
-      });
-      
-      this.processQueue();
-    });
-  }
-  
-  /**
-   * Fit the map view to bounds
-   * @param {Object} bounds - Leaflet bounds object
-   * @param {Object} options - Options for fitBounds
-   * @returns {Promise} Resolves when fitBounds completes
-   */
-  fitBounds(bounds, options = {}) {
-    return new Promise((resolve, reject) => {
-      this.navigationQueue.push(async () => {
-        try {
-          const map = this.getMapInstance();
-          if (!map) {
-            throw new Error('Map instance not available');
-          }
-          
-          map.fitBounds(bounds, {
-            padding: options.padding || [50, 50],
-            animate: options.animate !== false,
-            duration: options.duration || 0.5,
-            maxZoom: options.maxZoom || 16
-          });
-          
-          // Update zoom state after bounds fit
-          setTimeout(() => {
-            if (map && map.getZoom) {
-              this.currentZoom = map.getZoom();
-              this._notifyZoomChange();
-            }
-          }, 100);
-          
-          Logger.debug('MapNavigationController', 'fitBounds successful');
-          resolve();
-        } catch (e) {
-          Logger.error('MapNavigationController', 'fitBounds failed', e);
-          reject(e);
-        }
-      });
-      
-      this.processQueue();
-    });
-  }
-  
-  /**
-   * Set the view to a specific location (convenience method)
-   * @param {Object|Array} location - Location with lat/lng or as [lat, lng] array
-   * @param {number} zoom - Zoom level
-   * @param {Object} options - Additional options
-   * @returns {Promise} Resolves when navigation completes
-   */
-  setView(location, zoom, options = {}) {
-    // Handle array format [lat, lng]
-    if (Array.isArray(location)) {
-      location = { lat: location[0], lng: location[1] };
+  centerOnUser(options = {}) {
+    if (!this._userLocation) {
+      Logger.warn('MapNavigationController', 'No user location available');
+      return Promise.resolve(false);
     }
     
-    return this.navigateTo(location, {
-      ...options,
-      mode: 'instant',
-      zoom
-    });
+    return this.navigateTo(this._userLocation, options);
   }
   
   /**
-   * Smoothly fly to a location (convenience method)
-   * @param {Object|Array} location - Location with lat/lng or as [lat, lng] array
-   * @param {number} zoom - Zoom level
-   * @param {Object} options - Additional options
-   * @returns {Promise} Resolves when navigation completes
-   */
-  flyTo(location, zoom, options = {}) {
-    // Handle array format [lat, lng]
-    if (Array.isArray(location)) {
-      location = { lat: location[0], lng: location[1] };
-    }
-    
-    return this.navigateTo(location, {
-      ...options,
-      mode: 'smooth',
-      zoom
-    });
-  }
-  
-  /**
-   * Pan to a location without changing zoom (convenience method)
-   * @param {Object|Array} location - Location with lat/lng or as [lat, lng] array
-   * @param {Object} options - Additional options
-   * @returns {Promise} Resolves when navigation completes
-   */
-  panTo(location, options = {}) {
-    // Handle array format [lat, lng]
-    if (Array.isArray(location)) {
-      location = { lat: location[0], lng: location[1] };
-    }
-    
-    return this.navigateTo(location, {
-      ...options,
-      mode: 'pan'
-    });
-  }
-  
-  /**
-   * Invalidate the map size (useful after container resizing)
-   */
-  invalidateSize() {
-    const map = this.getMapInstance();
-    if (map && typeof map.invalidateSize === 'function') {
-      map.invalidateSize();
-      Logger.debug('MapNavigationController', 'Map size invalidated');
-    } else {
-      Logger.warn('MapNavigationController', 'Could not invalidate map size - method not available');
-    }
-  }
-  
-  /**
-   * Clear the navigation queue
-   */
-  clearQueue() {
-    Logger.info('MapNavigationController', 'Clearing navigation queue', {
-      queueSize: this.navigationQueue.length
-    });
-    this.navigationQueue = [];
-    this.isProcessing = false;
-  }
-  
-  /**
-   * Dispose of the controller and clean up resources
+   * Dispose of the controller
    */
   dispose() {
-    this.clearQueue();
-    this.mapRef = null;
-    this.listeners = {
-      mode: [],
-      location: [],
-      ready: [],
-      selectedLocation: [],
-      zoom: []
+    const startTime = Date.now();
+    
+    this._clearQueue();
+    
+    // Remove map click handler if it exists
+    if (this._mapInstance && this._mapClickHandler) {
+      Logger.debug(this.TAG, 'Removing map click handler during disposal');
+      this._mapInstance.off('click', this._mapClickHandler);
+      this._mapClickHandler = null;
+    }
+    
+    this._cachedSetView = null;
+    this._cachedFlyTo = null;
+    this._cachedPanTo = null;
+    this._cachedGetZoom = null;
+    this._mapRef = null;
+    this._mapInstance = null;
+    this._isReady = false;
+    this._clickHandlerInitialized = false;
+    
+    // Remove window resize handler
+    window.removeEventListener('resize', this._handleResize);
+    
+    // Clean up touch event handlers
+    if (this._mapInstance) {
+      this._mapInstance.removeEventListener('touchstart', this._handleTouchStart);
+      this._mapInstance.removeEventListener('touchend', this._handleTouchEnd);
+    }
+    
+    Logger.info(this.TAG, 'Controller disposed');
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('map', 'controllerDispose', duration, {
+      success: true,
+      hadMapInstance: !!this._mapInstance,
+      hadClickHandler: !!this._mapClickHandler
+    });
+  }
+  
+  /**
+   * Extracts the actual map instance from the reference
+   * @private
+   * @returns {Object|null} - The Leaflet map instance or null
+   */
+  _extractMapInstance() {
+    if (!this._mapRef) {
+      Logger.warn(this.TAG, 'Cannot extract map instance - mapRef is null');
+      return false;
+    }
+    
+    // Handle react-leaflet map instance
+    if (this._mapRef && typeof this._mapRef === 'object') {
+      // If it's a react-leaflet map instance, it should have these properties
+      if (this._mapRef.getContainer && this._mapRef.latLngToContainerPoint) {
+        this._mapInstance = this._mapRef;
+        Logger.debug(this.TAG, 'Valid Leaflet map instance extracted from react-leaflet');
+        
+        // Set up touch event handlers
+        this._setupTouchHandlers();
+        
+        return true;
+      }
+      
+      // If it's a ref object with current property
+      if (this._mapRef.current && this._mapRef.current.getContainer && this._mapRef.current.latLngToContainerPoint) {
+        this._mapInstance = this._mapRef.current;
+        Logger.debug(this.TAG, 'Valid Leaflet map instance extracted from ref.current');
+        
+        // Set up touch event handlers
+        this._setupTouchHandlers();
+        
+        return true;
+      }
+    }
+    
+    Logger.warn(this.TAG, 'Invalid map reference - not a valid Leaflet map instance');
+    return false;
+  }
+  
+  /**
+   * Validates that a location object has the correct format
+   * @private
+   * @param {Object} location - Location to validate
+   * @returns {boolean} - Whether the location is valid
+   */
+  _isValidLocation(location) {
+    // Check that location has lat and lng properties that are numbers
+    return (
+      location && 
+      typeof location.lat === 'number' && 
+      typeof location.lng === 'number' && 
+      !isNaN(location.lat) && 
+      !isNaN(location.lng)
+    );
+  }
+  
+  /**
+   * Normalizes location objects to a consistent format
+   * @param {Object} location - Location object with lat/lng or latitude/longitude
+   * @returns {Object|null} - Normalized location with lat/lng or null if invalid
+   * @private
+   */
+  _normalizeLocation(location) {
+    if (!location) return null;
+    
+    // Already has lat/lng
+    if (typeof location.lat === 'number' && typeof location.lng === 'number') {
+      return {
+        lat: location.lat,
+        lng: location.lng,
+        // Preserve other properties
+        ...location
+      };
+    }
+    
+    // Has latitude/longitude
+    if (typeof location.latitude === 'number' && typeof location.longitude === 'number') {
+      return {
+        lat: location.latitude,
+        lng: location.longitude,
+        // Preserve other properties
+        ...location
+      };
+    }
+    
+    // Has array format [lat, lng]
+    if (Array.isArray(location) && location.length >= 2 && 
+        typeof location[0] === 'number' && typeof location[1] === 'number') {
+      return {
+        lat: location[0],
+        lng: location[1]
+      };
+    }
+    
+    Logger.warn(this.TAG, 'Invalid location format', location);
+    return null;
+  }
+  
+  /**
+   * Clear the operation queue
+   * @private
+   */
+  _clearQueue() {
+    this._operationQueue = [];
+    this._currentOperation = null;
+    this._isProcessingQueue = false;
+  }
+  
+  /**
+   * Handle touch events for mobile devices
+   * @private
+   * @param {TouchEvent} event - Touch event
+   */
+  _handleTouchStart(event) {
+    if (event.touches.length > 1) return;
+    
+    this._touchStartTime = Date.now();
+    this._touchStartLocation = {
+      lat: event.touches[0].clientY,
+      lng: event.touches[0].clientX
     };
-    Logger.info('MapNavigationController', 'Controller disposed');
   }
   
   /**
-   * Notify listeners of mode changes
+   * Handle touch end events for mobile devices
    * @private
+   * @param {TouchEvent} event - Touch event
    */
-  _notifyModeChange() {
-    // Call the callback if provided
-    if (typeof this.onModeChange === 'function') {
-      try {
-        this.onModeChange(this.currentMode);
-      } catch (e) {
-        Logger.error('MapNavigationController', 'Error in onModeChange callback', e);
+  _handleTouchEnd(event) {
+    if (event.touches.length > 1) return;
+    
+    const now = Date.now();
+    if (now - this._lastTouchEnd <= this._touchDebounceTime) {
+      event.preventDefault();
+      return;
+    }
+    
+    this._lastTouchEnd = now;
+    
+    // Calculate touch duration and distance
+    const touchDuration = now - this._touchStartTime;
+    const touchDistance = this._touchStartLocation ? Math.sqrt(
+      Math.pow(event.changedTouches[0].clientY - this._touchStartLocation.lat, 2) +
+      Math.pow(event.changedTouches[0].clientX - this._touchStartLocation.lng, 2)
+    ) : 0;
+    
+    // If it's a quick tap with minimal movement, treat it as a click
+    if (touchDuration < 200 && touchDistance < 10) {
+      const point = this._mapInstance.containerPointToLatLng([
+        event.changedTouches[0].clientX,
+        event.changedTouches[0].clientY
+      ]);
+      
+      if (point) {
+        this._handleLocationSelect(point);
       }
     }
-    
-    // Support legacy listeners for backward compatibility
-    if (this.listeners && this.listeners.mode) {
-      this.listeners.mode.forEach(listener => {
-        try {
-          listener(this.currentMode);
-        } catch (e) {
-          Logger.error('MapNavigationController', 'Error in mode change listener', e);
-        }
-      });
-    }
   }
   
   /**
-   * Notify listeners of location changes
+   * Set up touch event handlers
    * @private
    */
-  _notifyLocationChange() {
-    // Call the callback if provided
-    if (typeof this.onLocationChange === 'function') {
-      try {
-        this.onLocationChange(this.userLocation);
-      } catch (e) {
-        Logger.error('MapNavigationController', 'Error in onLocationChange callback', e);
-      }
+  _setupTouchHandlers() {
+    if (!this._mapInstance) return;
+    
+    // Remove existing touch event handlers
+    if (this._mapInstance.removeEventListener) {
+      this._mapInstance.removeEventListener('touchstart', this._handleTouchStart);
+      this._mapInstance.removeEventListener('touchend', this._handleTouchEnd);
     }
     
-    // Support legacy listeners for backward compatibility
-    if (this.listeners && this.listeners.location) {
-      this.listeners.location.forEach(listener => {
-        try {
-          listener(this.userLocation);
-        } catch (e) {
-          Logger.error('MapNavigationController', 'Error in location change listener', e);
-        }
-      });
+    // Add new touch event handlers
+    if (this._mapInstance.addEventListener) {
+      this._mapInstance.addEventListener('touchstart', this._handleTouchStart);
+      this._mapInstance.addEventListener('touchend', this._handleTouchEnd);
     }
   }
   
   /**
-   * Notify listeners of selected location changes
+   * Handle location selection
    * @private
+   * @param {Object} location - Selected location
    */
-  _notifySelectedLocationChange() {
-    // Call the callback if provided
-    if (typeof this.onSelectedLocationChange === 'function') {
-      try {
-        this.onSelectedLocationChange(this.selectedLocation);
-      } catch (e) {
-        Logger.error('MapNavigationController', 'Error in onSelectedLocationChange callback', e);
-      }
-    }
-    
-    // Support legacy listeners for backward compatibility
-    if (this.listeners && this.listeners.selectedLocation) {
-      this.listeners.selectedLocation.forEach(listener => {
-        try {
-          listener(this.selectedLocation);
-        } catch (e) {
-          Logger.error('MapNavigationController', 'Error in selected location change listener', e);
-        }
-      });
+  _handleLocationSelect(location) {
+    if (this.onLocationSelect && typeof this.onLocationSelect === 'function') {
+      this.onLocationSelect(location);
     }
   }
-  
+
   /**
-   * Notify listeners of zoom changes
+   * Smoothly animate to a new center position
+   * @param {[number, number]} center - [lat, lng] coordinates
+   * @param {number} zoom - Target zoom level
+   * @param {number} duration - Animation duration in milliseconds
+   */
+  animateTo(center, zoom, duration = 1000) {
+    if (!this._mapInstance || this.isAnimating) return;
+
+    this.isAnimating = true;
+    const startCenter = this._mapInstance.getCenter();
+    const startZoom = this._mapInstance.getZoom();
+    const startTime = performance.now();
+
+    const animate = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function for smooth animation
+      const easeProgress = this.easeInOutCubic(progress);
+
+      // Interpolate center and zoom
+      const currentCenter = [
+        startCenter.lat + (center[0] - startCenter.lat) * easeProgress,
+        startCenter.lng + (center[1] - startCenter.lng) * easeProgress
+      ];
+      const currentZoom = startZoom + (zoom - startZoom) * easeProgress;
+
+      this._mapInstance.setView(currentCenter, currentZoom);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        this.isAnimating = false;
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }
+
+  /**
+   * Easing function for smooth animation
+   * @param {number} t - Progress value between 0 and 1
+   * @returns {number} Eased progress value
+   */
+  easeInOutCubic(t) {
+    return t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  /**
+   * Fit bounds with padding
+   * @param {L.LatLngBounds} bounds - Bounds to fit
+   * @param {Object} options - Fit options
+   */
+  fitBounds(bounds, options = {}) {
+    if (!this._mapInstance || !bounds) return;
+
+    const defaultOptions = {
+      padding: [50, 50],
+      maxZoom: 16
+    };
+
+    this._mapInstance.fitBounds(bounds, { ...defaultOptions, ...options });
+  }
+
+  /**
+   * Reset map view to default position
+   */
+  resetView() {
+    if (!this._mapInstance) return;
+
+    const defaultCenter = [37.7749, -122.4194]; // San Francisco coordinates
+    const defaultZoom = 13;
+
+    this.animateTo(defaultCenter, defaultZoom);
+  }
+
+  /**
+   * Handle reverse geocoding for a location
    * @private
+   * @param {number} lat - Latitude
+   * @param {number} lng - Longitude
+   * @param {string} source - Source of the location request, defaults to 'map'
    */
-  _notifyZoomChange() {
-    // Call the callback if provided
-    if (typeof this.onZoomChange === 'function') {
-      try {
-        this.onZoomChange(this.currentZoom);
-      } catch (e) {
-        Logger.error('MapNavigationController', 'Error in onZoomChange callback', e);
-      }
-    }
-    
-    // Support legacy listeners for backward compatibility
-    if (this.listeners && this.listeners.zoom) {
-      this.listeners.zoom.forEach(listener => {
-        try {
-          listener(this.currentZoom);
-        } catch (e) {
-          Logger.error('MapNavigationController', 'Error in zoom change listener', e);
+  async _handleReverseGeocoding(lat, lng, source = 'map') {
+    try {
+      // Fetch the actual address using reverse geocoding
+      const results = await searchLocations(null, { lat, lng });
+      
+      if (results && results.length > 0) {
+        const result = results[0];
+        
+        // Determine the best display name
+        let displayName = this._determineDisplayName(result);
+        
+        // Update the search address field
+        if (this.onSearchAddressUpdate) {
+          this.onSearchAddressUpdate(displayName);
         }
-      });
-    }
-  }
-  
-  /**
-   * Notify listeners that the controller is ready
-   * @private
-   */
-  _notifyReady() {
-    // Call the onReady callback if provided
-    if (typeof this.onReady === 'function') {
-      try {
-        this.onReady(this);
-      } catch (error) {
-        Logger.error('MapNavigationController', 'Error in onReady callback', error);
-      }
-    }
-    
-    // Support legacy listeners for backward compatibility
-    if (this.listeners && this.listeners.ready) {
-      this.listeners.ready.forEach(listener => {
-        try {
-          listener();
-        } catch (error) {
-          Logger.error('MapNavigationController', 'Error in ready listener', error);
+        
+        // Create the location with the display name and ensure consistent properties
+        const locationWithAddress = {
+          ...result,
+          lat,
+          lng,
+          lon: lng, // Ensure lon property is set for compatibility
+          display_name: displayName,
+          _source: source // Preserve the source of the location request
+        };
+        
+        // Update our internal selected location
+        this.setSelectedLocation(locationWithAddress);
+        
+        // Notify with the location and display name
+        if (this.onLocationSelect) {
+          // Important: Pass the location with source to avoid map recentering
+          this.onLocationSelect(locationWithAddress);
         }
-      });
+        
+        return locationWithAddress;
+      }
+      
+      throw new Error('No results found');
+    } catch (error) {
+      Logger.error(this.TAG, 'Error reverse geocoding:', error);
+      throw error;
     }
-    
-    // Process any queued navigation operations
-    if (this.navigationQueue.length > 0) {
-      Logger.info('MapNavigationController', `Processing ${this.navigationQueue.length} queued navigation operations`);
-      this.processQueue();
-    }
-  }
-  
-  /**
-   * Check if the controller is ready for navigation
-   * If it becomes ready, it will notify listeners
-   * @returns {boolean} Whether the controller is ready
-   */
-  checkReadyStatus() {
-    // If already marked as ready, no need to check again
-    if (this.isReady) {
-      return true;
-    }
-    
-    // Check if we have a valid map instance
-    const hasValidMap = this._directMapInstance !== null || 
-                        this._cachedSetView !== null || 
-                        this._cachedFlyTo !== null || 
-                        this._cachedPanTo !== null;
-    
-    // If we have a valid map, mark as ready
-    if (hasValidMap && !this.isReady) {
-      this.isReady = true;
-      Logger.info('MapNavigationController', 'Navigation controller is now ready');
-      this._notifyReady();
-    }
-    
-    return this.isReady;
   }
 }
 
-export default MapNavigationController;
-
-// Export constants as static properties
-MapNavigationController.FREE_NAVIGATION = FREE_NAVIGATION;
-MapNavigationController.BIRDS_EYE_VIEW = BIRDS_EYE_VIEW;
-MapNavigationController.VICINITY_MODE = VICINITY_MODE; 
+export default MapNavigationController; 

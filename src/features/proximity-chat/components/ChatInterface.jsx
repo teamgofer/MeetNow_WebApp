@@ -5,6 +5,7 @@ import ChatMessageHistory from './ChatMessageHistory';
 import ChatMessageInput from './ChatMessageInput';
 import ChatRegionEntryNotice from './ChatRegionEntryNotice';
 import { isMessageExpired } from '../utils/timeUtils';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 /**
  * Main chat interface component that integrates message history,
@@ -28,11 +29,30 @@ const ChatInterface = ({
   
   const [previousMessageCount, setPreviousMessageCount] = useState(0);
   const [showingPreviousMessages, setShowingPreviousMessages] = useState(false);
+  const renderStartTimeRef = React.useRef(Date.now());
+  
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('chat_interface_init', duration, {
+      hasRegionId: !!regionId,
+      hasRegionName: !!regionName,
+      isConnected,
+      messageCount: messages.length,
+      nearbyUsersCount: nearbyUsers.length
+    });
+  }, []);
   
   // Track region entry
   useEffect(() => {
     if (regionId && isConnected) {
+      const startTime = Date.now();
       trackRegionEntry(regionId);
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('region_entry_tracking', duration, {
+        regionId,
+        isConnected
+      });
     }
   }, [regionId, isConnected, trackRegionEntry]);
   
@@ -47,21 +67,46 @@ const ChatInterface = ({
   // Count messages that were sent before user entered
   useEffect(() => {
     if (regionId && enteredAt) {
+      const startTime = Date.now();
       const count = filteredMessages.filter(msg => 
         new Date(msg.timestamp) < new Date(enteredAt)
       ).length;
       
       setPreviousMessageCount(count);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('previous_messages_count', duration, {
+        regionId,
+        hasEnteredAt: !!enteredAt,
+        previousMessageCount: count,
+        totalFilteredMessages: filteredMessages.length
+      });
     }
   }, [regionId, enteredAt, filteredMessages]);
   
   // Handle loading previous messages
   const handleLoadPreviousMessages = useCallback(async () => {
     if (regionId && enteredAt) {
+      const startTime = Date.now();
       try {
         const previousMessages = await loadMessagesBeforeArrival(regionId);
         setShowingPreviousMessages(previousMessages.length > 0);
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('load_previous_messages', duration, {
+          regionId,
+          hasEnteredAt: !!enteredAt,
+          loadedMessageCount: previousMessages.length,
+          success: true
+        });
       } catch (error) {
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('load_previous_messages', duration, {
+          regionId,
+          hasEnteredAt: !!enteredAt,
+          error: error.message,
+          success: false
+        });
         console.error('Failed to load previous messages:', error);
       }
     }
@@ -70,12 +115,19 @@ const ChatInterface = ({
   // Handle sending a message
   const handleSendMessage = useCallback((text) => {
     if (text.trim() && regionId) {
+      const startTime = Date.now();
       sendMessage({
         text,
         regionId
       });
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('message_send', duration, {
+        regionId,
+        messageLength: text.length,
+        hasRegionName: !!regionName
+      });
     }
-  }, [regionId, sendMessage]);
+  }, [regionId, sendMessage, regionName]);
   
   return (
     <div className={`chat-interface ${className}`} style={style}>

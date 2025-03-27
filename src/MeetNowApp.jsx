@@ -1,14 +1,14 @@
 import React, { useState, useEffect, lazy, Suspense, useRef, useCallback } from 'react';
-import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Button, Input, Card, CardContent } from '@/components/ui';
-import Loading from '@/components/ui/loading';
-import NearbyMeetups from '@/components/ui/nearby-meetups';
-import NearbyMeetupAlert from '@/components/ui/NearbyMeetupAlert';
-import { FaMapMarkerAlt, FaCog, FaTimes, FaCompass, FaLayerGroup, FaRuler, FaSearch, FaCheck, FaUser, FaSignOutAlt, FaCreditCard } from 'react-icons/fa';
+import { Button, Input, Card, CardContent } from './components/ui';
+import Loading from './components/ui/loading';
+import NearbyMeetups from './components/ui/nearby-meetups';
+import NearbyMeetupAlert from './components/ui/NearbyMeetupAlert';
+import { FaMapMarkerAlt, FaCog, FaTimes, FaCompass, FaSearch, FaCheck, FaUser, FaSignOutAlt, FaCreditCard } from 'react-icons/fa';
 import { createFreeMeetup, getNearbyFreeMeetups } from '@/utils/meetup';
-import { searchLocations } from '@/utils/location-services';
+import { searchLocations, locationRequestManager } from '@/utils/location-services';
 import ErrorBoundary from './components/ErrorBoundary';
 import Auth from './components/Auth';
 import Profile from './components/Profile';
@@ -18,34 +18,37 @@ import {
   MapPinIcon, 
   UsersIcon 
 } from 'lucide-react';
-
-// Import the navigation related components
-import MapViewControlBar from './components/map/MapViewControlBar';
-import BirdsEyePathOverlay from './components/map/BirdsEyePathOverlay';
-import VicinityIndicator from './components/map/VicinityIndicator';
-import MiniMapComponent from './components/map/MiniMapComponent';
-
-// Import debug tools
-import DebugConsole from './components/debug/DebugConsole';
 import Logger from './utils/Logger';
+import useLogger from './hooks/useLogger';
 import MapNavigationController from './utils/MapNavigationController';
+import DebugConsole from './components/debug/DebugConsole';
+import MapClickHandlerWithController from './components/map/MapClickHandlerWithController';
+import MeetupImageUploader from './components/MeetupImageUploader';
+import { ComponentRegistryProvider } from './components/ui/ComponentRegistry';
+import PersistentFloatingWindow from './components/ui/PersistentFloatingWindow';
+import PersistentPinMarker from './components/ui/PersistentPinMarker';
+import { isDevelopmentEnvironment } from './config';
 
 const AdminPage = lazy(() => import('./components/admin/AdminPage'));
 
 const MeetNowApp = () => {
-  // State
-  const [location, setLocation] = useState({ lat: 37.7749, lng: -122.4194, display_name: 'San Francisco, CA' });
+  // Initialize logger with component name
+  const log = useLogger('MeetNowApp');
+
+  // Main state
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [location, setLocation] = useState(null); // Start with null instead of arbitrary location
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchAddress, setSearchAddress] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState({ lat: 37.7749, lng: -122.4194, display_name: 'San Francisco, CA' });
-  const [isLocationLoading, setIsLocationLoading] = useState(true);
-  const [error, setError] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageSignedUrl, setImageSignedUrl] = useState(null);
   const [address, setAddress] = useState('');
   const [meetupCreated, setMeetupCreated] = useState(false);
   const [nearbyMeetups, setNearbyMeetups] = useState([]);
@@ -62,157 +65,269 @@ const MeetNowApp = () => {
   const [hadError, setHadError] = useState(false);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   
-  // Navigation widget state
-  const [showMinimap, setShowMinimap] = useState(false);
-  const [mapMode, setMapMode] = useState('default'); // 'default', 'satellite', 'terrain'
-  const [navMode, setNavMode] = useState('browse'); // 'browse', 'measure', 'layers'
+  // State for map functionality
+  const [centerLocation, setCenterLocation] = useState(null);
   
   // Refs
-  const mapRef = useRef(null);
-  const mapKey = useRef(1);
-  const searchTimeoutRef = useRef(null);
+  const locationBoxRef = useRef(null);
   const meetupsIntervalRef = useRef(null);
   const navigationController = useRef(null);
+  const mapRef = useRef(null);
+  const geolocationRequested = useRef(false);
+  const locationSourceRef = useRef('initial'); // Track which source last updated location
   
-  // Initialize navigation controller once at component mount
-  useEffect(() => {
-    // Import constants from navigation controller
-    const { FREE_NAVIGATION, BIRDS_EYE_VIEW, VICINITY_MODE } = MapNavigationController;
+  // Define map marker icons
+  const userIcon = L.divIcon({
+    className: 'user-location-marker',
+    html: '<div style="width: 16px; height: 16px; background-color: #3b82f6; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+  
+  const pinIcon = L.divIcon({
+    className: 'selected-location-marker',
+    html: '<div style="width: 24px; height: 24px; background-color: #ef4444; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" style="width: 12px; height: 12px;"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg></div>',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+  
+  // Centralized function to update location
+  const updateAppLocation = useCallback((newLocation, source) => {
+    if (!newLocation || typeof newLocation.lat !== 'number' || typeof newLocation.lng !== 'number') {
+      console.warn('Invalid location provided to updateAppLocation:', newLocation);
+      return false;
+    }
+
+    console.log(`Updating app location from source: ${source}`, newLocation);
+    locationSourceRef.current = source;
     
-    // Initialize controller with options object
+    // Ensure the location has all required fields
+    const normalizedLocation = {
+      ...newLocation,
+      lat: newLocation.lat,
+      lng: newLocation.lng,
+      display_name: newLocation.display_name || "Selected Location"
+    };
+    
+    setLocation(normalizedLocation);
+    return true;
+  }, []);
+  
+  // Function to use mock location for development
+  const useMockLocation = () => {
+    console.log('Using mock location for development environment');
+    const mockLocation = { 
+      lat: 34.052235, // Los Angeles
+      lng: -118.243683, 
+      display_name: 'Los Angeles, CA (Dev Mode)'
+    };
+    updateAppLocation(mockLocation, 'mock_location');
+    setSelectedLocation(mockLocation);
+    setIsLocationLoading(false);
+    
+    // Consider showing a development-only message
+    if (isDevelopmentEnvironment) {
+      setError('Using mock location for development. Real geolocation is often blocked in localhost/development environments.');
+    }
+  };
+  
+  // Initialize navigation controller
+  useEffect(() => {
     navigationController.current = new MapNavigationController({
-      defaultMode: FREE_NAVIGATION, // Start with free navigation mode
-      defaultZoom: currentZoom,
-      debug: true, // Enable debug logging
-      onModeChange: (newMode, previousMode) => {
-        // This callback will be called whenever the mode changes in the controller
-        Logger.info('MeetNowApp', `Navigation mode changed ${previousMode ? `from ${previousMode}` : ''} to ${newMode}`);
-        
-        // Update UI elements based on mode changes
-        if (newMode === BIRDS_EYE_VIEW) {
-          Logger.debug('MeetNowApp', 'Entered Bird\'s Eye View mode');
-        } else if (newMode === VICINITY_MODE) {
-          Logger.debug('MeetNowApp', 'Entered Vicinity mode');
-        } else if (newMode === FREE_NAVIGATION) {
-          Logger.debug('MeetNowApp', 'Entered Free Navigation mode');
+      onReady: (isReady) => console.log('🚀 [NAV] Navigation controller ready:', isReady),
+      onLocationChange: (location) => {
+        console.log('🚀 [NAV] Location changed via controller:', location);
+        // Don't update location state if it's from a map click to avoid re-centering issues
+        if (location._source === 'map') {
+          console.log('🚀 [NAV] Skipping location state update for map click');
+          return;
         }
       },
-      onReady: (controller) => {
-        Logger.info('MeetNowApp', 'Navigation controller is ready');
-        // Process any pending navigation operations
+      onMapClick: (event) => console.log('🚀 [NAV] Raw map click:', event),
+      onLocationSelect: (location) => {
+        console.log('🚀 [NAV] Selected location via controller:', location);
+        // Always preserve source information when handling location select
+        handleLocationSelect(location, location._source || 'map');
       },
-      onLocationChange: (location) => {
-        Logger.debug('MeetNowApp', 'User location updated in navigation controller');
-      },
-      onSelectedLocationChange: (location) => {
-        Logger.debug('MeetNowApp', 'Selected location updated in navigation controller');
-      },
-      onZoomChange: (zoom) => {
-        Logger.debug('MeetNowApp', 'Zoom level updated to:', zoom);
+      onReverseGeocodingStart: () => setIsReverseGeocoding(true),
+      onReverseGeocodingEnd: () => setIsReverseGeocoding(false),
+      onSearchAddressUpdate: (displayName) => setSearchAddress(displayName),
+      onError: (error) => {
+        console.error('🚀 [NAV] Controller error:', error);
+        setError(error);
       }
     });
-    
-    // Clean up function
+
+    // Cleanup on unmount
     return () => {
-      // No need to unsubscribe, we're using callback properties now
-      navigationController.current = null;
+      if (navigationController.current) {
+        navigationController.current.dispose();
+      }
     };
-  }, [currentZoom]);
+  }, []);
   
-  // Update controller when location or selected location changes
-  useEffect(() => {
-    if (navigationController.current && location) {
-      navigationController.current.setUserLocation(location);
-    }
-  }, [location]);
+  // Track if map initialization has already happened
+  const mapInitialized = useRef(false);
   
-  useEffect(() => {
-    if (navigationController.current && selectedLocation) {
-      navigationController.current.setSelectedLocation(selectedLocation);
-    }
-  }, [selectedLocation]);
-  
-  // Handle map readiness
+  // Handle when the map is ready to use
   const handleMapReady = useCallback((map) => {
-    Logger.info('MeetNowApp', 'Map is ready');
+    // Prevent multiple initializations
+    if (mapInitialized.current) {
+      console.log('🚀 [MAP] Map already initialized, skipping redundant initialization');
+      return;
+    }
+    
+    console.log('🚀 [MAP] Map is ready now ✅', map);
+    
+    // Store the map reference
+    mapRef.current = map;
+    setIsMapReady(true);
+    mapInitialized.current = true;
     
     // Update the map reference in the navigation controller
     if (navigationController.current) {
-      Logger.info('MeetNowApp', 'Updating map reference in controller');
+      console.log('🚀 [MAP] Updating map reference in controller with actual map instance');
       
-      // The map passed from whenCreated is the raw Leaflet instance
-      // Create a proper ref structure that mimics React's ref objects
-      const mapRefObject = { current: map };
-      navigationController.current.updateMapReference(mapRefObject);
+      // Ensure we pass the raw Leaflet map instance, not a React wrapper
+      const success = navigationController.current.updateMapReference(map);
+      console.log(`🚀 [MAP] Map reference update ${success ? 'succeeded' : 'failed'}`);
       
-      // Force readiness check after setting map reference
-      setTimeout(() => {
-        if (navigationController.current && !navigationController.current.isReadyToNavigate()) {
-          Logger.warn('MeetNowApp', 'Navigation controller still not ready after map initialization');
-        } else {
-          Logger.info('MeetNowApp', 'Navigation controller ready status confirmed');
-        }
-      }, 100);
-    } else {
-      Logger.warn('MeetNowApp', 'Navigation controller not available when map is ready');
+      if (!success) {
+        console.warn('🚀 [MAP] Failed to update map reference in controller. Map clicks may not work.');
+        console.log('🚀 [MAP] Map instance type:', typeof map);
+        console.log('🚀 [MAP] Map instance methods:', Object.keys(map).filter(key => typeof map[key] === 'function').join(', '));
+      } else {
+        console.log('🚀 [MAP] Map reference successfully updated in controller. Map clicks should work.');
+      }
+      
+      // Center map on user location if available
+      if (location) {
+        console.log('🚀 [MAP] Centering map on user location:', location);
+        setTimeout(() => {
+          navigationController.current.navigateTo({
+            lat: location.lat,
+            lng: location.lng
+          }, {
+            zoom: 17, 
+            animate: true
+          })
+          .then(success => {
+            console.log(`🚀 [MAP] Map centering ${success ? 'succeeded' : 'failed'}`);
+          });
+        }, 300); // Small delay to ensure map is fully ready
+      }
+    }
+  }, [navigationController, location]);
+  
+  // Update navigation controller when location changes
+  useEffect(() => {
+    // Skip if no location or not a valid coordinate
+    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+      return;
     }
     
-    mapRef.current = map;
-    setIsMapReady(true);
-  }, []);
-
-  // Update when currentZoom changes (useEffect)
+    // If this location update came from a map click, don't trigger any map view changes
+    if (location._source === 'map') {
+      console.log('Location from map click, skipping controller update to prevent recentering');
+      return;
+    }
+    
+    // Always log location changes for debugging
+    console.log(`Location changed to: ${location.lat},${location.lng} (source: ${locationSourceRef.current})`);
+    
+    // Skip location update if map not yet initialized - handleMapReady will handle initial centering
+    if (!mapInitialized.current) {
+      console.log('Map not yet initialized, skipping controller location update');
+      return;
+    }
+    
+    if (navigationController.current) {
+      console.log(`Updating navigation controller with location from ${locationSourceRef.current}`);
+      
+      try {
+        // Pass location using consistent lat/lng format
+        navigationController.current.setUserLocation(location);
+      } catch (error) {
+        console.error('Error updating location in controller:', error);
+      }
+    }
+  }, [location]);
+  
+  // Update controller when selected location changes
+  useEffect(() => {
+    if (navigationController.current && selectedLocation && 
+        typeof selectedLocation.lat === 'number' && 
+        typeof selectedLocation.lng === 'number') {
+      console.log('Setting selected location in controller');
+      
+      // Pass the full location object including source info
+      navigationController.current.setSelectedLocation(selectedLocation);
+      
+      // Don't do further map updates if it came from a map click
+      if (selectedLocation._source === 'map') {
+        console.log('Selected location from map click, not triggering further map actions');
+        return;
+      }
+    }
+  }, [navigationController, selectedLocation]);
+  
+  // Debounce reference for nearby meetups refresh
+  const nearbyMeetupsDebounceRef = useRef(null);
+  
+  // Update when zoom changes or map becomes ready
   useEffect(() => {
     // Only make this API call when zoom changes and we have a location
+    // But don't if the location is from a map click that's happening right now
     if (isMapReady && location && typeof location.lat === 'number' && typeof location.lng === 'number') {
-      console.log(`Zoom changed to ${currentZoom}, refreshing nearby meetups`);
-      // Use the user's actual location, not the selected map point
-      fetchNearbyMeetups(location, currentZoom);
+      // Skip if this is from a map click and we're actively getting the location (to avoid flickering)
+      if (location._source === 'map') {
+        console.log('Skip nearby meetups refresh for map click source');
+        return;
+      }
+      
+      // Clear any previous debounce timeout
+      if (nearbyMeetupsDebounceRef.current) {
+        clearTimeout(nearbyMeetupsDebounceRef.current);
+      }
+      
+      // Set a debounce to avoid too many API calls during rapid zooming/panning
+      nearbyMeetupsDebounceRef.current = setTimeout(() => {
+        console.log(`Map is ready or zoom changed to ${currentZoom}, refreshing nearby meetups`);
+        // Use the user's actual location, not the selected map point
+        fetchNearbyMeetups(location, currentZoom);
+        // Clear the reference
+        nearbyMeetupsDebounceRef.current = null;
+      }, 300); // 300ms debounce
     }
+    
+    // Clean up debounce on unmount
+    return () => {
+      if (nearbyMeetupsDebounceRef.current) {
+        clearTimeout(nearbyMeetupsDebounceRef.current);
+      }
+    };
   }, [currentZoom, isMapReady, location]);
-  
-  // Update meetups on map ready
-  useEffect(() => {
-    if (isMapReady && location && typeof location.lat === 'number' && typeof location.lng === 'number') {
-      console.log('Map is ready, fetching nearby meetups');
-      // Use the user's actual location, not the selected map point
-      fetchNearbyMeetups(location, currentZoom);
-    }
-  }, [isMapReady, location]);
   
   // Initial location setup
   useEffect(() => {
     console.log('Initial location setup effect running');
-    setIsLocationLoading(true);
     
-    // Clear any previous errors
-    setError('');
+    // Skip if geolocation was already requested
+    if (geolocationRequested.current) {
+      console.log('Geolocation was already requested, skipping duplicate request');
+      return;
+    }
+    
+    // Mark that we've requested geolocation
+    geolocationRequested.current = true;
+    locationSourceRef.current = 'initial_setup';
+    
+    setIsLocationLoading(true);
     
     // Check if we're in development environment (localhost)
     const isDevelopmentEnvironment = window.location.hostname === 'localhost' || 
                                     window.location.hostname === '127.0.0.1' ||
                                     window.location.hostname.includes('192.168.');
-    
-    // Function to use mock location for development
-    const useMockLocation = () => {
-      console.log('Using mock location for development environment');
-      const mockLocation = { 
-        lat: 34.052235, // Los Angeles
-        lng: -118.243683, 
-        display_name: 'Los Angeles, CA (Dev Mode)'
-      };
-      setLocation(mockLocation);
-      setSelectedLocation(mockLocation);
-      setIsLocationLoading(false);
-      
-      // Consider showing a development-only message
-      if (isDevelopmentEnvironment) {
-        setError('Using mock location for development. Real geolocation is often blocked in localhost/development environments.');
-      }
-      
-      // Fetch nearby meetups based on the user's location
-      fetchNearbyMeetups(mockLocation, currentZoom);
-    };
     
     // Function to handle geolocation timeout
     const geolocationTimeout = setTimeout(() => {
@@ -247,13 +362,10 @@ const MeetNowApp = () => {
           };
           
           // Set both user location and initial selected location
-          setLocation(newLocation);
+          updateAppLocation(newLocation, 'browser_geolocation');
           setSelectedLocation(newLocation);
           setIsLocationLoading(false);
           console.log('Location set successfully');
-          
-          // Fetch nearby meetups using the user's actual location
-          fetchNearbyMeetups(newLocation, currentZoom);
         },
         (error) => {
           // Clear timeout since we got a response (error)
@@ -276,7 +388,7 @@ const MeetNowApp = () => {
             display_name: 'Los Angeles, CA'
           };
           console.log('Using default location:', defaultLocation);
-          setLocation(defaultLocation);
+          updateAppLocation(defaultLocation, 'default_fallback');
           setSelectedLocation(defaultLocation);
           setIsLocationLoading(false);
           
@@ -289,9 +401,6 @@ const MeetNowApp = () => {
     } else {
             setError('Could not access your location. Using default location.');
           }
-          
-          // Fetch nearby meetups using the fallback location
-          fetchNearbyMeetups(defaultLocation, currentZoom);
           },
           {
             enableHighAccuracy: true,
@@ -311,13 +420,10 @@ const MeetNowApp = () => {
         display_name: 'Los Angeles, CA'
       };
       console.log('Using default location (no geolocation support):', defaultLocation);
-      setLocation(defaultLocation);
+      updateAppLocation(defaultLocation, 'default_fallback');
       setSelectedLocation(defaultLocation);
       setIsLocationLoading(false);
       setError('Geolocation is not supported by your browser. Using default location.');
-      
-      // Fetch nearby meetups using the fallback location
-      fetchNearbyMeetups(defaultLocation, currentZoom);
     }
     
     // Clean up timeout if component unmounts
@@ -326,6 +432,13 @@ const MeetNowApp = () => {
 
   // Fetch nearby meetups
   const fetchNearbyMeetups = async (userLocation, zoom) => {
+    // Skip fetching if this location update came from a map click and we're currently reverse geocoding
+    // This prevents unnecessary API calls during map interaction
+    if (userLocation._source === 'map' && isReverseGeocoding) {
+      console.log('Skipping nearby meetups fetch during map click and reverse geocoding');
+      return [];
+    }
+    
     try {
       console.log('Fetching nearby meetups for user location:', userLocation);
       setError('');
@@ -345,6 +458,9 @@ const MeetNowApp = () => {
       }
     
       console.log(`Found ${meetups?.length || 0} nearby meetups`);
+      
+      // Note: getNearbyFreeMeetups should now return meetups with signed image URLs
+      // thanks to the addSignedImageUrlsToMeetups function we added to meetup.js
       setNearbyMeetups(meetups || []);
       
       // For notification purposes, only show meetups that are within 2.5km (was 1km)
@@ -372,55 +488,59 @@ const MeetNowApp = () => {
   };
   
   // Handle location selection
-  const handleLocationSelect = (location) => {
-    Logger.info('MeetNowApp', 'Location selected', {
-      location: location ? { lat: location.lat, lng: location.lng } : null
-    });
-    
-    // First update selected location state
-    setSelectedLocation(location);
-    setSearchAddress(location.display_name || '');
-    setSearchResults([]);
-    
-    // Check for valid location coordinates
-    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      Logger.error('MeetNowApp', 'Invalid location coordinates', location);
-      return;
-    }
-    
-    // Use the navigation controller to handle the actual navigation
-    if (navigationController.current) {
-      // Ensure the controller has a valid map reference before attempting navigation
-      if (!navigationController.current.checkReadyStatus()) {
-        Logger.warn('MeetNowApp', 'Navigation controller not ready, retrying in 1s');
-        // Retry navigation after a short delay to allow map to be ready
-        setTimeout(() => {
-          if (navigationController.current) {
-            navigationController.current.navigateTo(location, {
-              animate: true,
-              updateSelectedLocation: true
-            })
-            .catch(error => {
-              Logger.error('MeetNowApp', 'Navigation failed on retry', error);
-            });
-          }
-        }, 1000);
-        return;
+  const handleLocationSelect = async (location, source = 'unknown') => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Use source from the location itself if it has one, otherwise use the provided source parameter
+      const actualSource = location._source || source;
+      
+      // Log the selected location and source
+      log.info('Location selected:', location, 'source:', actualSource);
+      
+      // Create a new location object with the source property
+      const locationWithSource = {
+        ...location,
+        _source: actualSource
+      };
+      
+      // Update the selected location
+      setSelectedLocation(locationWithSource);
+      
+      // If this is from a map click, don't recenter the map
+      if (actualSource === 'map') {
+        log.info('Map click detected, not recentering');
+        setIsLoading(false);
+        
+        // Update the URL without recentering
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.set('lat', location.lat);
+        searchParams.set('lng', location.lng);
+        window.history.replaceState({}, '', `${window.location.pathname}?${searchParams.toString()}`);
+        
+        return; // Early return to prevent further map manipulation
       }
       
-      // Attempt immediate navigation
-      navigationController.current.navigateTo(location, {
-        animate: true,
-        updateSelectedLocation: true
-      })
-      .then(() => {
-        Logger.debug('MeetNowApp', 'Navigation completed successfully');
-      })
-      .catch(error => {
-        Logger.error('MeetNowApp', 'Navigation failed', error);
-      });
-    } else {
-      Logger.error('MeetNowApp', 'Navigation controller not available');
+      // For non-map sources, update the map view
+      if (mapRef.current) {
+        log.info('Centering map for non-map source:', actualSource);
+        mapRef.current.setView([location.lat, location.lng], 15);
+      }
+      
+      // Update the URL with the new location
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set('lat', location.lat);
+      searchParams.set('lng', location.lng);
+      window.history.replaceState({}, '', `${window.location.pathname}?${searchParams.toString()}`);
+      
+      // Log success
+      log.info('Location selection completed successfully');
+    } catch (error) {
+      log.error('Error handling location selection:', error);
+      setError('Failed to process location selection');
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -443,7 +563,8 @@ const MeetNowApp = () => {
       
       // If it's a direct search (not just typing), auto-select first result
       if (results && results.length > 0 && query === searchAddress.trim()) {
-        handleLocationSelect(results[0]);
+        // Explicitly set source as 'search' for auto-selected results
+        handleLocationSelect(results[0], 'search');
       }
     } catch (error) {
       console.error('Error searching addresses:', error);
@@ -451,6 +572,17 @@ const MeetNowApp = () => {
     } finally {
       setIsSearching(false);
     }
+  };
+  
+  // Update the dropdown result click handler to explicitly set source
+  // Look for the JSX where search results are rendered and update the onClick handler
+  const handleSearchResultClick = (result) => {
+    // Clear search results after selection
+    setSearchResults([]);
+    // Explicitly set source as 'dropdown' for clicked results
+    handleLocationSelect(result, 'dropdown');
+    // Update search field with selected name
+    setSearchAddress(result.display_name || '');
   };
   
   // Handle image upload
@@ -487,7 +619,8 @@ const MeetNowApp = () => {
           lng: selectedLocation.lng
         },
         address: selectedLocation.display_name || address,
-        image: image
+        image: image,
+        imageSignedUrl: imageSignedUrl // Pass the signed URL if available
       });
       
       setMeetupCreated(true);
@@ -496,12 +629,13 @@ const MeetNowApp = () => {
       setDescription('');
       setImage(null);
       setImagePreview(null);
+      setImageSignedUrl(null); // Clear the signed URL too
       
       // Refresh nearby meetups - use user's actual location, not the selected map point
       await fetchNearbyMeetups(location, currentZoom);
     } catch (error) {
       console.error('Error creating meetup:', error);
-      setError('Failed to create meetup. Please try again.');
+      setError(error.message || 'Failed to create meetup');
     } finally {
       setIsLoading(false);
     }
@@ -564,375 +698,69 @@ const MeetNowApp = () => {
     setUserCredits(newCredits);
   };
   
-  // Request user location
-  const requestUserLocation = () => {
-    // Set loading state
+  // Request user's location
+  const requestUserLocation = async () => {
     setIsLocationLoading(true);
+    setError(null);
     
-    // Clear any previous errors
-    setError('');
-    
-    // Check if we're in development environment (localhost)
-    const isDevelopmentEnvironment = window.location.hostname === 'localhost' || 
-                                     window.location.hostname === '127.0.0.1' ||
-                                     window.location.hostname.includes('192.168.');
-    
-    // Function to use mock location for development
     const useMockLocation = () => {
       console.log('Using mock location for development environment');
-      // Slightly different location than the default to show movement
       const mockLocation = { 
-        lat: 34.053235, // Slightly different coordinates
+        lat: 34.053235,
         lng: -118.245683, 
         display_name: "Your Current Location (Dev Mode)"
       };
       
-      // Update the user location (NOT the selected location)
-      setLocation(mockLocation);
+      updateAppLocation(mockLocation, 'mock_location');
       setIsLocationLoading(false);
       
-      // Different behavior based on current navigation mode
-      if (mapRef.current) {
-        const map = mapRef.current;
-        
-        if (currentNavigationMode === 1) {
-          // In Free Navigation, we center on user location
-          if (navigationController.current) {
-            navigationController.current.setView(
-              [mockLocation.lat, mockLocation.lng], 
-              map.getZoom(),
-              { animate: true }
-            );
-          } else {
-            // Fallback to direct call if controller not available
-            map.setView([mockLocation.lat, mockLocation.lng], map.getZoom(), {
-              animate: true
-            });
+      if (mapRef.current && navigationController.current) {
+        navigationController.current.navigateTo(
+          mockLocation, 
+          { 
+            zoom: mapRef.current.getZoom(),
+            animate: true 
           }
-        }
+        );
       }
       
-      // Only show dev message if in dev mode
       if (isDevelopmentEnvironment) {
         setError('Using mock location in development mode. Real location services often fail in development environments.');
       }
     };
-    
-    // Create a timeout as a fallback
-    const locationTimeout = setTimeout(() => {
-      console.log('Geolocation request timed out');
-      setIsLocationLoading(false);
+
+    try {
+      // Use LocationRequestManager which handles timeouts and caching
+      const position = await locationRequestManager.requestLocation();
+      
+      const newLocation = {
+        lat: position.lat,
+        lng: position.lng,
+        display_name: "Your Current Location"
+      };
+      
+      updateAppLocation(newLocation, 'browser_geolocation');
+      
+      if (mapRef.current && navigationController.current) {
+        navigationController.current.navigateTo(
+          newLocation, 
+          { 
+            zoom: mapRef.current.getZoom(),
+            animate: true 
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Location request error:', error);
       
       if (isDevelopmentEnvironment) {
         useMockLocation();
       } else {
-        setError('Location request timed out. Using last known location.');
+        setError('Unable to get your location. Please check your location settings.');
       }
-    }, isDevelopmentEnvironment ? 5000 : 10000); // Shorter timeout in development
-    
-    // For development mode, optionally skip real geolocation
-    if (isDevelopmentEnvironment) {
-      // Option 1: Skip geolocation entirely
-      // useMockLocation();
-      // clearTimeout(locationTimeout);
-      // return;
-      
-      // Option 2: Try geolocation but with shorter timeout (continuing with code below)
-      console.log('Development environment detected in requestUserLocation. Trying geolocation with shorter timeout.');
-    }
-    
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // Clear timeout since we got a response
-          clearTimeout(locationTimeout);
-          
-          const newLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            display_name: "Your Current Location"
-          };
-          
-          // Update the user location (NOT the selected location)
-          setLocation(newLocation);
-          setIsLocationLoading(false);
-          
-          // Different behavior based on current navigation mode
-          if (mapRef.current) {
-            const map = mapRef.current;
-            
-            if (currentNavigationMode === 1) {
-              // In Free Navigation, we center on user location
-              if (navigationController.current) {
-                navigationController.current.setView(
-                  [newLocation.lat, newLocation.lng], 
-                  map.getZoom(),
-                  { animate: true }
-                );
-              } else {
-                // Fallback to direct call if controller not available
-                map.setView([newLocation.lat, newLocation.lng], map.getZoom(), {
-                  animate: true
-                });
-              }
-            } 
-            // Other navigation modes use their specific behaviors
-          }
-        },
-        (error) => {
-          // Clear timeout since we got a response (error)
-          clearTimeout(locationTimeout);
-          
-          console.error('Geolocation error in requestUserLocation:', error);
-          setIsLocationLoading(false);
-          
-          // For development mode, use mock location
-          if (isDevelopmentEnvironment) {
-            console.log('Using mock location due to geolocation error in development');
-            useMockLocation();
-      return;
-    }
-  
-          // Set user-friendly error message based on error code
-          if (error.code === 1) {
-            setError('Location permission denied. Please enable location access in your browser settings.');
-          } else if (error.code === 2) { 
-            // POSITION_UNAVAILABLE - likely due to network issues, VPN, or device limitations
-            setError('Your location is currently unavailable. This may be due to network issues or VPN settings.');
-            
-            // Still use the existing location without changing it
-            console.log('Using existing location due to POSITION_UNAVAILABLE');
-          } else if (error.code === 3) {
-            // TIMEOUT
-            setError('Location request timed out. Using last known location.');
-          } else {
-            setError('Could not access your location.');
-          }
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: isDevelopmentEnvironment ? 5000 : 8000, // Shorter timeout for development
-          maximumAge: 60000 // Accept a location up to 1 minute old
-        }
-      );
-    } else {
-      // Clear timeout since we determined browser doesn't support geolocation
-      clearTimeout(locationTimeout);
-      
-      console.warn('Geolocation is not supported by this browser');
+    } finally {
       setIsLocationLoading(false);
-      setError('Your browser does not support geolocation.');
     }
-  };
-
-  // Handle navigation mode change (free map, bird's eye view, vicinity)
-  const handleNavigationModeChange = useCallback((mode) => {
-    Logger.info('MeetNowApp', `Navigation mode change requested: ${mode}`);
-    
-    if (navigationController.current) {
-      navigationController.current.setNavigationMode(mode);
-      
-      // Handle mode-specific behaviors
-      if (mode === 2) { // Bird's eye view
-        // If we have both user location and selected location, show bird's eye view
-        if (location && selectedLocation) {
-          navigationController.current.showBirdsEyeView(location, selectedLocation);
-        }
-      } else if (mode === 3) { // Vicinity mode
-        // Focus on user's location with vicinity mode
-        if (location) {
-          navigationController.current.showVicinityView(location);
-        }
-      } else { // Free navigation mode
-        // No specific actions needed, controller handles the mode change
-      }
-    } else {
-      Logger.warn('MeetNowApp', 'Navigation controller not available for mode change');
-    }
-  }, [location, selectedLocation]);
-
-  // MapClickHandler component
-  const MapClickHandler = ({ onLocationSelect }) => {
-    const map = useMap();
-    
-    useEffect(() => {
-      // When map is mounted, update the map reference in the app
-      if (mapRef.current !== map) {
-        mapRef.current = map;
-        setIsMapReady(true);
-      }
-    }, [map]);
-    
-    const handleClick = async (e) => {
-      const { lat, lng } = e.latlng;
-      
-      // First, provide immediate feedback with a friendly message instead of raw coordinates
-      const tempLocation = {
-        lat,
-        lng,
-        display_name: `Finding location...`
-      };
-      
-      // This is a selected location, not user location
-      // Pass to parent component to update only the selected location
-      onLocationSelect(tempLocation);
-      
-      // Show loading indicator for reverse geocoding
-      setIsReverseGeocoding(true);
-      
-      try {
-        // Then fetch the actual address using reverse geocoding
-        const results = await searchLocations(null, { lat, lng });
-        
-        if (results && results.length > 0) {
-          const result = results[0];
-          
-          // By default, use the full address
-          let displayName = result.display_name;
-          let isSpecificLocation = false;
-          
-          // Try to find a place name in the result
-          if (result.name) {
-            // Direct name property - check if it's not just a general area
-            if (result.type && !['suburb', 'neighbourhood', 'village', 'town', 'city', 'county', 'state', 'region', 'country'].includes(result.type)) {
-              displayName = result.name;
-              isSpecificLocation = true;
-            }
-          } else if (result.tags && result.tags.name) {
-            // OSM tags may have a name - also check type if available
-            if (result.tags.amenity || result.tags.building || result.tags.shop || 
-                result.tags.tourism || result.tags.leisure || result.tags.historic) {
-              displayName = result.tags.name;
-              isSpecificLocation = true;
-            }
-          } 
-          
-          // If we don't yet have a specific location name, check address components
-          if (!isSpecificLocation && result.address) {
-            const address = result.address;
-            
-            // Try to find the most specific name (from most to least specific)
-            const placeName = address.attraction || 
-                             address.building ||
-                             address.amenity ||
-                             address.leisure ||
-                             address.tourism ||
-                             address.shop ||
-                             address.historic || 
-                             address.natural ||
-                             address.office ||
-                             address.healthcare || 
-                             address.place_of_worship;
-            
-            // Check if we found a specific place (not just a general area)
-            if (placeName) {
-              // If we found a place name, use it
-              displayName = placeName;
-              isSpecificLocation = true;
-              
-              // For completeness, add the broader location context
-              const context = [];
-              
-              // Add street number and street if available
-              if (address.house_number && address.road) {
-                context.push(`${address.house_number} ${address.road}`);
-              } else if (address.road) {
-                context.push(address.road);
-              }
-              
-              // Add city/town/village
-              if (address.city) context.push(address.city);
-              else if (address.town) context.push(address.town);
-              else if (address.village) context.push(address.village);
-              
-              // Add state/region
-              if (address.state) context.push(address.state);
-              
-              // If we have context, append it to the place name
-              if (context.length > 0) {
-                displayName += `, ${context.join(', ')}`;
-              }
-            }
-          }
-          
-          // If we still don't have a specific location, but we have address components,
-          // construct a more helpful address string
-          if (!isSpecificLocation && result.address) {
-            const addr = result.address;
-            const addressParts = [];
-            
-            // Build a more user-friendly address from components
-            if (addr.house_number && addr.road) {
-              addressParts.push(`${addr.house_number} ${addr.road}`);
-            } else if (addr.road) {
-              addressParts.push(addr.road);
-            }
-            
-            // Add neighborhood/suburb if available
-            if (addr.neighbourhood) addressParts.push(addr.neighbourhood);
-            else if (addr.suburb) addressParts.push(addr.suburb);
-            
-            // Add city/town/village
-            if (addr.city) addressParts.push(addr.city);
-            else if (addr.town) addressParts.push(addr.town);
-            else if (addr.village) addressParts.push(addr.village);
-            
-            // Add state and postal code
-            if (addr.state) {
-              if (addr.postcode) {
-                addressParts.push(`${addr.state} ${addr.postcode}`);
-              } else {
-                addressParts.push(addr.state);
-              }
-            } else if (addr.postcode) {
-              addressParts.push(addr.postcode);
-            }
-            
-            // Add country if it's not the user's own country (could be determined from browser locale)
-            if (addr.country && !addr.country.includes('United States')) {
-              addressParts.push(addr.country);
-            }
-            
-            // Create a clean address string if we have parts
-            if (addressParts.length > 0) {
-              displayName = addressParts.join(', ');
-            }
-            // Otherwise fall back to the default display_name
-          }
-          
-          // Update with the place name or address - this is a selected location, not user location
-          const locationWithAddress = {
-            ...result,
-            lat, // Use the exact clicked coordinates
-            lng,
-            display_name: displayName
-          };
-          onLocationSelect(locationWithAddress);
-        }
-      } catch (error) {
-        console.error('Error reverse geocoding location:', error);
-        // If geocoding fails, show a user-friendly error message instead of coordinates
-        const errorLocation = {
-          lat,
-          lng,
-          display_name: "Unable to find address"
-        };
-        onLocationSelect(errorLocation);
-      } finally {
-        // Hide loading indicator
-        setIsReverseGeocoding(false);
-      }
-    };
-    
-    useEffect(() => {
-      map.on('click', handleClick);
-      
-      return () => {
-        map.off('click', handleClick);
-      };
-    }, [map, handleClick]);
-    
-    return null;
   };
 
   // CSS for toast animation
@@ -957,37 +785,85 @@ const MeetNowApp = () => {
       align-items: center;
       justify-content: center;
     }
-    
+
     .user-location-marker::after {
       content: '';
       position: absolute;
-      width: 24px;
-      height: 24px;
+      height: 40px;
+      width: 40px;
+      top: -12px;
+      left: -12px;
       border-radius: 50%;
-      background: rgba(59, 130, 246, 0.3);
-      animation: pulse 2s infinite;
+      background: rgba(59, 130, 246, 0.4);
+      animation: pulse 2s infinite ease-in-out;
     }
     
     @keyframes pulse {
       0% {
-        transform: scale(1);
+        transform: scale(0.5);
         opacity: 1;
       }
       70% {
-        transform: scale(2);
+        transform: scale(1.5);
         opacity: 0;
       }
       100% {
-        transform: scale(1);
+        transform: scale(0.5);
         opacity: 0;
       }
+    }
+
+    /* Selected location marker */
+    .selected-location-marker {
+      z-index: 1001 !important;
+    }
+
+    /* Meetup location marker styles */
+    .meetup-location-marker {
+      transition: all 0.2s ease-in-out;
+      z-index: 900 !important;
+    }
+    
+    .meetup-location-marker:hover, 
+    .meetup-marker:hover {
+      transform: scale(1.2);
+      z-index: 1000 !important;
+    }
+    
+    /* Standard meetup marker without image */
+    .meetup-marker {
+      transition: all 0.2s ease-in-out;
+      z-index: 900 !important;
+    }
+
+    /* Popup styling */
+    .meetup-popup {
+      max-width: 300px;
+    }
+    
+    .meetup-popup-image img {
+      transition: transform 0.3s ease;
+    }
+    
+    .meetup-popup-image img:hover {
+      transform: scale(1.05);
+    }
+
+    /* User location popup styling */
+    .user-location-popup .leaflet-popup-content-wrapper {
+      background-color: rgba(239, 246, 255, 0.95);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    
+    .user-location-popup .leaflet-popup-tip {
+      background-color: rgba(239, 246, 255, 0.95);
     }
   `;
 
   // Reset error state when component remounts or key updates
   useEffect(() => {
     setHadError(false);
-  }, [mapKey.current]);
+  }, [mapRef.current]);
   
   // Graceful error handling
   const handleComponentError = (error, errorInfo) => {
@@ -998,145 +874,6 @@ const MeetNowApp = () => {
     setIsMapReady(false);
   };
   
-  // NavigationWidget - Advanced mode control
-  const NavigationWidget = ({ navMode, setNavMode, mapMode, setMapMode, showMinimap, setShowMinimap }) => {
-    const map = useMap();
-    
-    // Handle mode change
-    const handleModeChange = (mode) => {
-      setNavMode(mode);
-      
-      // Apply mode-specific behaviors
-      if (mode === 'measure' && map && window.L) {
-        try {
-          // Clean up any existing measurement tools
-          if (map._measureControl) {
-            map.removeControl(map._measureControl);
-            map._measureControl = null;
-          }
-          
-          // Initialize measurement tool
-          if (window.L.control.measure) {
-            map._measureControl = window.L.control.measure({
-              primaryLengthUnit: 'meters',
-              secondaryLengthUnit: 'kilometers',
-              primaryAreaUnit: 'sqmeters',
-              secondaryAreaUnit: 'hectares'
-            }).addTo(map);
-      } else {
-            console.log('Measurement control not available - would activate here');
-            // Fallback behavior - just show an alert
-            alert('Measurement tool would activate here.');
-          }
-        } catch (error) {
-          console.error('Error activating measure mode:', error);
-        }
-      };
-    };
-    
-    // Handle map type change
-    const handleMapTypeChange = (type) => {
-      setMapMode(type);
-      
-      try {
-        // Remove existing tile layers
-        if (map) {
-          map.eachLayer(layer => {
-            if (layer instanceof window.L.TileLayer) {
-              map.removeLayer(layer);
-            }
-          });
-          
-          // Add new tile layer based on selected type
-          if (type === 'satellite') {
-            window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-              attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-            }).addTo(map);
-          } else if (type === 'terrain') {
-            window.L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-              attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)'
-            }).addTo(map);
-          } else {
-            // Default OpenStreetMap
-            window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-          }
-        }
-      } catch (error) {
-        console.error('Error changing map type:', error);
-      }
-    };
-    
-    // Toggle minimap
-    const toggleMinimap = () => {
-      setShowMinimap(!showMinimap);
-    };
-    
-    return (
-      <div className="absolute top-2 left-2 z-10">
-        <div className="bg-white rounded-lg shadow-lg p-2">
-          <div className="flex space-x-2 mb-2">
-            <button
-              className={`p-2 rounded-md text-xs ${navMode === 'browse' ? 'bg-blue-500 text-white' : 'bg-white hover:bg-gray-100'}`}
-              onClick={() => handleModeChange('browse')}
-            >
-              Browse
-            </button>
-            
-            <button
-              className={`p-2 rounded-md text-xs ${navMode === 'measure' ? 'bg-blue-500 text-white' : 'bg-white hover:bg-gray-100'}`}
-              onClick={() => handleModeChange('measure')}
-            >
-              Measure
-            </button>
-            
-            <button
-              className={`p-2 rounded-md text-xs ${navMode === 'layers' ? 'bg-blue-500 text-white' : 'bg-white hover:bg-gray-100'}`}
-              onClick={() => handleModeChange('layers')}
-            >
-              Layers
-            </button>
-          </div>
-          
-          {navMode === 'layers' && (
-            <>
-              <button
-                className={`p-2 rounded-md text-xs ${mapMode === 'default' ? 'bg-blue-500 text-white' : 'bg-white hover:bg-gray-100'}`}
-                onClick={() => handleMapTypeChange('default')}
-              >
-                Map
-              </button>
-              
-              <button
-                className={`p-2 rounded-md text-xs ${mapMode === 'satellite' ? 'bg-blue-500 text-white' : 'bg-white hover:bg-gray-100'}`}
-                onClick={() => handleMapTypeChange('satellite')}
-              >
-                Satellite
-              </button>
-              
-              <button
-                className={`p-2 rounded-md text-xs ${mapMode === 'terrain' ? 'bg-blue-500 text-white' : 'bg-white hover:bg-gray-100'}`}
-                onClick={() => handleMapTypeChange('terrain')}
-              >
-                Terrain
-              </button>
-              
-              <div className="h-0.5 bg-gray-200 my-1"></div>
-              
-              <button
-                className={`p-2 rounded-md text-xs ${showMinimap ? 'bg-blue-500 text-white' : 'bg-white hover:bg-gray-100'}`}
-                onClick={toggleMinimap}
-              >
-                Minimap: {showMinimap ? 'On' : 'Off'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   // Handler to view the nearby meetups when clicking on notification
   const handleViewNearbyMeetups = () => {
     // Clear the notification
@@ -1149,7 +886,7 @@ const MeetNowApp = () => {
     
     console.log('User clicked to view nearby meetups from notification');
   };
-
+  
   // If we had a critical error, show a minimal view
   if (hadError) {
     return (
@@ -1169,7 +906,8 @@ const MeetNowApp = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <ComponentRegistryProvider>
+    <div className="min-h-screen bg-gray-100" role="application">
       {/* Add the style tag */}
       <style>{toastAnimationStyle}</style>
       
@@ -1188,7 +926,7 @@ const MeetNowApp = () => {
             <div className="absolute top-20 right-4 z-50 bg-white p-2 rounded shadow-md text-xs">
               <div><strong>Admin Status:</strong> {isAdmin ? 'YES' : 'NO'}</div>
               <div><strong>User ID:</strong> {user ? user.id?.substring(0, 8) + '...' : 'Not logged in'}</div>
-              <div><strong>Map Key:</strong> {mapKey.current}</div>
+              <div><strong>Map Key:</strong> {mapRef.current}</div>
             </div>
             )}
             
@@ -1204,174 +942,157 @@ const MeetNowApp = () => {
                   </div>
                 </div>
               </div>
-            ) : (
-          <Suspense fallback={
-            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
-                <p className="text-gray-600">Loading map...</p>
-              </div>
-            </div>
-          }>
-                <div id="map-container" className="h-full w-full">
-                  {location && selectedLocation && (
+            ) : location ? (
+              // Only render the map when we have a valid location
                     <MapContainer
-                      key={mapKey.current}
-                      center={[selectedLocation.lat, selectedLocation.lng]}
-                      zoom={currentZoom}
-                      style={{ height: '100%', width: '100%' }}
-                      zoomControl={false} // Disable default zoom control, we'll position it manually
                       whenCreated={(map) => {
-                        try {
+                  console.log('🚀 [MAP-CONTAINER] Map instance created');
+                  // Just store the reference, don't call handleMapReady yet
                           mapRef.current = map;
-                          Logger.info('MeetNowApp', 'Map created via whenCreated callback');
-                          
-                          // Don't call handleMapReady here - it's better to wait for the whenReady event
-                          // which ensures the map is fully initialized
-                          console.log('Map created successfully');
-                        } catch (error) {
-                          console.error('Error setting map reference:', error);
-                        }
                       }}
-                      whenReady={(e) => {
-                        try {
-                          console.log('Map is ready');
-                          
-                          // The map instance comes from e.target in the whenReady event
-                          const map = e.target;
-                          
-                          // Now it's safe to handle map ready with the fully initialized map
-                          handleMapReady(map);
-                          
-                          // Additional safety - ensure our mapRef is properly set
-                          if (!mapRef.current) {
-                            mapRef.current = map;
-                          }
-                        } catch (error) {
-                          console.error('Error in map ready handler:', error);
-                          Logger.error('MeetNowApp', 'Error in map ready handler', error);
-                        }
-                      }}
-                    >
-                      {/* Base tile layer */}
+                      whenReady={(mapInstance) => handleMapReady(mapInstance.target)}
+                center={[location.lat, location.lng]}
+                zoom={currentZoom}
+                style={{ height: '100%', width: '100%' }}
+                zoomControl={false}
+              >
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                       />
-                      
-                      {/* Custom positioned zoom control */}
                       <ZoomControl position="bottomright" />
                       
-                      {/* Navigation Widget */}
-                      <NavigationWidget 
-                        navMode={navMode} 
-                        setNavMode={setNavMode} 
-                        mapMode={mapMode} 
-                        setMapMode={setMapMode}
-                        showMinimap={showMinimap}
-                        setShowMinimap={setShowMinimap}
-                      />
-                      
-                      {/* Advanced MapViewControlBar for the three navigation modes */}
-                      <MapViewControlBar 
-                        initialMode={navigationController.current ? navigationController.current.getNavigationMode() : 1}
-                        onModeChange={handleNavigationModeChange}
-                        userLocation={location}
-                        selectedLocation={selectedLocation}
-                        navigationController={navigationController.current}
-                      />
-                      
-                      {/* Vicinity Indicator - only visible in Vicinity mode */}
-                      <VicinityIndicator 
-                        currentMode={navigationController.current ? navigationController.current.getNavigationMode() : 1}
-                        userLocation={location}
-                        navigationController={navigationController.current}
-                      />
-                      
-                      {/* Bird's Eye flight path - only visible in Bird's Eye View mode */}
-                      <BirdsEyePathOverlay 
-                        isActive={navigationController.current ? navigationController.current.getNavigationMode() === 2 : false}
-                        userLocation={location}
-                        selectedLocation={selectedLocation}
-                        navigationController={navigationController.current}
-                      />
-                      
                       {/* User location marker */}
-                      {location && 
-                       typeof location.lat === 'number' && 
-                       typeof location.lng === 'number' && (
-                        <Marker 
-                          position={[location.lat, location.lng]}
-                          icon={L.divIcon({
-                            className: 'user-location-marker',
-                            html: '<div style="width: 24px; height: 24px; background-color: #3b82f6; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" style="width: 12px; height: 12px;"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg></div>',
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 12]
-                          })}
-                        >
-                          <Popup>
-                            <div className="p-2">
-                              <h3 className="font-semibold">Your Location</h3>
-                              <p className="text-sm">{location.display_name || 'Current location'}</p>
-        </div>
-                          </Popup>
-                        </Marker>
+                      {location && (
+                          <PersistentPinMarker
+                            id="user-location"
+                            position={location}
+                          icon={userIcon}
+                            popupContent={
+                              <div className="p-2">
+                                <h3 className="font-semibold">Your Location</h3>
+                                <p className="text-sm">{location.display_name || 'Current location'}</p>
+                            </div>
+                            }
+                          />
                       )}
                       
                       {/* Selected location marker */}
-                      {selectedLocation && 
-                       typeof selectedLocation.lat === 'number' && 
-                       typeof selectedLocation.lng === 'number' && 
-                       // Only show if different from user location
-                       (selectedLocation.lat !== location.lat || selectedLocation.lng !== location.lng) && (
-                        <Marker 
-                          position={[selectedLocation.lat, selectedLocation.lng]}
-                          icon={L.divIcon({
-                            className: 'selected-location-marker',
-                            html: '<div style="width: 24px; height: 24px; background-color: #ef4444; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" style="width: 12px; height: 12px;"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg></div>',
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 12]
-                          })}
-                        >
-                          <Popup>
-                            <div className="p-2">
-                              <h3 className="font-semibold">{title || 'Selected Location'}</h3>
-                              <p className="text-sm">{selectedLocation.display_name}</p>
+                      {selectedLocation && (!location || 
+                        selectedLocation.lat !== location.lat || 
+                        selectedLocation.lng !== location.lng) && (
+                          <PersistentPinMarker
+                            id="selected-location"
+                            position={selectedLocation}
+                          icon={pinIcon}
+                          zIndexOffset={1001}
+                            popupContent={
+                            <div className="text-center">
+                              <div className="font-bold">{selectedLocation.display_name || "Selected Location"}</div>
+                              <div className="text-xs text-gray-500">{selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}</div>
                             </div>
-                          </Popup>
-                        </Marker>
+                            }
+                          />
                       )}
                       
-                      {Array.isArray(nearbyMeetups) && nearbyMeetups.map(meetup => 
-                        meetup && 
-                        typeof meetup.location === 'object' && 
-                        typeof meetup.location.lat === 'number' && 
-                        typeof meetup.location.lng === 'number' && (
-                          <Marker
-                            key={meetup.id || `meetup-${Math.random()}`}
-                            position={[meetup.location.lat, meetup.location.lng]}
-                            icon={L.divIcon({
+                      {/* Add MapClickHandlerWithController directly passing the navigationController without .current */}
+                      <MapClickHandlerWithController navigationController={navigationController.current} />
+                      
+                      {/* Nearby meetups markers */}
+                      {nearbyMeetups && nearbyMeetups.map((meetup) => {
+                        // Create a custom icon for meetups with images
+                        const meetupIcon = meetup.image_url || meetup.signed_image_url
+                          ? L.divIcon({
+                              className: 'meetup-location-marker',
+                              html: `<div style="width: 36px; height: 36px; background-color: #ef4444; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                <img src="${meetup.signed_image_url || meetup.image_url}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='https://via.placeholder.com/40'; this.style.opacity=0.7;" />
+                                </div>`,
+                              iconSize: [36, 36],
+                              iconAnchor: [18, 18]
+                            })
+                          : L.divIcon({
                               className: 'meetup-marker',
-                              html: '<div style="width: 28px; height: 28px; background-color: #8b5cf6; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" style="width: 14px; height: 14px;"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg></div>',
-                              iconSize: [28, 28],
-                              iconAnchor: [14, 14]
-                            })}
-                          >
-                            <Popup>
-                              <div className="p-2">
-                                <h3 className="font-semibold">{meetup.title || 'Unnamed Meetup'}</h3>
-                                <p className="text-sm">{meetup.description || 'No description available'}</p>
+                              html: '<div style="width: 32px; height: 32px; background-color: #ef4444; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" style="width: 16px; height: 16px;"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg></div>',
+                              iconSize: [32, 32],
+                              iconAnchor: [16, 16]
+                            });
+                        
+                        return (
+                            <PersistentPinMarker
+                            key={meetup.id}
+                              id={`meetup-${meetup.id}`}
+                            position={[meetup.location.lat, meetup.location.lng]}
+                            icon={meetupIcon}
+                            zIndexOffset={900}
+                              popupContent={
+                              <div className="meetup-popup">
+                                {(meetup.signed_image_url || meetup.image_url) && (
+                                  <div className="meetup-popup-image mb-2">
+                                    <img 
+                                      src={meetup.signed_image_url || meetup.image_url} 
+                                      alt={meetup.title}
+                                      className="w-full h-32 object-cover rounded-md"
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = 'https://via.placeholder.com/320x180?text=No+Image';
+                                        e.target.style.opacity = 0.7;
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                                <h3 className="font-bold">{meetup.title}</h3>
+                                <p>{meetup.description}</p>
+                                <p className="text-sm text-gray-500">
+                                  {meetup.address}
+                                </p>
+                                <p className="text-xs text-blue-500 mt-1">
+                                  {meetup.username || 'Anonymous'}
+                                </p>
                               </div>
-                            </Popup>
-                          </Marker>
-                        )
-                      )}
-                      
-                      <MapClickHandler onLocationSelect={handleLocationSelect} />
+                              }
+                            />
+                        );
+                      })}
                     </MapContainer>
-                  )}
+            ) : (
+              // No location available yet
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50">
+                <div className="text-center p-6 max-w-md">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">Location Not Available</h2>
+                  <p className="text-gray-600 mb-4">We couldn't determine your location. Please check your browser permissions and try again.</p>
+                  <button
+                    onClick={requestUserLocation}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Retry
+                  </button>
                 </div>
-          </Suspense>
+              </div>
+            )}
+
+            {/* Card with loading state */}
+            {isLocationLoading && (
+              <div className="absolute top-4 left-4 z-10 w-96">
+                <Card className="bg-white/50 backdrop-blur-sm border border-white/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-center">
+                      <Loading />
+                      <span className="ml-2">Getting your location...</span>
+                </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Debug info if in dev mode */}
+            {process.env.NODE_ENV === 'development' && false && (
+              <div className="absolute top-4 right-4 z-10 text-xs bg-white/80 p-2 rounded shadow">
+                <div><strong>Location:</strong> {location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'None'}</div>
+                <div><strong>Selected:</strong> {selectedLocation ? `${selectedLocation.lat.toFixed(5)}, ${selectedLocation.lng.toFixed(5)}` : 'None'}</div>
+                <div><strong>Admin Status:</strong> {isAdmin ? 'YES' : 'NO'}</div>
+                <div><strong>User ID:</strong> {user ? user.id?.substring(0, 8) + '...' : 'Not logged in'}</div>
+                <div><strong>Map Key:</strong> {mapRef.current}</div>
+                </div>
             )}
 
             {/* Meetup creation form - with transparency effects */}
@@ -1430,39 +1151,16 @@ const MeetNowApp = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                       Add a photo (optional)
                     </label>
-                    <div className="mt-1 flex items-center space-x-4">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                                id="image-upload"
-                      />
-                      <label
-                        htmlFor="image-upload"
-                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white/90 backdrop-blur-sm hover:bg-white/95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors"
-                      >
-                        Choose Image
-                      </label>
-                      {imagePreview && (
-                        <div className="relative w-20 h-20">
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="w-full h-full object-cover rounded-md"
-                          />
-                          <button
-                            onClick={() => {
-                              setImage(null);
-                              setImagePreview(null);
-                            }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <MeetupImageUploader 
+                      onImageUploaded={(imageUrl, signedViewUrl) => {
+                        console.log('Image uploaded:', imageUrl);
+                        console.log('Signed view URL:', signedViewUrl);
+                        setImage(imageUrl);
+                        setImageSignedUrl(signedViewUrl);
+                      }}
+                      isAnonymous={true}
+                      className="mt-1"
+                    />
                     <p className="text-xs text-gray-500 mt-1">
                       Max size: 5MB. Recommended: Square image.
                     </p>
@@ -1483,9 +1181,6 @@ const MeetNowApp = () => {
                         }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
-                                    // Stop event propagation to prevent it from reaching the form
-                                    e.stopPropagation();
-                                    // Prevent default browser behavior (form submission)
                                     e.preventDefault();
                                     
                                     // Don't do anything if searching
@@ -1506,49 +1201,35 @@ const MeetNowApp = () => {
                                           const result = results[0];
                                           console.log("Selecting first result:", result);
                                           
-                                          // This is a selected location, not user location
-                                          // Only update selectedLocation, not the user's location
-                                          setSelectedLocation(result);
+                                          // Update the selected location with source='search'
+                                          setSelectedLocation({
+                                            ...result,
+                                            _source: 'search'
+                                          });
+                                          
+                                          // Update the search field with the selected location name
                                           setSearchAddress(result.display_name || '');
+                                          
+                                          // Clear search results
                                           setSearchResults([]);
                                           
-                                          // Different behavior based on the current navigation mode
-                                          if (mapRef.current) {
-                                            const map = mapRef.current;
-                                            if (navigationController.current.getNavigationMode() === 1) {
-                                              // Free Navigation: Just center the map on the location
-                                              console.log("Free Navigation mode: centering map on selected location");
-                                              const currentMapZoom = map.getZoom();
-                                              map.setView([result.lat, result.lng], currentMapZoom, { 
-                                                animate: true,
-                                                duration: 0.75
-                                              });
-                                            }
-                                            else if (navigationController.current.getNavigationMode() === 2) {
-                                              // Bird's Eye View: Show both user and selected location
-                                              console.log("Bird's Eye View mode: showing both user and selected locations");
-                                              if (map._setMapViewMode) {
-                                                // Use the existing map mode controller to update the view
-                                                map._setMapViewMode(2, {
-                                                  userLocation: location, // Use current user location
-                                                  selectedLocation: result, // Use newly selected location
-                                                  immediate: true
-                                                });
-                                              } else {
-                                                // Fallback - create a bounds that contains both points
-                                                const bounds = L.latLngBounds(
-                                                  [location.lat, location.lng],
-                                                  [result.lat, result.lng]
-                                                );
-                                                map.fitBounds(bounds, { padding: [50, 50] });
-                                              }
-                                            }
-                                            else if (navigationController.current.getNavigationMode() === 3) {
-                                              // Vicinity mode: Focus on user location
-                                              console.log("Vicinity mode: maintaining focus on user location");
-                                              // For vicinity mode, we DON'T change the map view
-                                              // Just update the selected location in state
-                                            }
+                                          // Update the controller's selected location
+                                          if (navigationController.current) {
+                                            navigationController.current.setSelectedLocation({
+                                              ...result,
+                                              _source: 'search'
+                                            });
+                                            
+                                            // Since Enter was pressed, we also center the map
+                                            // This is the explicit navigation action
+                                            navigationController.current.navigateTo({
+                                              lat: result.lat,
+                                              lng: result.lng,
+                                              _source: 'search'
+                                            }, {
+                                              zoom: 16,
+                                              animate: true
+                                            });
                                           }
                                         }
                                       })
@@ -1585,7 +1266,10 @@ const MeetNowApp = () => {
                                 <div
                                   key={index}
                                   className="px-4 py-2 hover:bg-blue-50/80 cursor-pointer transition-colors"
-                                  onClick={() => handleLocationSelect(result)}
+                                  onClick={() => {
+                                    // Update the selected location
+                                    handleSearchResultClick(result);
+                                  }}
                                 >
                                   {result.display_name}
                                 </div>
@@ -1651,32 +1335,93 @@ const MeetNowApp = () => {
             
             {/* Nearby meetups panel */}
             {Array.isArray(nearbyMeetups) && nearbyMeetups.length > 0 && !isLocationLoading && (
-              <div className="absolute top-[10%] right-4 z-10 w-96">
-                <Card className="bg-white/50 backdrop-blur-sm border border-white/20 shadow-lg">
-                  <CardContent>
-                    <NearbyMeetups 
-                      meetups={nearbyMeetups} 
-                      currentLocation={location}
-                      mapZoom={currentZoom}
-                      onMeetupClick={handleLocationSelect}
-                    />
-                  </CardContent>
-                </Card>
-                            </div>
-                          )}
-
-            {/* MiniMap component - positioned at bottom right */}
-            {showMinimap && !isLocationLoading && location && selectedLocation && (
               <div className="absolute bottom-4 right-4 z-10 w-96">
-                <Card className="bg-white/50 backdrop-blur-sm border border-white/20 shadow-md">
-                  <CardContent className="p-2">
-                    <h3 className="text-sm font-semibold mb-1 text-center">Overview Map</h3>
-                    <MiniMapComponent
-                      userLocation={location}
-                      selectedLocation={selectedLocation}
-                      onModeChange={handleNavigationModeChange}
-                      navigationController={navigationController.current}
-                    />
+                  <Card className="bg-white/50 backdrop-blur-sm border border-white/20">
+                  <CardContent>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold">Nearby Meetups</h3>
+                        <button 
+                          onClick={() => {
+                            if (navigationController.current && location) {
+                              // Create a location with _source='user_location_button'
+                              const userLocationForNav = {
+                                lat: location.lat,
+                                lng: location.lng,
+                                display_name: location.display_name || "Your Location",
+                                _source: 'user_location_button' // Add source to indicate this is from the UI button
+                              };
+                              
+                              // Navigate to user location and force center regardless of source
+                              navigationController.current.navigateTo(userLocationForNav, {
+                                zoom: 21,
+                                animate: true,
+                                forceCenter: true // Override source check to force centering
+                              });
+                            }
+                          }}
+                          className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-sm"
+                          title="Center map on your location"
+                        >
+                          <FaCompass className="h-4 w-4" />
+                        </button>
+                            </div>
+                      <div className="space-y-2 max-h-60 overflow-auto">
+                        {nearbyMeetups.map(meetup => meetup && (
+                          <div 
+                            key={meetup.id || `meetup-item-${Math.random()}`}
+                            className="p-2 bg-white/70 rounded-md cursor-pointer hover:bg-white/90 flex justify-between"
+                            onClick={() => {
+                              if (navigationController.current && 
+                                  meetup.location && 
+                                  typeof meetup.location.lat === 'number' && 
+                                  typeof meetup.location.lng === 'number') {
+                                // Create a location object with _source='meetup_panel' to track the source
+                                const meetupLocation = {
+                                  lat: meetup.location.lat,
+                                  lng: meetup.location.lng,
+                                  display_name: meetup.title || meetup.address || 'Selected Meetup',
+                                  _source: 'meetup_panel' // Add source to indicate this came from the meetups panel
+                                };
+                                
+                                // Navigate to the meetup location - explicitly allow recentering
+                                navigationController.current.navigateTo(meetupLocation, {
+                                  zoom: 17,
+                                  animate: true,
+                                  forceCenter: true // Override source check to force centering
+                                });
+                                
+                                // Also update selected location so UI shows this meetup is selected
+                                setSelectedLocation(meetupLocation);
+                              }
+                            }}
+                          >
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="font-medium truncate">{meetup.title || 'Unnamed Meetup'}</div>
+                              <div className="text-sm text-gray-600 truncate">{meetup.description || 'No description'}</div>
+                            </div>
+                            <div className="flex flex-col items-end justify-between text-xs">
+                              <div className="text-blue-600 font-medium">
+                                {meetup.distance_meters ? 
+                                  (meetup.distance_meters < 1000 ? 
+                                    `${Math.round(meetup.distance_meters)}m` : 
+                                    `${(meetup.distance_meters / 1000).toFixed(1)}km`)
+                                  : ''}
+                              </div>
+                              <div className="text-orange-500">
+                                {meetup.created_at ? 
+                                  (() => {
+                                    const created = new Date(meetup.created_at);
+                                    const expires = new Date(created.getTime() + 60 * 60 * 1000); // 1 hour later
+                                    const now = new Date();
+                                    const minutesLeft = Math.max(0, Math.floor((expires - now) / (60 * 1000)));
+                                    return minutesLeft > 0 ? `${minutesLeft}m left` : 'Expired';
+                                  })() 
+                                  : '1h'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                   </CardContent>
                 </Card>
                         </div>
@@ -1817,22 +1562,56 @@ const MeetNowApp = () => {
       />
       */}
 
-      {/* Debug Console */}
+      {/* Debug tools in dev mode */}
       {process.env.NODE_ENV === 'development' && (
-        <DebugConsole 
-          mapRef={mapRef}
-          mapNavigator={navigationController.current}
-          currentMode={navigationController.current ? navigationController.current.getNavigationMode() : 1}
-          selectedLocation={selectedLocation}
-          userLocation={location}
-          onNavigationTest={(loc) => {
-            if (navigationController.current) {
-              navigationController.current.navigateTo(loc);
-            }
-          }}
-        />
+        <div className="fixed bottom-4 left-4 z-20 flex space-x-2">
+          <a 
+            href="/wasabi-test" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="bg-gray-800/80 hover:bg-gray-900/80 text-white px-3 py-1 rounded-md text-sm flex items-center space-x-1 backdrop-blur-sm"
+          >
+            <span className="hidden sm:inline">Test Wasabi</span>
+          </a>
+          
+          <a 
+            href="/image-upload-test" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="bg-purple-600/80 hover:bg-purple-700/80 text-white px-3 py-1 rounded-md text-sm flex items-center space-x-1 backdrop-blur-sm"
+          >
+            <span className="hidden sm:inline">Test Image Upload</span>
+          </a>
+        </div>
       )}
+
+        {/* Debug Console */}
+        {process.env.NODE_ENV === 'development' && (
+          <DebugConsole 
+            mapRef={mapRef}
+            mapNavigator={navigationController.current}
+            userLocation={location}
+            selectedLocation={selectedLocation}
+            onNavigationTest={(loc) => {
+              if (navigationController.current) {
+                navigationController.current.navigateTo(loc);
+              }
+            }}
+          />
+        )}
+
+        {/* Replace floating windows with PersistentFloatingWindow */}
+        <PersistentFloatingWindow
+          id="location-info"
+          position="top-right"
+          isVisible={!!location}
+        >
+          <div className="location-info-card">
+            {/* Location info content */}
     </div>
+        </PersistentFloatingWindow>
+      </div>
+    </ComponentRegistryProvider>
   );
 };
 

@@ -8,16 +8,16 @@ MeetNow is a real-time local meetup platform that enables instant, location-base
 - Search for locations and points of interest
 - Create instant meetups at selected locations
 - View nearby meetups created by other users
-- Navigate using three different map viewing modes
+- Use the map with intuitive navigation controls
 
 ## Key Components
 
 ### Map Functionality
 
-1. **Navigation Modes**
-   - **Free Navigation**: Standard map viewing with full panning and zooming control
-   - **Bird's Eye View**: Shows both the user's location and selected location in the same view
-   - **Vicinity Mode**: Focuses on the user's immediate surroundings with high zoom level
+1. **Map Navigation**
+   - **Standard Navigation**: Full panning and zooming control
+   - **Location Selection**: Click anywhere on map to select locations
+   - **Search Integration**: Search and select locations without auto-centering
 
 2. **Marker Types**
    - **User Location**: Blue marker with pulsing animation
@@ -25,9 +25,9 @@ MeetNow is a real-time local meetup platform that enables instant, location-base
    - **Meetup Locations**: Purple markers representing nearby meetups
 
 3. **Map Controls**
-   - **MapViewControlBar**: Controls navigation mode switching
-   - **NavigationWidget**: Additional map controls for view modes and measurement
-   - **MiniMap**: Overview map showing relative positions of user and selected location
+   - **Search Bar**: Location search with suggestions
+   - **Zoom Controls**: Standard zoom in/out controls
+   - **Click Handling**: Reverse geocoding for map clicks
 
 ### Core Features
 
@@ -56,7 +56,6 @@ The application uses React's useState hooks for state management, with key state
 
 - `location`: User's current physical location coordinates
 - `selectedLocation`: Currently selected location (may differ from user location)
-- `currentNavigationMode`: Current map view mode (1, 2, or 3)
 - `isLocationLoading`: Loading state for geolocation process
 - `nearbyMeetups`: Array of meetups in the vicinity
 
@@ -64,7 +63,8 @@ The application uses React's useState hooks for state management, with key state
 
 - Built on Leaflet and React-Leaflet 
 - Custom components extend the base map functionality
-- Multiple view modes with different behaviors and visual elements
+- Centralized navigation controller for consistent map interactions
+- Map click handling with reverse geocoding
 
 ### Geolocation Handling
 
@@ -87,21 +87,27 @@ The application uses React's useState hooks for state management, with key state
 
 > **Note:** For a detailed chronological record of all changes, please refer to the [Development Journal](./DEVELOPMENT_JOURNAL.md).
 
-### March 21, 2023 Updates
+### March 22, 2023 Updates
 
-1. **Enhanced Geolocation Error Handling**
+1. **Simplified Navigation System**
+   - Removed complex navigation modes for a more intuitive map experience
+   - Implemented improved map click handling with direct integration in the controller
+   - Enhanced reverse geocoding with prioritized place name display
+   - Fixed search result interactions to avoid unwanted map centering
+
+2. **Enhanced Geolocation Error Handling**
    - Fixed POSITION_UNAVAILABLE (error code 2) that occurred in development environments
    - Added development environment detection with automatic mock locations
    - Implemented timeout mechanisms to prevent indefinite waiting
    - Created specific error messages for each type of geolocation error
 
-2. **Improved Location Data Parsing**
+3. **Improved Location Data Parsing**
    - Enhanced PostGIS point parsing with support for multiple formats
    - Added debugging logs for troubleshooting
    - Implemented fallback mechanism and caching for known formats
    - Created robust error handling with graceful degradation
 
-3. **UI/UX Improvements**
+4. **UI/UX Improvements**
    - Disabled redundant popup notifications for nearby meetups
    - Enhanced the Nearby Meetups display with rich, informative cards
    - Added status indicators, timestamps, and distance information
@@ -114,12 +120,7 @@ The application uses React's useState hooks for state management, with key state
    - Clear visual distinction between user location (blue) and selected locations (red)
    - Each marker has appropriate icon and information popup
 
-2. **Improved Navigation Modes**
-   - Free Navigation: Centers on selected location while preserving zoom level
-   - Bird's Eye View: Dynamically adjusts to show both user and selected locations
-   - Vicinity Mode: Maintains focus on user location with visualization of surroundings
-
-3. **Initial Location Loading**
+2. **Initial Location Loading**
    - Loading screen during geolocation
    - Map only renders after location is determined
    - Proper handling of geolocation failures
@@ -179,15 +180,20 @@ The MapNavigationController provides a robust solution for managing map navigati
 - Sequential operation processing via a queue system
 - Support for all map navigation methods (setView, flyTo, etc.)
 - Error handling with proper logging
-- Compatibility with all navigation modes
+- Integrated map click handling with reverse geocoding
 - Promise-based API for operation completion detection
 
 **Usage Example:**
 ```javascript
 import MapNavigationController from './utils/MapNavigationController';
 
-// Initialize once with map instance
-const controller = new MapNavigationController(mapRef.current);
+// Initialize once with options
+const controller = new MapNavigationController({
+  onLocationSelect: (location) => handleLocationSelect(location),
+  onReverseGeocodingStart: () => setIsReverseGeocoding(true),
+  onReverseGeocodingEnd: () => setIsReverseGeocoding(false),
+  onSearchAddressUpdate: (displayName) => setSearchAddress(displayName)
+});
 
 // Use for all navigation operations
 controller.navigateTo(lat, lng, zoom)

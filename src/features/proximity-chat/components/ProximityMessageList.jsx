@@ -12,6 +12,7 @@ import {
 } from '../utils/proximityMessageUtils';
 import { formatDistance } from '../utils/locationUtils';
 import { createAccessibleButtonProps } from '../utils/accessibilityUtils';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 /**
  * Component for displaying messages filtered by proximity
@@ -39,16 +40,30 @@ const ProximityMessageList = ({
   const [enteredMessages, setEnteredMessages] = useState([]);
   const [departedMessages, setDepartedMessages] = useState([]);
   const prevMessagesRef = useRef([]);
+  const renderStartTimeRef = useRef(Date.now());
   
   // Get the proximity radius from settings
   const proximityRadius = chatSettings?.proximityRadius || 100;
   
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('proximity_message_list_init', duration, {
+      hasUserLocation: !!userLocation,
+      messageCount: messages.length,
+      proximityRadius,
+      hasCurrentUserId: !!currentUserId
+    });
+  }, []);
+
   // Filter and enhance messages based on proximity
   useEffect(() => {
     if (!userLocation) {
       setVisibleMessages([]);
       return;
     }
+    
+    const startTime = Date.now();
     
     // Filter messages by proximity
     const filteredMessages = filterMessagesByProximity(
@@ -92,18 +107,33 @@ const ProximityMessageList = ({
     // Update previous messages reference
     prevMessagesRef.current = enhancedMessages;
     
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('message_filtering_and_enhancement', duration, {
+      totalMessages: messages.length,
+      filteredCount: filteredMessages.length,
+      newMessagesCount: newMessages.length,
+      departingMessagesCount: departingMessages.length
+    });
+    
     return () => clearTimeout(transitionTimer);
   }, [messages, userLocation, proximityRadius, currentUserId, isUserBlocked]);
   
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
     if (autoScroll && messagesEndRef.current && visibleMessages.length > 0) {
+      const startTime = Date.now();
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('message_list_auto_scroll', duration, {
+        messageCount: visibleMessages.length,
+        isSmooth: true
+      });
     }
   }, [visibleMessages, autoScroll]);
   
   // Render a message with proximity effects
   const renderMessage = (message) => {
+    const startTime = Date.now();
     const isEntering = enteredMessages.some(m => m.id === message.id);
     const isLeaving = departedMessages.some(m => m.id === message.id);
     
@@ -116,6 +146,15 @@ const ProximityMessageList = ({
       if (isLeaving) return 'leaving';
       return '';
     };
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('message_render', duration, {
+      messageId: message.id,
+      isEntering,
+      isLeaving,
+      hasDistance: !!message.distance,
+      isCurrentUser: message.senderId === currentUserId
+    });
     
     return (
       <div 

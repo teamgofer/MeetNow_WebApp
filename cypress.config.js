@@ -1,35 +1,29 @@
-import { defineConfig } from 'cypress';
+const { defineConfig } = require('cypress');
 
-export default defineConfig({
+module.exports = defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:3012',
+    baseUrl: 'http://localhost:3000',
     setupNodeEvents(on, config) {
-      // Register event listeners and plugins here
+      // implement node event listeners here
     },
     viewportWidth: 1280,
-    viewportHeight: 800,
-    defaultCommandTimeout: 8000,
-    experimentalStudio: true
+    viewportHeight: 720,
+    video: false,
+    screenshotOnRunFailure: true,
+    specPattern: 'cypress/e2e/**/*.cy.{js,jsx}',
   },
-  
   component: {
     devServer: {
       framework: 'react',
-      bundler: 'vite',
+      bundler: 'webpack',
     },
+    specPattern: 'cypress/component/**/*.cy.{js,jsx}',
   },
-  
-  // Default to showing console logs during tests
-  watchForFileChanges: false,
-  video: false,
-  screenshotOnRunFailure: true,
-  
-  // Record test runs in Cypress Dashboard
-  // projectId: 'YOUR_PROJECT_ID', // Uncomment and add your project ID if using Cypress Dashboard
-  
-  // Retry test runs
+  env: {
+    coverage: false,
+  },
   retries: {
-    runMode: 1,
-    openMode: 0
-  }
+    runMode: 2,
+    openMode: 0,
+  },
 }); 

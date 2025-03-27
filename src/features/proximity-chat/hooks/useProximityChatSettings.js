@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProximityChatContext } from '../context/ProximityChatContext';
+import { PerformanceMonitor } from '../../../utils/PerformanceMonitor.js';
 
 /**
  * Custom hook for managing proximity chat settings
@@ -11,6 +12,7 @@ import { useProximityChatContext } from '../context/ProximityChatContext';
  */
 const useProximityChatSettings = () => {
   const { chatSettings, updateChatSettings } = useProximityChatContext();
+  const renderStartTimeRef = useRef(Date.now());
   
   // Default settings
   const defaultSettings = {
@@ -26,6 +28,19 @@ const useProximityChatSettings = () => {
     ...chatSettings
   };
   
+  // Track hook initialization performance
+  useEffect(() => {
+    const renderDuration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', renderDuration, {
+      success: true,
+      action: 'initialize',
+      settingsCount: Object.keys(settings).length
+    });
+    
+    // Reset render start time for next update
+    renderStartTimeRef.current = Date.now();
+  }, [settings]);
+  
   /**
    * Updates a single setting
    * 
@@ -33,7 +48,28 @@ const useProximityChatSettings = () => {
    * @param {any} value - The new value
    */
   const updateSetting = useCallback((key, value) => {
-    updateChatSettings({ [key]: value });
+    const startTime = Date.now();
+    
+    try {
+      updateChatSettings({ [key]: value });
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: true,
+        action: 'updateSetting',
+        key,
+        valueType: typeof value
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'updateSetting',
+        key,
+        error: error.message
+      });
+      throw error;
+    }
   }, [updateChatSettings]);
   
   /**
@@ -42,11 +78,40 @@ const useProximityChatSettings = () => {
    * @param {string} key - The setting key to toggle
    */
   const toggleSetting = useCallback((key) => {
-    const currentValue = settings[key];
-    if (typeof currentValue === 'boolean') {
-      updateChatSettings({ [key]: !currentValue });
-    } else {
-      console.warn(`Cannot toggle non-boolean setting: ${key}`);
+    const startTime = Date.now();
+    
+    try {
+      const currentValue = settings[key];
+      if (typeof currentValue === 'boolean') {
+        updateChatSettings({ [key]: !currentValue });
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+          success: true,
+          action: 'toggleSetting',
+          key,
+          newValue: !currentValue
+        });
+      } else {
+        console.warn(`Cannot toggle non-boolean setting: ${key}`);
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+          success: false,
+          action: 'toggleSetting',
+          key,
+          error: 'Invalid setting type'
+        });
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'toggleSetting',
+        key,
+        error: error.message
+      });
+      throw error;
     }
   }, [settings, updateChatSettings]);
   
@@ -56,24 +121,83 @@ const useProximityChatSettings = () => {
    * @param {number} meters - New radius in meters
    */
   const setRadius = useCallback((meters) => {
-    // Ensure radius is within allowed range
-    const validRadius = Math.max(50, Math.min(200, meters));
-    updateChatSettings({ radiusMeters: validRadius });
+    const startTime = Date.now();
+    
+    try {
+      // Ensure radius is within allowed range
+      const validRadius = Math.max(50, Math.min(200, meters));
+      updateChatSettings({ radiusMeters: validRadius });
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: true,
+        action: 'setRadius',
+        meters,
+        validRadius
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'setRadius',
+        meters,
+        error: error.message
+      });
+      throw error;
+    }
   }, [updateChatSettings]);
   
   /**
    * Toggles anonymous mode
    */
   const toggleAnonymousMode = useCallback(() => {
-    toggleSetting('anonymousMode');
-  }, [toggleSetting]);
+    const startTime = Date.now();
+    
+    try {
+      toggleSetting('anonymousMode');
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: true,
+        action: 'toggleAnonymousMode',
+        newValue: !settings.anonymousMode
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'toggleAnonymousMode',
+        error: error.message
+      });
+      throw error;
+    }
+  }, [toggleSetting, settings.anonymousMode]);
   
   /**
    * Toggles notifications
    */
   const toggleNotifications = useCallback(() => {
-    toggleSetting('notificationsEnabled');
-  }, [toggleSetting]);
+    const startTime = Date.now();
+    
+    try {
+      toggleSetting('notificationsEnabled');
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: true,
+        action: 'toggleNotifications',
+        newValue: !settings.notificationsEnabled
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'toggleNotifications',
+        error: error.message
+      });
+      throw error;
+    }
+  }, [toggleSetting, settings.notificationsEnabled]);
   
   /**
    * Mutes a user
@@ -81,12 +205,35 @@ const useProximityChatSettings = () => {
    * @param {string} userId - ID of user to mute
    */
   const muteUser = useCallback((userId) => {
-    if (!userId) return;
+    const startTime = Date.now();
     
-    const mutedUsers = [...(settings.mutedUsers || [])];
-    if (!mutedUsers.includes(userId)) {
-      mutedUsers.push(userId);
-      updateChatSettings({ mutedUsers });
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+      
+      const mutedUsers = [...(settings.mutedUsers || [])];
+      if (!mutedUsers.includes(userId)) {
+        mutedUsers.push(userId);
+        updateChatSettings({ mutedUsers });
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+          success: true,
+          action: 'muteUser',
+          userId,
+          mutedUsersCount: mutedUsers.length
+        });
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'muteUser',
+        userId,
+        error: error.message
+      });
+      throw error;
     }
   }, [settings.mutedUsers, updateChatSettings]);
   
@@ -96,13 +243,36 @@ const useProximityChatSettings = () => {
    * @param {string} userId - ID of user to unmute
    */
   const unmuteUser = useCallback((userId) => {
-    if (!userId) return;
+    const startTime = Date.now();
     
-    const mutedUsers = [...(settings.mutedUsers || [])];
-    const index = mutedUsers.indexOf(userId);
-    if (index !== -1) {
-      mutedUsers.splice(index, 1);
-      updateChatSettings({ mutedUsers });
+    try {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+      
+      const mutedUsers = [...(settings.mutedUsers || [])];
+      const index = mutedUsers.indexOf(userId);
+      if (index !== -1) {
+        mutedUsers.splice(index, 1);
+        updateChatSettings({ mutedUsers });
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+          success: true,
+          action: 'unmuteUser',
+          userId,
+          mutedUsersCount: mutedUsers.length
+        });
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'unmuteUser',
+        userId,
+        error: error.message
+      });
+      throw error;
     }
   }, [settings.mutedUsers, updateChatSettings]);
   
@@ -113,14 +283,56 @@ const useProximityChatSettings = () => {
    * @returns {boolean} Whether the user is muted
    */
   const isUserMuted = useCallback((userId) => {
-    return settings.mutedUsers?.includes(userId) || false;
+    const startTime = Date.now();
+    
+    try {
+      const result = settings.mutedUsers?.includes(userId) || false;
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: true,
+        action: 'isUserMuted',
+        userId,
+        isMuted: result
+      });
+      
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'isUserMuted',
+        userId,
+        error: error.message
+      });
+      throw error;
+    }
   }, [settings.mutedUsers]);
   
   /**
    * Resets all settings to defaults
    */
   const resetToDefaults = useCallback(() => {
-    updateChatSettings(defaultSettings);
+    const startTime = Date.now();
+    
+    try {
+      updateChatSettings(defaultSettings);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: true,
+        action: 'resetToDefaults',
+        settingsCount: Object.keys(defaultSettings).length
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useProximityChatSettings', duration, {
+        success: false,
+        action: 'resetToDefaults',
+        error: error.message
+      });
+      throw error;
+    }
   }, [updateChatSettings]);
   
   return {

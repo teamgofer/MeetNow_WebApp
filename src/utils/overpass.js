@@ -3,9 +3,20 @@
  * Provides location data from OpenStreetMap without rate limits
  */
 
-// Simple in-memory cache for Overpass queries
-const overpassCache = new Map();
-const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+import { CacheService } from './CacheService.js';
+import { PerformanceMonitor } from './PerformanceMonitor.js';
+
+// Cache configuration
+const CACHE_CONFIG = {
+  locationDetails: {
+    ttl: 24 * 60 * 60 * 1000, // 24 hours
+    keyPrefix: 'location_details'
+  },
+  addressLookup: {
+    ttl: 12 * 60 * 60 * 1000, // 12 hours
+    keyPrefix: 'address_lookup'
+  }
+};
 
 /**
  * Get location details from Overpass API with radius search
@@ -15,6 +26,7 @@ const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
  * @returns {Promise<Object>} Location details
  */
 export async function getLocationDetails(lat, lng, radius = 50) {
+  const startTime = Date.now();
   try {
     // Validate coordinates
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
@@ -26,33 +38,31 @@ export async function getLocationDetails(lat, lng, radius = 50) {
       };
     }
 
-    // Cache key based on rounded coordinates and radius
-    // Round to ~10m precision to allow for small GPS variations
+    // Round coordinates for cache key
     const roundedLat = Math.round(lat * 1000) / 1000;
     const roundedLng = Math.round(lng * 1000) / 1000;
-    const cacheKey = `${roundedLat},${roundedLng},${radius}`;
+    const cacheKey = `${CACHE_CONFIG.locationDetails.keyPrefix}:${roundedLat},${roundedLng},${radius}`;
 
     // Check cache first
-    if (overpassCache.has(cacheKey)) {
-      const cachedData = overpassCache.get(cacheKey);
-      // Validate cache entry hasn't expired
-      if (cachedData.timestamp > Date.now() - CACHE_EXPIRY) {
+    const cachedData = CacheService.get(cacheKey);
+    if (cachedData) {
         console.log('Using cached location data');
-        return cachedData.data;
-      }
-      // Clear expired cache entry
-      overpassCache.delete(cacheKey);
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('overpass', 'getLocationDetails', duration, {
+        source: 'cache',
+        lat,
+        lng,
+        radius
+      });
+      return cachedData;
     }
 
-    // Create Overpass query to find nearby named objects
+    // Create Overpass query
     const overpassQuery = `
       [out:json];
       (
-        // Find named nodes within radius
         node(around:${radius},${lat},${lng})["name"];
-        // Find named ways (streets, buildings, etc.)
         way(around:${radius},${lat},${lng})["name"];
-        // Find named relations (parks, etc.)
         relation(around:${radius},${lat},${lng})["name"];
       );
       out center body;
@@ -60,61 +70,157 @@ export async function getLocationDetails(lat, lng, radius = 50) {
       out skel qt;
     `;
 
-    // Make request to Overpass API
-    const encodedQuery = encodeURIComponent(overpassQuery);
-    const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodedQuery}`, {
-      // Add timeout to prevent hanging requests
-      signal: AbortSignal.timeout(10000) // 10 second timeout
+    // Fetch from API
+    const apiStartTime = Date.now();
+    const response = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: overpassQuery
     });
 
     if (!response.ok) {
-      throw new Error(`Overpass API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Overpass API error: ${response.statusText}`);
     }
 
     const data = await response.json();
+    const apiDuration = Date.now() - apiStartTime;
     
-    // Process and extract location information
-    const result = processOverpassResults(data, lat, lng);
-    
-    // Cache the successful result
-    overpassCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now()
+    // Track API performance
+    PerformanceMonitor.trackApiCall('overpass', 'getLocationDetails', apiDuration, true, {
+      lat,
+      lng,
+      radius
+    });
+
+    const locationDetails = processOverpassResponse(data);
+
+    // Cache the result
+    CacheService.set(cacheKey, locationDetails, CACHE_CONFIG.locationDetails.ttl);
+
+    // Track total operation duration
+    const totalDuration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('overpass', 'getLocationDetails', totalDuration, {
+      source: 'api',
+      lat,
+      lng,
+      radius
+    });
+
+    return locationDetails;
+  } catch (error) {
+    // Track error
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackError('overpass', 'getLocationDetails', error, {
+      lat,
+      lng,
+      radius
+    });
+    PerformanceMonitor.trackOperationTiming('overpass', 'getLocationDetails', duration, {
+      source: 'error',
+      lat,
+      lng,
+      radius
     });
     
-    return result;
-  } catch (error) {
-    console.error('Error fetching from Overpass API:', error);
-    
-    // Try with larger radius on failure of small radius
-    if (radius < 200 && error.message?.includes('API error')) {
-      console.log('Retrying with larger search radius');
-      return getLocationDetails(lat, lng, radius * 3);
-    }
-    
+    console.error('Error fetching location details:', error);
     return {
-      name: 'Location lookup failed',
-      fullAddress: 'Could not retrieve address details',
-      coordinates: { lat, lng },
-      success: false
+      name: 'Unknown location',
+      fullAddress: 'Error fetching location details',
+      success: false,
+      error: error.message
     };
   }
 }
 
 /**
- * Process raw Overpass API results into structured location data
- * @param {Object} data - Raw Overpass API response
- * @param {number} originalLat - Original search latitude
- * @param {number} originalLng - Original search longitude
- * @returns {Object} Processed location data
+ * Look up address from coordinates
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @returns {Promise<string>} Formatted address
  */
-function processOverpassResults(data, originalLat, originalLng) {
+export async function lookupAddress(lat, lng) {
+  const startTime = Date.now();
+  try {
+    // Round coordinates for cache key
+    const roundedLat = Math.round(lat * 1000) / 1000;
+    const roundedLng = Math.round(lng * 1000) / 1000;
+    const cacheKey = `${CACHE_CONFIG.addressLookup.keyPrefix}:${roundedLat},${roundedLng}`;
+
+    // Check cache first
+    const cachedAddress = CacheService.get(cacheKey);
+    if (cachedAddress) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('nominatim', 'lookupAddress', duration, {
+        source: 'cache',
+        lat,
+        lng
+      });
+      return cachedAddress;
+    }
+
+    // Fetch from API
+    const apiStartTime = Date.now();
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Nominatim API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const apiDuration = Date.now() - apiStartTime;
+    
+    // Track API performance
+    PerformanceMonitor.trackApiCall('nominatim', 'lookupAddress', apiDuration, true, {
+      lat,
+      lng
+    });
+
+    const address = formatAddress(data);
+
+    // Cache the result
+    CacheService.set(cacheKey, address, CACHE_CONFIG.addressLookup.ttl);
+
+    // Track total operation duration
+    const totalDuration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('nominatim', 'lookupAddress', totalDuration, {
+      source: 'api',
+      lat,
+      lng
+    });
+
+    return address;
+  } catch (error) {
+    // Track error
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackError('nominatim', 'lookupAddress', error, {
+      lat,
+      lng
+    });
+    PerformanceMonitor.trackOperationTiming('nominatim', 'lookupAddress', duration, {
+      source: 'error',
+      lat,
+      lng
+    });
+    
+    console.error('Error looking up address:', error);
+    return 'Address lookup failed';
+  }
+}
+
+/**
+ * Process Overpass API response
+ * @private
+ * @param {Object} data - Raw API response
+ * @returns {Object} Processed location details
+ */
+function processOverpassResponse(data) {
   // Handle empty results
   if (!data.elements || data.elements.length === 0) {
     return {
       name: 'Unnamed location',
-      fullAddress: `Location at ${originalLat.toFixed(6)}, ${originalLng.toFixed(6)}`,
-      coordinates: { lat: originalLat, lng: originalLng },
+      fullAddress: `Location at ${data.elements[0].lat.toFixed(6)}, ${data.elements[0].lon.toFixed(6)}`,
+      coordinates: { lat: data.elements[0].lat, lng: data.elements[0].lon },
       success: false
     };
   }
@@ -132,7 +238,7 @@ function processOverpassResults(data, originalLat, originalLng) {
       
       // Calculate distance from original point
       const distance = calculateDistance(
-        originalLat, originalLng,
+        data.elements[0].lat, data.elements[0].lon,
         lat, lng
       );
       
@@ -157,8 +263,8 @@ function processOverpassResults(data, originalLat, originalLng) {
   if (places.length === 0) {
     return {
       name: 'Unnamed area',
-      fullAddress: `Location at ${originalLat.toFixed(6)}, ${originalLng.toFixed(6)}`,
-      coordinates: { lat: originalLat, lng: originalLng },
+      fullAddress: `Location at ${data.elements[0].lat.toFixed(6)}, ${data.elements[0].lon.toFixed(6)}`,
+      coordinates: { lat: data.elements[0].lat, lng: data.elements[0].lon },
       success: false
     };
   }
@@ -177,6 +283,16 @@ function processOverpassResults(data, originalLat, originalLng) {
     alternativePlaces: places.slice(1, 4), // Include a few alternatives
     success: true
   };
+}
+
+/**
+ * Format address from Nominatim response
+ * @private
+ * @param {Object} data - Nominatim API response
+ * @returns {string} Formatted address
+ */
+function formatAddress(data) {
+  // ... existing implementation ...
 }
 
 /**
@@ -357,23 +473,5 @@ function buildAddressFromTags(tags) {
     full: fullAddress || 'No address available',  // Ensure we always have a string
     // Return the raw components for use if needed
     raw: addressComponents
-  };
-}
-
-/**
- * Clear the location cache
- */
-export function clearLocationCache() {
-  overpassCache.clear();
-  console.log('Location cache cleared');
-}
-
-/**
- * Get cache statistics
- */
-export function getLocationCacheStats() {
-  return {
-    size: overpassCache.size,
-    keys: Array.from(overpassCache.keys())
   };
 } 

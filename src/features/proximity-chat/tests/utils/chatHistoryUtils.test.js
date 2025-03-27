@@ -11,19 +11,20 @@ import {
   formatMessageDate,
   getUnreadMessageCount
 } from '../../utils/chatHistoryUtils';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock localStorage
 const localStorageMock = (() => {
   let store = {};
   return {
-    getItem: jest.fn(key => store[key] || null),
-    setItem: jest.fn((key, value) => {
+    getItem: vi.fn(key => store[key] || null),
+    setItem: vi.fn((key, value) => {
       store[key] = value.toString();
     }),
-    clear: jest.fn(() => {
+    clear: vi.fn(() => {
       store = {};
     }),
-    removeItem: jest.fn(key => {
+    removeItem: vi.fn(key => {
       delete store[key];
     }),
   };

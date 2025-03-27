@@ -4,6 +4,12 @@ import { useProximityChatContext } from '../context/ProximityChatContext';
 import useProximityChatSettings from '../hooks/useProximityChatSettings';
 import useTypingIndicator from '../hooks/useTypingIndicator';
 import { createLiveRegionProps, createDescribedByProps, generateAccessibleId } from '../utils/accessibilityUtils';
+import { DEFAULTS } from '../constants';
+import { useBlockedUsers } from '../context/BlockedUsersContext';
+import { mapKeyboardActions, getFocusableElements, focusElement } from '../utils/accessibilityUtils';
+import { TIMING } from '../constants';
+import styles from '../styles/ChatInput.module.css';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 /**
  * ChatInput component allows users to type and send messages in the proximity chat.
@@ -20,35 +26,91 @@ const ChatInput = ({
   onSendMessage,
   disabled = false,
   placeholderText = 'Type a message...',
-  showAnonymousIndicator = true
+  showAnonymousIndicator = true,
+  className = ''
 }) => {
   const { chatSettings, updateTypingStatus } = useProximityChatContext();
   const { handleTypingChange, handleSubmit, typingUsers } = useTypingIndicator();
   const { anonymousMode } = useProximityChatSettings();
+  const { currentUserId } = useProximityChatContext();
+  const { isUserBlocked } = useBlockedUsers();
   
   const [message, setMessage] = useState('');
   const textAreaRef = useRef(null);
   const inputDisabled = disabled || !chatSettings.isConnected;
   const charCountId = useRef(generateAccessibleId('char-count')).current;
   const inputStatusId = useRef(generateAccessibleId('input-status')).current;
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
+  const inputRef = useRef(null);
+  const renderStartTimeRef = useRef(Date.now());
+  const [characterCount, setCharacterCount] = useState(0);
+  const [isNearLimit, setIsNearLimit] = useState(false);
+  const [isAtLimit, setIsAtLimit] = useState(false);
   
-  // Handle textarea auto-height
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('chat_input_init', duration, {
+      success: true,
+      isConnected: chatSettings.isConnected,
+      hasCurrentUserId: !!currentUserId,
+      isAnonymousMode: anonymousMode,
+      isDisabled: disabled,
+      hasTypingUsers: !!typingUsers?.length,
+      hasBlockedUsers: !!isUserBlocked
+    });
+  }, [chatSettings.isConnected, currentUserId, anonymousMode, disabled, typingUsers, isUserBlocked]);
+  
+  // Track component rendering performance
+  useEffect(() => {
+    const renderDuration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('chat_input_render', renderDuration, {
+      success: true,
+      disabled,
+      isTyping,
+      messageLength: message.length,
+      characterCount,
+      isNearLimit,
+      isAtLimit,
+      hasTypingUsers: !!typingUsers?.length,
+      isAnonymousMode
+    });
+    
+    // Reset render start time for next update
+    renderStartTimeRef.current = Date.now();
+  }, [disabled, isTyping, message.length, characterCount, isNearLimit, isAtLimit, typingUsers, anonymousMode]);
+  
+  // Handle textarea auto-height with performance tracking
   useEffect(() => {
     if (textAreaRef.current) {
+      const startTime = Date.now();
       textAreaRef.current.style.height = '20px'; // Reset height
       const scrollHeight = textAreaRef.current.scrollHeight;
       textAreaRef.current.style.height = `${Math.min(scrollHeight, 120)}px`;
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('chat_input_resize', duration, {
+        success: true,
+        scrollHeight,
+        finalHeight: Math.min(scrollHeight, 120)
+      });
     }
   }, [message]);
 
-  // Debounce typing status updates
+  // Debounce typing status updates with performance tracking
   useEffect(() => {
+    const startTime = Date.now();
     const timerId = setTimeout(() => {
-      if (message.trim().length > 0) {
-        updateTypingStatus(true);
-      } else {
-        updateTypingStatus(false);
-      }
+      const hasContent = message.trim().length > 0;
+      updateTypingStatus(hasContent);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('chat_input_typing_status', duration, {
+        success: true,
+        hasContent,
+        messageLength: message.length
+      });
     }, 300);
     
     return () => clearTimeout(timerId);
@@ -57,38 +119,119 @@ const ChatInput = ({
   // Reset typing status when component unmounts
   useEffect(() => {
     return () => {
+      const startTime = Date.now();
       updateTypingStatus(false);
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('chat_input_cleanup', duration, {
+        success: true,
+        action: 'reset_typing_status'
+      });
     };
   }, [updateTypingStatus]);
 
+  // Handle typing status changes with performance tracking
+  useEffect(() => {
+    const startTime = Date.now();
+    
+    // Clear the previous timeout if exists
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // If currently typing, set timeout to clear typing status after delay
+    if (isTyping) {
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        updateTypingStatus(false);
+      }, 3000); // Stop typing indicator after 3 seconds of inactivity
+    }
+    
+    // Notify parent component about typing status change
+    updateTypingStatus(isTyping);
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('chat_input_typing_change', duration, {
+      success: true,
+      isTyping,
+      hasTimeout: !!typingTimeoutRef.current
+    });
+    
+    // Clean up timeout on unmount
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [isTyping, updateTypingStatus]);
+
+  // Focus input on mount with performance tracking
+  useEffect(() => {
+    if (inputRef.current && !disabled) {
+      const startTime = Date.now();
+      inputRef.current.focus();
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('chat_input_focus', duration, {
+        success: true,
+        isDisabled: disabled
+      });
+    }
+  }, [disabled]);
+
+  // Handle input changes with performance tracking
   const handleInputChange = (e) => {
+    const startTime = Date.now();
     const newValue = e.target.value;
-    if (newValue.length <= 500) {
-      setMessage(newValue);
-    }
-    handleTypingChange(e);
+    setMessage(newValue);
+    
+    const newCount = newValue.length;
+    setCharacterCount(newCount);
+    
+    const nearLimit = newCount >= DEFAULTS.MAX_MESSAGE_LENGTH * 0.8;
+    const atLimit = newCount >= DEFAULTS.MAX_MESSAGE_LENGTH;
+    
+    setIsNearLimit(nearLimit);
+    setIsAtLimit(atLimit);
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('chat_input_change', duration, {
+      success: true,
+      newLength: newCount,
+      isNearLimit: nearLimit,
+      isAtLimit: atLimit,
+      hasContent: newValue.trim().length > 0
+    });
   };
 
-  const handleKeyDown = (e) => {
-    // Send message on Enter (without shift)
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const handleSendMessage = async () => {
+  // Handle message sending with performance tracking
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!message.trim() || isAtLimit) return;
+    
+    const startTime = Date.now();
     const trimmedMessage = message.trim();
-    if (trimmedMessage && !inputDisabled) {
+    setMessage('');
+    setCharacterCount(0);
+    setIsNearLimit(false);
+    setIsAtLimit(false);
+    
+    if (onSendMessage) {
       try {
         await onSendMessage(trimmedMessage);
-        setMessage('');
         handleSubmit();
         
         // Reset textarea height
         if (textAreaRef.current) {
           textAreaRef.current.style.height = '20px';
         }
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('chat_input_send', duration, {
+          success: true,
+          messageLength: trimmedMessage.length,
+          isAnonymousMode: anonymousMode,
+          hasCurrentUserId: !!currentUserId,
+          hasTypingUsers: !!typingUsers?.length
+        });
       } catch (error) {
         console.error('Failed to send message:', error);
         // Update status for screen readers
@@ -96,6 +239,15 @@ const ChatInput = ({
         if (statusElement) {
           statusElement.textContent = 'Failed to send message. Please try again.';
         }
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('chat_input_send_error', duration, {
+          success: false,
+          messageLength: trimmedMessage.length,
+          error: error.message,
+          isAnonymousMode: anonymousMode,
+          hasCurrentUserId: !!currentUserId
+        });
       } finally {
         // Focus back on input after sending
         if (textAreaRef.current) {
@@ -105,10 +257,11 @@ const ChatInput = ({
     }
   };
   
-  // Display typing indicator text
+  // Display typing indicator text with performance tracking
   const renderTypingIndicator = () => {
     if (!typingUsers || typingUsers.length === 0) return null;
     
+    const startTime = Date.now();
     const count = typingUsers.length;
     let text = '';
     
@@ -119,6 +272,13 @@ const ChatInput = ({
     } else {
       text = `${count} people are typing...`;
     }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('chat_input_typing_indicator', duration, {
+      success: true,
+      userCount: count,
+      hasUsernames: typingUsers.some(user => user.username)
+    });
     
     return (
       <div className="typing-indicator">
@@ -132,23 +292,87 @@ const ChatInput = ({
     );
   };
   
-  const charactersRemaining = 500 - message.length;
-  const isNearLimit = charactersRemaining <= 20;
-  const isAtLimit = charactersRemaining === 0;
+  const characterCountText = `${characterCount} characters remaining`;
   
-  const characterCountText = `${charactersRemaining} characters remaining`;
+  // Generate accessibility props with performance tracking
+  const generateAccessibilityProps = () => {
+    const startTime = Date.now();
+    const props = createLiveRegionProps(true, 'polite');
+    const duration = Date.now() - startTime;
+    
+    PerformanceMonitor.trackOperationTiming('chat_input_accessibility', duration, {
+      success: true,
+      hasStatusProps: !!props
+    });
+    
+    return props;
+  };
   
-  // Generate accessibility props
-  const statusProps = createLiveRegionProps(true, 'polite');
+  const statusProps = generateAccessibilityProps();
+  
+  // Handle keyboard navigation with performance tracking
+  const handleKeyboardNavigation = (e) => {
+    const startTime = Date.now();
+    const result = mapKeyboardActions(e, {
+      onEnter: handleSendMessage,
+      onEscape: () => {
+        setMessage('');
+        setCharacterCount(0);
+        setIsNearLimit(false);
+        setIsAtLimit(false);
+      }
+    });
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.trackOperationTiming('chat_input_keyboard', duration, {
+      success: true,
+      key: e.key,
+      hasMessage: message.length > 0,
+      isAtLimit,
+      hasAction: !!result
+    });
+    
+    return result;
+  };
+  
+  // Set up keyboard listeners with performance tracking
+  useEffect(() => {
+    const startTime = Date.now();
+    const inputElement = inputRef.current;
+    if (inputElement) {
+      inputElement.addEventListener('keydown', handleKeyboardNavigation);
+      const duration = Date.now() - startTime;
+      
+      PerformanceMonitor.trackOperationTiming('chat_input_keyboard_setup', duration, {
+        success: true,
+        hasInputElement: !!inputElement
+      });
+      
+      return () => {
+        inputElement.removeEventListener('keydown', handleKeyboardNavigation);
+      };
+    }
+  }, [handleKeyboardNavigation]);
+  
+  const inputClasses = [
+    styles.input,
+    disabled ? styles.disabled : '',
+    isTyping ? styles.typing : '',
+    characterCountText,
+    isNearLimit ? styles.nearLimit : '',
+    isAtLimit ? styles.atLimit : '',
+    showAnonymousIndicator && anonymousMode ? styles.anonymousMode : '',
+    className
+  ].filter(Boolean).join(' ');
   
   return (
-    <div className="chat-input-container">
-      <div className="chat-input-form">
+    <div className={styles.container}>
+      <div className={styles.form}>
         {typingUsers && typingUsers.length > 0 && renderTypingIndicator()}
         
-        <div className="input-container">
+        <div className={styles.inputContainer}>
           {showAnonymousIndicator && anonymousMode && (
-            <div className="anonymous-badge" title="Anonymous Mode">
+            <div className={styles.anonymousBadge} title="Anonymous Mode">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                 <path d="M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></path>
@@ -160,62 +384,30 @@ const ChatInput = ({
           
           <textarea
             ref={textAreaRef}
-            className="message-input"
+            className={inputClasses}
             value={message}
             onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleKeyboardNavigation}
             placeholder={inputDisabled ? 'Chat unavailable...' : placeholderText}
             disabled={inputDisabled}
             rows="1"
             aria-label="Type a message"
             aria-multiline="true"
             aria-describedby={`${charCountId} ${inputStatusId}`}
-            aria-required="true"
           />
-          
-          <button
-            className={`send-button ${!message.trim() || inputDisabled ? 'disabled' : ''}`}
-            onClick={handleSendMessage}
-            disabled={!message.trim() || inputDisabled}
-            aria-label="Send message"
-            aria-disabled={!message.trim() || inputDisabled}
-          >
-            <span className="sr-only">Send</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
         </div>
-        
-        {chatSettings.isConnected === false && (
-          <div className="connection-status error">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <span>Not connected. Trying to reconnect...</span>
-          </div>
-        )}
-      </div>
-      
-      <div className="input-feedback-container">
-        <div 
-          id={charCountId}
-          className={`character-counter ${isNearLimit ? 'near-limit' : ''} ${isAtLimit ? 'at-limit' : ''}`}
-          aria-live={isNearLimit ? 'polite' : 'off'}
-        >
+        <div className={styles.characterCount}>
           {characterCountText}
         </div>
-        
-        <div 
-          id={inputStatusId}
-          className="input-status sr-only"
-          {...statusProps}
+        <button
+          onClick={handleSendMessage}
+          disabled={!message.trim() || inputDisabled}
+          className={styles.sendButton}
+          aria-label="Send message"
+          aria-disabled={!message.trim() || inputDisabled}
         >
-          {inputDisabled ? 'Chat unavailable...' : ''}
-        </div>
+          Send
+        </button>
       </div>
     </div>
   );
@@ -225,7 +417,8 @@ ChatInput.propTypes = {
   onSendMessage: PropTypes.func.isRequired,
   disabled: PropTypes.bool,
   placeholderText: PropTypes.string,
-  showAnonymousIndicator: PropTypes.bool
+  showAnonymousIndicator: PropTypes.bool,
+  className: PropTypes.string
 };
 
-export default ChatInput; 
+export default ChatInput;

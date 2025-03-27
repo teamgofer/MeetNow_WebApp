@@ -1,27 +1,44 @@
 /**
- * Proximity Chat Feature Module
+ * Proximity Chat Feature
  * 
- * This is the main entry point for the proximity chat feature.
- * It exports all components and functionality related to proximity-based chat.
- * 
- * IMPORTANT: This module is completely self-contained and has no dependencies
- * on the rest of the application except for explicitly defined integration points.
+ * This module provides components and utilities for implementing
+ * location-based real-time chat functionality.
  */
 
-// Main Components
+// Main components
+export { default as ProximityChatPage } from './pages/ProximityChatPage';
+export { default as ProximityChatContainer } from './components/ProximityChatContainer';
 export { default as ProximityChat } from './components/ProximityChat';
 export { default as ChatMessageList } from './components/ChatMessageList';
-export { default as ChatInput } from './components/ChatInput';
+export { default as ChatMessageInput } from './components/ChatMessageInput';
+export { default as ChatMessage } from './components/ChatMessage';
 export { default as NearbyUsersIndicator } from './components/NearbyUsersIndicator';
-export { default as ChatBubble } from './components/ChatBubble';
+
+// Context providers
+export { 
+  ProximityChatProvider,
+  useProximityChatContext
+} from './context/ProximityChatContext';
+
+export { 
+  BlockedUsersProvider,
+  useBlockedUsers
+} from './context/BlockedUsersContext';
+
+export { default as ProximityChatProviderWrapper } from './components/ProximityChatProviderWrapper';
 
 // Hooks
-export { useProximityChat } from './hooks/useProximityChat';
-export { useNearbyUsers } from './hooks/useNearbyUsers';
-export { useProximityChatSettings } from './hooks/useProximityChatSettings';
+export { default as useNearbyUsers } from './hooks/useNearbyUsers';
+export { default as useMessageHistory } from './hooks/useMessageHistory';
 
-// Context
-export { ProximityChatProvider, useProximityChatContext } from './context/ProximityChatContext';
+// Services
+export { default as chatSocketService } from './services/chatSocketService';
+export { default as proximityChatService } from './services/proximityChatService';
+export * from './services/messageHistoryService';
 
-// Integration Utilities
-export { initializeProximityChat } from './utils/integration'; 
+// Utilities
+export * from './utils/locationUtils';
+export * from './utils/timeUtils';
+
+// Constants
+export * from './constants'; 

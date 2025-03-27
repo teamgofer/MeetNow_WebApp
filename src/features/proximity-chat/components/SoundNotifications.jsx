@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useProximityChatContext } from '../context/ProximityChatContext';
 import { createAccessibleButtonProps, generateAccessibleId } from '../utils/accessibilityUtils';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 /**
  * Component for managing sound notifications in the proximity chat
@@ -13,20 +14,57 @@ const SoundNotifications = () => {
   const settingsRef = useRef(null);
   const volumeSliderId = useRef(generateAccessibleId('volume')).current;
   const soundToggleId = useRef(generateAccessibleId('toggle')).current;
+  const renderStartTimeRef = useRef(Date.now());
+  
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.track('sound_notifications_init', duration, {
+      success: true,
+      metadata: {
+        initialVolume: volume,
+        isMuted,
+        isSettingsOpen,
+        hasInitialSettings: !!chatSettings.soundVolume
+      }
+    });
+  }, []);
   
   // Update context settings when local state changes
   useEffect(() => {
+    const startTime = Date.now();
     updateChatSettings({
       soundEnabled: !isMuted,
       soundVolume: volume
+    });
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('sound_notifications_settings_update', duration, {
+      success: true,
+      metadata: {
+        newVolume: volume,
+        isMuted,
+        isSettingsOpen
+      }
     });
   }, [volume, isMuted, updateChatSettings]);
   
   // Close settings panel when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
+      const startTime = Date.now();
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {
         setIsSettingsOpen(false);
+        
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.track('sound_notifications_settings_close', duration, {
+          success: true,
+          metadata: {
+            trigger: 'click_outside',
+            volume,
+            isMuted
+          }
+        });
       }
     };
     
@@ -39,9 +77,10 @@ const SoundNotifications = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isSettingsOpen]);
+  }, [isSettingsOpen, volume, isMuted]);
   
   const toggleSound = () => {
+    const startTime = Date.now();
     setIsMuted(!isMuted);
     
     // Announce status change for screen readers
@@ -49,13 +88,36 @@ const SoundNotifications = () => {
     if (announcer) {
       announcer.textContent = `Sound notifications ${!isMuted ? 'muted' : 'enabled'}`;
     }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('sound_notifications_toggle', duration, {
+      success: true,
+      metadata: {
+        newState: !isMuted,
+        volume,
+        isSettingsOpen,
+        hasAnnouncer: !!announcer
+      }
+    });
   };
   
   const toggleSettings = () => {
+    const startTime = Date.now();
     setIsSettingsOpen(!isSettingsOpen);
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('sound_notifications_settings_toggle', duration, {
+      success: true,
+      metadata: {
+        newState: !isSettingsOpen,
+        volume,
+        isMuted
+      }
+    });
   };
   
   const handleVolumeChange = (e) => {
+    const startTime = Date.now();
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     
@@ -68,6 +130,18 @@ const SoundNotifications = () => {
     if (newVolume === 0 && !isMuted) {
       setIsMuted(true);
     }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('sound_notifications_volume_change', duration, {
+      success: true,
+      metadata: {
+        oldVolume: volume,
+        newVolume,
+        wasMuted: isMuted,
+        isMutedNow: newVolume === 0 || (isMuted && newVolume <= 0),
+        isSettingsOpen
+      }
+    });
   };
   
   // Set up accessible button props
@@ -83,6 +157,30 @@ const SoundNotifications = () => {
   
   // Determine volume level for icon display
   const getVolumeIcon = () => {
+    const startTime = Date.now();
+    let icon;
+    
+    if (isMuted) {
+      icon = 'muted';
+    } else if (volume <= 0.33) {
+      icon = 'low';
+    } else if (volume <= 0.66) {
+      icon = 'medium';
+    } else {
+      icon = 'high';
+    }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('sound_notifications_icon_update', duration, {
+      success: true,
+      metadata: {
+        iconType: icon,
+        volume,
+        isMuted
+      }
+    });
+    
+    // Return the appropriate icon JSX
     if (isMuted) {
       return (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

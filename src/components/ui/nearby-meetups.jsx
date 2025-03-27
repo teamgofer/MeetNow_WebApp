@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Card, CardContent } from './index.js';
-import { FaMapMarkerAlt, FaClock } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaClock, FaUsers } from 'react-icons/fa';
 import { cn } from '../../lib/utils';
 import { formatMeetupTime, calculateExpiryTime } from '../../utils/timezone.js';
+import { getSignedUrlFromFullUrl } from '../../utils/wasabi-storage';
+import LoadingSpinner from './LoadingSpinner';
 
 const formatDistance = (distanceInMeters) => {
   if (typeof distanceInMeters !== 'number' || isNaN(distanceInMeters)) {
@@ -174,6 +176,9 @@ const MeetupCard = ({ meetup, onClick }) => {
   });
   const [isVisible, setIsVisible] = useState(true);
   const [status, setStatus] = useState(meetup.status);
+  const [imageError, setImageError] = useState(false);
+  const [signedImageUrl, setSignedImageUrl] = useState(meetup.signed_image_url || null);
+  const [fallbackImages, setFallbackImages] = useState({});
 
   useEffect(() => {
     const updateTime = () => {
@@ -223,6 +228,48 @@ const MeetupCard = ({ meetup, onClick }) => {
 
     return () => clearInterval(timer);
   }, [meetup.id, meetup.expires_at, meetup.starts_at, meetup.duration_minutes, meetup.timezone, meetup.status, status, meetup.location]);
+
+  // Generate a signed URL if needed
+  useEffect(() => {
+    const loadSignedImageUrl = async () => {
+      // If we already have a signed URL from the meetup object, use it
+      if (meetup.signed_image_url) {
+        setSignedImageUrl(meetup.signed_image_url);
+        return;
+      }
+      
+      // Otherwise, if there's an image_url but no signed_image_url, generate one
+      if (meetup.image_url && !meetup.signed_image_url) {
+        try {
+          const url = await getSignedUrlFromFullUrl(meetup.image_url, 86400, meetup.is_anonymous);
+          setSignedImageUrl(url);
+        } catch (error) {
+          console.error('Error generating signed URL for meetup image:', error);
+          setImageError(true);
+          setSignedImageUrl(null);
+        }
+      }
+    };
+    
+    loadSignedImageUrl();
+  }, [meetup.image_url, meetup.signed_image_url, meetup.is_anonymous]);
+
+  // Add function to handle image load errors
+  const handleImageError = async (meetupId) => {
+    try {
+      // Try to regenerate the signed URL
+      const newSignedUrl = await getSignedUrlFromFullUrl(meetup.image_url, 86400, meetup.is_anonymous);
+      if (newSignedUrl) {
+        setSignedImageUrl(newSignedUrl);
+      } else {
+        // If URL regeneration fails, show fallback image
+        setFallbackImages(prev => ({ ...prev, [meetupId]: '/images/meetup-placeholder.jpg' }));
+      }
+    } catch (error) {
+      console.error('Error regenerating signed URL:', error);
+      setFallbackImages(prev => ({ ...prev, [meetupId]: '/images/meetup-placeholder.jpg' }));
+    }
+  };
 
   // Don't render if not visible
   if (!isVisible) return null;
@@ -275,16 +322,39 @@ const MeetupCard = ({ meetup, onClick }) => {
       onClick={handleClick}
     >
       <div className="relative">
+        {/* Use signedImageUrl if available, fallback to image_url with error handling */}
+        {meetup.image_url && (
+          <div className="relative w-full h-48 rounded-lg overflow-hidden">
+            {fallbackImages[meetup.id] ? (
+              <img
+                src={fallbackImages[meetup.id]}
+                alt="Meetup placeholder"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img
+                src={signedImageUrl || meetup.image_url}
+                alt={meetup.title}
+                className="w-full h-full object-cover"
+                onError={() => handleImageError(meetup.id)}
+              />
+            )}
+          </div>
+        )}
+
         {/* Compact View (Always Visible) */}
         <div className="flex items-center p-4 space-x-4">
           {/* Left side: Mini image or icon */}
           <div className="flex-shrink-0">
-            {meetup.image_url ? (
+            {signedImageUrl ? (
               <div className="w-12 h-12 rounded-full overflow-hidden">
                 <img
-                  src={meetup.image_url}
+                  src={signedImageUrl}
                   alt=""
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = "https://via.placeholder.com/120";
+                  }}
                 />
               </div>
             ) : (
@@ -337,17 +407,6 @@ const MeetupCard = ({ meetup, onClick }) => {
           <div className="p-4 pt-0 space-y-4">
             {/* Divider */}
             <div className="border-t border-gray-100"></div>
-
-            {/* Full Image */}
-            {meetup.image_url && (
-              <div className="relative h-48 rounded-lg overflow-hidden">
-                <img
-                  src={meetup.image_url}
-                  alt={meetup.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
 
             {/* Description */}
             {meetup.description && (
@@ -452,6 +511,7 @@ const NearbyMeetups = ({ meetups, currentLocation, mapZoom = 16, onMeetupClick }
   const [activeCount, setActiveCount] = useState(0);
   const [searchRadius, setSearchRadius] = useState(getSearchRadius(mapZoom));
   const scaleContext = useMemo(() => getScaleContext(mapZoom), [mapZoom]);
+  const [fallbackImages, setFallbackImages] = useState({});
 
   // Update sorted meetups when original meetups change
   useEffect(() => {

@@ -161,6 +161,15 @@ export const UI = {
  * Feature flags
  */
 export const FEATURES = {
+  // Master toggle for the entire proximity chat feature
+  PROXIMITY_CHAT_ENABLED: true,
+  
+  // Controls whether the feature is visible in the UI
+  PROXIMITY_CHAT_UI_VISIBLE: true,
+  
+  // Controls whether analytics are collected for the feature
+  PROXIMITY_CHAT_ANALYTICS_ENABLED: false,
+  
   // Whether to enable typing indicators
   TYPING_INDICATORS: true,
   
@@ -175,6 +184,23 @@ export const FEATURES = {
   
   // Whether to enable user profiles
   USER_PROFILES: true
+};
+
+/**
+ * Integration settings
+ */
+export const INTEGRATION = {
+  // Controls how the feature integrates with main app 
+  ISOLATED_MODE: true,
+
+  // Controls whether to use dedicated API endpoints
+  USE_DEDICATED_API: true,
+
+  // Error handling strategy
+  ERROR_HANDLING: 'silent', // 'silent', 'log', 'alert'
+
+  // Controls whether errors in this feature can affect parent app
+  PREVENT_ERROR_PROPAGATION: true
 };
 
 /**

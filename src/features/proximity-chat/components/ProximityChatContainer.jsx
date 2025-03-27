@@ -10,6 +10,7 @@ import NearbyUsersList from './NearbyUsersList';
 import NearbyUsersIndicator from './NearbyUsersIndicator';
 import ChatHeader from './ChatHeader';
 import ProximityMessageList from './ProximityMessageList';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 /**
  * Main container component for the proximity chat feature
@@ -34,6 +35,27 @@ const ProximityChatContainer = ({ className, style }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('users'); // 'users' or 'settings'
+  const renderStartTimeRef = useRef(Date.now());
+  
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.track('proximity_chat_container_init', duration, {
+      success: true,
+      metadata: {
+        hasUserLocation: !!userLocation,
+        messageCount: messages.length,
+        nearbyUsersCount: nearbyUsers.length,
+        isConnected,
+        hasError: !!error,
+        chatSettings: {
+          radius: chatSettings?.proximityRadius,
+          anonymousMode: chatSettings?.anonymousMode,
+          notifications: chatSettings?.notifications
+        }
+      }
+    });
+  }, []);
   
   // Handle keyboard navigation within the chat container
   useEffect(() => {
@@ -41,14 +63,23 @@ const ProximityChatContainer = ({ className, style }) => {
     if (!containerElement) return;
     
     const handleKeyDown = (e) => {
+      const startTime = Date.now();
       if (e.key === 'Escape') {
-        // Focus management - move focus to the container when Escape is pressed
         containerElement.focus();
       }
       
-      // Handle focus trap for accessibility
       const focusableElements = getFocusableElements(containerElement);
       handleFocusTrap(e, focusableElements);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.track('keyboard_navigation', duration, {
+        success: true,
+        metadata: {
+          key: e.key,
+          hasFocusableElements: focusableElements.length > 0,
+          targetElement: e.target.tagName
+        }
+      });
     };
     
     containerElement.addEventListener('keydown', handleKeyDown);
@@ -59,36 +90,96 @@ const ProximityChatContainer = ({ className, style }) => {
   
   // Connect to chat service when the component mounts
   useEffect(() => {
+    const startTime = Date.now();
     connectToChat();
     
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('chat_connection', duration, {
+      success: isConnected,
+      metadata: {
+        hasUserLocation: !!userLocation,
+        locationPrecision: userLocation?.precision,
+        connectionAttempt: 1
+      }
+    });
+    
     return () => {
+      const cleanupStartTime = Date.now();
       disconnectFromChat();
+      const cleanupDuration = Date.now() - cleanupStartTime;
+      
+      PerformanceMonitor.track('chat_disconnection', cleanupDuration, {
+        success: true,
+        metadata: {
+          messageCount: messages.length,
+          nearbyUsersCount: nearbyUsers.length
+        }
+      });
     };
-  }, [connectToChat, disconnectFromChat]);
+  }, [connectToChat, disconnectFromChat, isConnected, userLocation, messages.length, nearbyUsers.length]);
   
   // Handle skip link functionality
   const handleSkipLink = (e) => {
+    const startTime = Date.now();
     e.preventDefault();
     if (skipLinkTargetRef.current) {
       skipLinkTargetRef.current.focus();
     }
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('skip_link_navigation', duration, {
+      success: !!skipLinkTargetRef.current,
+      metadata: {
+        targetElement: skipLinkTargetRef.current?.tagName,
+        hasFocus: document.activeElement === skipLinkTargetRef.current
+      }
+    });
   };
   
   // Handler for sending a new message
   const handleSendMessage = (message) => {
-    // This is handled by the ChatInput component which uses the context directly
+    const startTime = Date.now();
     console.log('Message sent:', message);
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('message_send', duration, {
+      success: true,
+      metadata: {
+        hasMessage: !!message,
+        messageLength: message?.length,
+        targetUser: selectedUser?.id,
+        isAnonymous: chatSettings?.anonymousMode
+      }
+    });
   };
   
   // Handler for selecting a user from the nearby users list
   const handleUserSelect = (user) => {
+    const startTime = Date.now();
     setSelectedUser(user);
-    // Could focus the chat input or other actions
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('user_selection', duration, {
+      success: true,
+      metadata: {
+        hasUser: !!user,
+        userId: user?.id,
+        userDistance: user?.distance,
+        isAnonymous: user?.isAnonymous
+      }
+    });
   };
   
   // Toggle the sidebar
   const toggleSidebar = () => {
+    const startTime = Date.now();
     setSidebarOpen(!sidebarOpen);
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('sidebar_toggle', duration, {
+      success: true,
+      metadata: {
+        newState: !sidebarOpen,
+        hasNearbyUsers: nearbyUsers.length > 0,
+        activeTab
+      }
+    });
   };
   
   // Check if geolocation is enabled

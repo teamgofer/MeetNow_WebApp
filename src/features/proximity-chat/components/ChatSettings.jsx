@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useProximityChatContext } from '../context/ProximityChatContext';
+import { DEFAULTS } from '../constants';
 
 /**
  * ChatSettings component displays a modal with settings for the proximity chat
@@ -17,29 +17,60 @@ const ChatSettings = ({
   onClose,
   showPrivacyInfo = true
 }) => {
-  const { chatSettings, updateChatSettings } = useProximityChatContext();
   const [activeTab, setActiveTab] = useState('general');
+  const [radius, setRadius] = useState(DEFAULTS.CHAT_RADIUS);
+  const [showNotifications, setShowNotifications] = useState(true);
+  const [anonymousMode, setAnonymousMode] = useState(false);
   
-  // Create a local copy of settings to work with
-  const [localSettings, setLocalSettings] = useState({...chatSettings});
+  // Load saved settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('proximityChat.settings');
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings);
+        if (settings.radius) setRadius(settings.radius);
+        if (settings.showNotifications !== undefined) setShowNotifications(settings.showNotifications);
+        if (settings.anonymousMode !== undefined) setAnonymousMode(settings.anonymousMode);
+      } catch (error) {
+        console.error('Error parsing saved chat settings:', error);
+      }
+    }
+  }, []);
   
-  if (!isOpen) return null;
-  
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  // Save settings to localStorage when they change
+  const saveSettings = (newSettings) => {
+    const settings = {
+      radius,
+      showNotifications,
+      anonymousMode,
+      ...newSettings
+    };
     
-    setLocalSettings({
-      ...localSettings,
-      [name]: type === 'checkbox' ? checked : type === 'number' ? parseInt(value, 10) : value
-    });
+    localStorage.setItem('proximityChat.settings', JSON.stringify(settings));
+    return settings;
   };
   
-  const handleSliderChange = (e) => {
-    const { name, value } = e.target;
-    setLocalSettings({
-      ...localSettings,
-      [name]: parseInt(value, 10)
-    });
+  // Handle radius change
+  const handleRadiusChange = (e) => {
+    const newRadius = parseInt(e.target.value, 10);
+    setRadius(newRadius);
+    
+    const settings = saveSettings({ radius: newRadius });
+    // onRadiusChange(newRadius);
+  };
+  
+  // Handle notification toggle
+  const handleNotificationsToggle = (e) => {
+    const newValue = e.target.checked;
+    setShowNotifications(newValue);
+    saveSettings({ showNotifications: newValue });
+  };
+  
+  // Handle anonymous mode toggle
+  const handleAnonymousModeToggle = (e) => {
+    const newValue = e.target.checked;
+    setAnonymousMode(newValue);
+    saveSettings({ anonymousMode: newValue });
   };
   
   const handleTabChange = (tab) => {
@@ -47,91 +78,84 @@ const ChatSettings = ({
   };
   
   const handleSave = () => {
-    updateChatSettings(localSettings);
+    // updateChatSettings(localSettings);
     onClose();
   };
   
   const handleReset = () => {
     // Reset to default settings
     const defaultSettings = {
-      proximityRadius: 100,
+      radius: DEFAULTS.CHAT_RADIUS,
+      showNotifications: true,
       anonymousMode: false,
-      notificationsEnabled: true,
-      autoScroll: true,
-      showDistance: true,
-      showTimestamps: true,
-      maxMessagesShown: 50
+      ...DEFAULTS.CHAT_SETTINGS
     };
     
-    setLocalSettings(defaultSettings);
+    setRadius(defaultSettings.radius);
+    setShowNotifications(defaultSettings.showNotifications);
+    setAnonymousMode(defaultSettings.anonymousMode);
     // Don't save automatically - user must click Save
   };
   
   const renderGeneralTab = () => (
     <div className="settings-content">
       <div className="setting-group">
-        <label htmlFor="proximityRadius">Proximity Radius</label>
-        <div className="radius-control">
-          <input
-            type="range"
-            id="proximityRadius"
-            name="proximityRadius"
-            min="10"
-            max="500"
-            step="10"
-            value={localSettings.proximityRadius}
-            onChange={handleSliderChange}
-          />
-          <span className="radius-value">{localSettings.proximityRadius}m</span>
-        </div>
-        <div className="setting-description">
-          Only receive messages from users within this distance
-        </div>
-      </div>
-      
-      <div className="setting-group">
-        <label htmlFor="anonymousMode">Anonymous Mode</label>
-        <div className="toggle-control">
-          <button
-            id="anonymousMode"
-            className={`toggle-button ${localSettings.anonymousMode ? 'on' : 'off'}`}
-            onClick={() => setLocalSettings({
-              ...localSettings,
-              anonymousMode: !localSettings.anonymousMode
-            })}
-            aria-pressed={localSettings.anonymousMode}
-          >
-            <span className="toggle-slider"></span>
-          </button>
-          <span className="toggle-label">
-            {localSettings.anonymousMode ? 'On' : 'Off'}
-          </span>
-        </div>
-        <div className="setting-description">
-          Hide your identity when sending messages
+        <label htmlFor="radius-slider" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Chat Radius: {radius} meters
+        </label>
+        <input
+          id="radius-slider"
+          type="range"
+          min="50"
+          max={DEFAULTS.MAX_CHAT_RADIUS}
+          step="50"
+          value={radius}
+          onChange={handleRadiusChange}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+        />
+        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <span>50m</span>
+          <span>{DEFAULTS.MAX_CHAT_RADIUS}m</span>
         </div>
       </div>
       
       <div className="setting-group">
-        <label htmlFor="notificationsEnabled">Notifications</label>
-        <div className="toggle-control">
-          <button
-            id="notificationsEnabled"
-            className={`toggle-button ${localSettings.notificationsEnabled ? 'on' : 'off'}`}
-            onClick={() => setLocalSettings({
-              ...localSettings,
-              notificationsEnabled: !localSettings.notificationsEnabled
-            })}
-            aria-pressed={localSettings.notificationsEnabled}
-          >
-            <span className="toggle-slider"></span>
-          </button>
-          <span className="toggle-label">
-            {localSettings.notificationsEnabled ? 'On' : 'Off'}
-          </span>
+        <label htmlFor="notifications-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Show Notifications
+        </label>
+        <div className="flex items-center justify-between">
+          <div className="relative inline-block w-10 mr-2 align-middle select-none">
+            <input
+              id="notifications-toggle"
+              type="checkbox"
+              checked={showNotifications}
+              onChange={handleNotificationsToggle}
+              className="sr-only"
+            />
+            <div className={`block w-10 h-6 rounded-full ${showNotifications ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${showNotifications ? 'transform translate-x-4' : ''}`}></div>
+            </div>
+          </div>
         </div>
-        <div className="setting-description">
-          Receive notifications for new messages
+      </div>
+      
+      <div className="setting-group">
+        <label htmlFor="anonymous-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Anonymous Mode
+        </label>
+        <div className="flex items-center justify-between">
+          <div className="relative inline-block w-10 mr-2 align-middle select-none">
+            <input
+              id="anonymous-toggle"
+              type="checkbox"
+              checked={anonymousMode}
+              onChange={handleAnonymousModeToggle}
+              className="sr-only"
+            />
+            <div className={`block w-10 h-6 rounded-full ${anonymousMode ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${anonymousMode ? 'transform translate-x-4' : ''}`}></div>
+            </div>
+          </div>
         </div>
       </div>
       

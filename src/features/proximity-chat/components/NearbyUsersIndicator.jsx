@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import PerformanceMonitor from '../../../utils/PerformanceMonitor';
 
 /**
  * NearbyUsersIndicator displays a badge showing how many users are nearby
@@ -21,13 +22,39 @@ const NearbyUsersIndicator = ({
 }) => {
   const [animation, setAnimation] = useState(false);
   const [prevCount, setPrevCount] = useState(nearbyUsers.length);
+  const renderStartTimeRef = useRef(Date.now());
+  
+  // Track component initialization
+  useEffect(() => {
+    const duration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.track('nearby_users_indicator_init', duration, {
+      success: true,
+      metadata: {
+        totalUsers: nearbyUsers.length,
+        maxDistance,
+        size,
+        animateChanges
+      }
+    });
+  }, []);
   
   // Filter users who are within the maximum distance
+  const startTime = Date.now();
   const usersInRange = nearbyUsers.filter(user => 
     user.distance && user.distance <= maxDistance
   );
-  
   const userCount = usersInRange.length;
+  
+  // Track user filtering performance
+  const filterDuration = Date.now() - startTime;
+  PerformanceMonitor.track('nearby_users_indicator_filter', filterDuration, {
+    success: true,
+    metadata: {
+      totalUsers: nearbyUsers.length,
+      filteredUsers: userCount,
+      maxDistance
+    }
+  });
   
   // Determine the visual style based on nearby user count
   let statusClass = 'empty';
@@ -42,21 +69,63 @@ const NearbyUsersIndicator = ({
   // Play animation when user count changes
   useEffect(() => {
     if (animateChanges && userCount !== prevCount) {
+      const startTime = Date.now();
       setAnimation(true);
-      const timer = setTimeout(() => setAnimation(false), 1000);
+      const timer = setTimeout(() => {
+        setAnimation(false);
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.track('nearby_users_indicator_animation', duration, {
+          success: true,
+          metadata: {
+            prevCount,
+            newCount: userCount,
+            statusClass,
+            animationEnabled: animateChanges
+          }
+        });
+      }, 1000);
       setPrevCount(userCount);
       return () => clearTimeout(timer);
     }
-  }, [userCount, prevCount, animateChanges]);
+  }, [userCount, prevCount, animateChanges, statusClass]);
   
   // Format text based on user count
   const getUserCountText = () => {
+    const startTime = Date.now();
+    let text;
     if (userCount === 0) {
-      return 'No nearby users';
+      text = 'No nearby users';
     } else if (userCount === 1) {
-      return '1 nearby user';
+      text = '1 nearby user';
     } else {
-      return `${userCount} nearby users`;
+      text = `${userCount} nearby users`;
+    }
+    
+    const duration = Date.now() - startTime;
+    PerformanceMonitor.track('nearby_users_indicator_text_format', duration, {
+      success: true,
+      metadata: {
+        userCount,
+        statusClass
+      }
+    });
+    
+    return text;
+  };
+  
+  // Handle click event
+  const handleClick = (e) => {
+    if (onClick) {
+      const startTime = Date.now();
+      onClick(e);
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.track('nearby_users_indicator_click', duration, {
+        success: true,
+        metadata: {
+          userCount,
+          statusClass
+        }
+      });
     }
   };
   
@@ -68,7 +137,7 @@ const NearbyUsersIndicator = ({
         ${animation ? 'animating' : ''} 
         size-${size}
       `}
-      onClick={onClick}
+      onClick={handleClick}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
       title={`Users within ${maxDistance}m of your location`}
     >

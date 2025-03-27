@@ -3,7 +3,7 @@ import { useMap } from 'react-leaflet';
 import PropTypes from 'prop-types';
 
 // This component handles all map updates to avoid conflicts and race conditions
-const MapUpdater = ({ center, zoom, selectedLocation, navigationMode, onUpdate }) => {
+const MapUpdater = ({ center, zoom, selectedLocation, onUpdate }) => {
   const map = useMap();
 
   // Handle center and zoom changes
@@ -66,14 +66,6 @@ const MapUpdater = ({ center, zoom, selectedLocation, navigationMode, onUpdate }
     
   }, [selectedLocation, map]);
 
-  // Force a resize check when navigation mode changes
-  useEffect(() => {
-    if (navigationMode !== undefined) {
-      console.log(`MapUpdater: Navigation mode changed to ${navigationMode}, invalidating size`);
-      map.invalidateSize({ animate: false });
-    }
-  }, [navigationMode, map]);
-
   return null;
 };
 
@@ -88,7 +80,6 @@ MapUpdater.propTypes = {
   }),
   zoom: PropTypes.number,
   selectedLocation: PropTypes.object,
-  navigationMode: PropTypes.number,
   onUpdate: PropTypes.func
 };
 

@@ -2,117 +2,267 @@
  * Custom hook for managing message history
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { fetchMessageHistory, markMessagesAsRead } from '../services/messageHistoryService';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useProximityChatContext } from '../context/ProximityChatContext';
 import { TIMING } from '../constants';
+import { PerformanceMonitor } from '../../../utils/PerformanceMonitor.js';
 
 /**
- * Hook for loading and managing message history for a region
+ * Hook for managing message history in the proximity chat
  * 
- * @param {Object} options - Hook options
- * @param {string} options.regionId - ID of the region to load messages for
+ * @param {Object} options - Configuration options
  * @param {boolean} [options.autoLoad=true] - Whether to load messages automatically
- * @param {boolean} [options.markAsReadOnUnmount=true] - Whether to mark messages as read when unmounting
- * @returns {Object} History data and control methods
+ * @param {boolean} [options.markAsReadOnUnmount=true] - Whether to mark messages as read on unmount
+ * @param {number} [options.limit=50] - Maximum number of messages to load at once
+ * @returns {Object} Message history state and methods
  */
-const useMessageHistory = (options = {}) => {
-  const {
-    regionId,
-    autoLoad = true,
-    markAsReadOnUnmount = true
-  } = options;
-
-  const [historyMessages, setHistoryMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
+const useMessageHistory = ({
+  autoLoad = true,
+  markAsReadOnUnmount = true,
+  limit = 50
+} = {}) => {
+  const { currentUserId, region } = useProximityChatContext();
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [lastLoadedTimestamp, setLastLoadedTimestamp] = useState(null);
+  const messageCache = useRef(new Map());
+  const renderStartTimeRef = useRef(Date.now());
   
-  // Load messages that were sent before the user joined the region
-  const loadBeforeArrival = useCallback(async (arrivalTime = Date.now()) => {
-    if (!regionId) return;
+  // Track hook initialization performance
+  useEffect(() => {
+    const renderDuration = Date.now() - renderStartTimeRef.current;
+    PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', renderDuration, {
+      success: true,
+      action: 'initialize',
+      autoLoad,
+      limit,
+      region
+    });
     
-    setLoading(true);
+    // Reset render start time for next update
+    renderStartTimeRef.current = Date.now();
+  }, [autoLoad, limit, region]);
+  
+  // Load messages from the server
+  const loadMessages = useCallback(async (beforeTimestamp = null) => {
+    const startTime = Date.now();
+    setIsLoading(true);
     setError(null);
     
     try {
-      const messages = await fetchMessageHistory(regionId, {
-        before: arrivalTime,
-        limit: TIMING.MESSAGE_HISTORY_LOAD_LIMIT,
-        includeBeforeJoin: true
-      });
+      // Check cache first
+      const cacheKey = `${region}-${beforeTimestamp || 'latest'}`;
+      const cachedMessages = messageCache.current.get(cacheKey);
       
-      setHistoryMessages(messages);
-      setHasMoreMessages(messages.length >= TIMING.MESSAGE_HISTORY_LOAD_LIMIT);
-    } catch (err) {
-      setError(err);
-      console.error('Error loading message history:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [regionId]);
-  
-  // Load older messages (pagination)
-  const loadOlderMessages = useCallback(async (oldestMessageTimestamp) => {
-    if (!regionId || !oldestMessageTimestamp) return;
-    
-    setLoading(true);
-    
-    try {
-      const olderMessages = await fetchMessageHistory(regionId, {
-        before: oldestMessageTimestamp,
-        limit: TIMING.MESSAGE_HISTORY_LOAD_LIMIT
-      });
-      
-      if (olderMessages.length > 0) {
-        setHistoryMessages(prev => [...prev, ...olderMessages]);
+      if (cachedMessages) {
+        const duration = Date.now() - startTime;
+        PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+          success: true,
+          action: 'loadFromCache',
+          messageCount: cachedMessages.length,
+          region,
+          beforeTimestamp
+        });
+        
+        setMessages(prevMessages => beforeTimestamp 
+          ? [...prevMessages, ...cachedMessages]
+          : cachedMessages
+        );
+        return;
       }
       
-      setHasMoreMessages(olderMessages.length >= TIMING.MESSAGE_HISTORY_LOAD_LIMIT);
-    } catch (err) {
-      setError(err);
-      console.error('Error loading older messages:', err);
+      // Fetch from server
+      const response = await fetch(`/api/messages?region=${region}&limit=${limit}${beforeTimestamp ? `&before=${beforeTimestamp}` : ''}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load messages');
+      }
+      
+      const newMessages = await response.json();
+      
+      // Update cache
+      messageCache.current.set(cacheKey, newMessages);
+      
+      // Update state
+      setMessages(prevMessages => beforeTimestamp 
+        ? [...prevMessages, ...newMessages]
+        : newMessages
+      );
+      setHasMore(newMessages.length === limit);
+      setLastLoadedTimestamp(newMessages[newMessages.length - 1]?.timestamp || null);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+        success: true,
+        action: 'loadFromServer',
+        messageCount: newMessages.length,
+        region,
+        beforeTimestamp,
+        hasMore: newMessages.length === limit
+      });
+    } catch (error) {
+      setError(error);
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+        success: false,
+        action: 'loadMessages',
+        error: error.message,
+        region,
+        beforeTimestamp
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [regionId]);
+  }, [region, limit]);
+  
+  // Load more messages
+  const loadMore = useCallback(async () => {
+    if (isLoading || !hasMore) return;
+    
+    const startTime = Date.now();
+    try {
+      await loadMessages(lastLoadedTimestamp);
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+        success: true,
+        action: 'loadMore',
+        region,
+        lastLoadedTimestamp
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+        success: false,
+        action: 'loadMore',
+        error: error.message,
+        region,
+        lastLoadedTimestamp
+      });
+      throw error;
+    }
+  }, [isLoading, hasMore, lastLoadedTimestamp, loadMessages, region]);
   
   // Mark messages as read
   const markAsRead = useCallback(async () => {
-    if (!regionId || historyMessages.length === 0) return;
+    const startTime = Date.now();
     
     try {
-      // Get the ID of the most recent message
-      const latestMessageId = historyMessages[0]?.id;
+      const unreadMessages = messages.filter(msg => 
+        !msg.isRead && msg.senderId !== currentUserId
+      );
       
-      if (latestMessageId) {
-        await markMessagesAsRead(regionId, { upToMessageId: latestMessageId });
+      if (unreadMessages.length === 0) return;
+      
+      const response = await fetch('/api/messages/mark-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messageIds: unreadMessages.map(msg => msg.id)
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark messages as read');
       }
-    } catch (err) {
-      console.error('Error marking messages as read:', err);
+      
+      // Update messages in state and cache
+      const updatedMessages = messages.map(msg => ({
+        ...msg,
+        isRead: msg.isRead || unreadMessages.some(unread => unread.id === msg.id)
+      }));
+      
+      setMessages(updatedMessages);
+      messageCache.current.forEach((cached, key) => {
+        if (key.startsWith(region)) {
+          messageCache.current.set(key, cached.map(msg => ({
+            ...msg,
+            isRead: msg.isRead || unreadMessages.some(unread => unread.id === msg.id)
+          })));
+        }
+      });
+      
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+        success: true,
+        action: 'markAsRead',
+        messageCount: unreadMessages.length,
+        region
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+        success: false,
+        action: 'markAsRead',
+        error: error.message,
+        region
+      });
+      throw error;
     }
-  }, [regionId, historyMessages]);
+  }, [messages, currentUserId, region]);
   
-  // Auto-load messages on mount if enabled
+  // Auto-load messages on mount or region change
   useEffect(() => {
-    if (autoLoad && regionId) {
-      loadBeforeArrival();
+    if (autoLoad && region) {
+      const startTime = Date.now();
+      loadMessages()
+        .then(() => {
+          const duration = Date.now() - startTime;
+          PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+            success: true,
+            action: 'autoLoad',
+            region
+          });
+        })
+        .catch(error => {
+          const duration = Date.now() - startTime;
+          PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+            success: false,
+            action: 'autoLoad',
+            error: error.message,
+            region
+          });
+        });
     }
-    
-    // Mark messages as read on unmount if enabled
+  }, [autoLoad, region, loadMessages]);
+  
+  // Mark messages as read on unmount
+  useEffect(() => {
     return () => {
       if (markAsReadOnUnmount) {
-        markAsRead();
+        const startTime = Date.now();
+        markAsRead()
+          .then(() => {
+            const duration = Date.now() - startTime;
+            PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+              success: true,
+              action: 'markAsReadOnUnmount',
+              region
+            });
+          })
+          .catch(error => {
+            const duration = Date.now() - startTime;
+            PerformanceMonitor.trackOperationTiming('hook', 'useMessageHistory', duration, {
+              success: false,
+              action: 'markAsReadOnUnmount',
+              error: error.message,
+              region
+            });
+          });
       }
     };
-  }, [autoLoad, regionId, loadBeforeArrival, markAsRead, markAsReadOnUnmount]);
+  }, [markAsReadOnUnmount, markAsRead, region]);
   
   return {
-    historyMessages,
-    loading,
+    messages,
+    isLoading,
     error,
-    hasMoreMessages,
-    loadBeforeArrival,
-    loadOlderMessages,
+    hasMore,
+    loadMore,
     markAsRead
   };
 };

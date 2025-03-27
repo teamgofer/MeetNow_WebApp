@@ -2,63 +2,76 @@
 
 ## Overview
 
-The MapNavigationController is a critical component in the MeetNow application that provides a robust, centralized solution for managing map navigation operations. Recent changes have improved its architecture to handle various types of map references and implement a more maintainable event system.
+The MapNavigationController is a critical component in the MeetNow application that provides a robust, centralized solution for managing map navigation operations. It has been simplified to focus on core map interaction functionality, integrating map click handling with reverse geocoding capabilities.
 
 ## Core Functionality
 
 The controller serves as an intermediary between the application components and the Leaflet map instance, providing these key capabilities:
 
-1. **Navigation Operations**: Methods for map manipulation (flyTo, setView, panTo, fitBounds)
-2. **Mode Management**: Handling different navigation modes (Free Navigation, Bird's Eye View, Vicinity Mode)
-3. **Location Management**: Tracking user and selected locations
-4. **Queued Operations**: Ensuring operations execute in sequence, even when map references are temporarily unavailable
-5. **Event Notifications**: Communicating state changes to interested components
+1. **Navigation Operations**: Methods for map manipulation (navigateTo, centerOnUser)
+2. **Location Management**: Tracking user and selected locations
+3. **Map Click Handling**: Processing map clicks with reverse geocoding
+4. **Event Notifications**: Communicating state changes to interested components
 
-## Recent Architecture Improvements
+## Current Architecture
 
 ### 1. Unified Callback System
 
-The controller now uses a consistent callback approach for event notifications:
+The controller uses a consistent callback approach for event notifications:
 
 ```javascript
-// Old approach (listener arrays)
-controller.onModeChange(callback); // Returns unsubscribe function
-controller.listeners.mode.push(callback); // Internal implementation
-
-// New approach (callback properties)
-controller.onModeChange = (newMode, previousMode) => {
-  // Handle mode change
-};
+// Initialize controller with callbacks
+const controller = new MapNavigationController({
+  onReady: (isReady) => console.log('Controller ready:', isReady),
+  onLocationChange: (location) => console.log('Location changed:', location),
+  onLocationSelect: (location) => handleLocationSelect(location),
+  onReverseGeocodingStart: () => setIsReverseGeocoding(true),
+  onReverseGeocodingEnd: () => setIsReverseGeocoding(false),
+  onSearchAddressUpdate: (displayName) => setSearchAddress(displayName),
+  onError: (error) => console.error('Controller error:', error)
+});
 ```
 
-Key improvements:
-- **Simplified Interface**: More intuitive API for component integration
-- **Backward Compatibility**: Still supports the legacy listener approach
-- **Reduced Memory Usage**: No need to maintain arrays of listeners for infrequent events
+The callback system provides:
+- **Clear API**: Intuitive interface for component integration
+- **Event Notifications**: Rich event system for state changes
+- **Error Handling**: Centralized error reporting
 
 ### 2. Robust Map Reference Management
 
-The controller now handles various types of map references more effectively:
+The controller handles various types of map references effectively:
 
 ```javascript
 // Multiple ways to get the map instance
-getMapInstance() {
-  // Direct instance
-  if (this.map && typeof this.map.getCenter === 'function') {
-    return this.map;
+updateMapReference(mapReference) {
+  // Handle both direct map instances and React ref objects
+  if (mapReference && typeof mapReference === 'object') {
+    if (mapReference.current) {
+      this._mapRef = mapReference.current;
+    } else {
+      this._mapRef = mapReference;
+    }
+  } else {
+    this._mapRef = mapReference;
   }
   
-  // React ref object
-  if (this.mapRef && this.mapRef.current) {
-    return this.mapRef.current;
+  // Try to extract the map instance
+  const success = this._extractMapInstance();
+  
+  if (success) {
+    // Set up map click handler
+    this._setupMapClickHandler();
+    
+    // Mark the controller as ready
+    this._isReady = true;
+    
+    // Call the ready callback if provided
+    if (this.onReady && typeof this.onReady === 'function') {
+      this.onReady(true);
+    }
   }
   
-  // Methods cache (fallback)
-  if (this._cachedMapMethods && typeof this._cachedMapMethods.getCenter === 'function') {
-    return this._cachedMapMethods;
-  }
-  
-  return null;
+  return success;
 }
 ```
 
@@ -67,99 +80,182 @@ Benefits:
 - **Error Resilience**: Gracefully handles undefined or null references
 - **Method Caching**: Maintains access to key methods even if references change
 
-### 3. Navigation Process Enhancements
+### 3. Map Click Handling with Reverse Geocoding
 
-The controller's navigation process has been improved:
-
-- **Queue System**: Sequential operation execution with proper prioritization
-- **Error Handling**: Comprehensive error handling with automatic retries
-- **Ready State Management**: Better detection of map readiness for operations
-- **Event Notifications**: Richer event data for mode changes, location updates, and zoom changes
-
-## Integration with Components
-
-### Updated Component Integration Pattern
-
-Components now use a consistent pattern to integrate with the controller:
+A key feature of the controller is integrated map click handling with reverse geocoding:
 
 ```javascript
-// In a React component
-useEffect(() => {
-  if (navigationController) {
-    // Create local handler function
-    const handleModeChange = (mode) => {
-      setIsActive(mode === 2);
-    };
-    
-    // Store the original callback if it exists
-    const originalCallback = navigationController.onModeChange;
-    
-    // Set our callback as the new handler
-    navigationController.onModeChange = (newMode, previousMode) => {
-      // Call our local handler
-      handleModeChange(newMode);
-      
-      // Call the original callback if it exists and is a function
-      if (typeof originalCallback === 'function') {
-        originalCallback(newMode, previousMode);
-      }
-    };
-    
-    // Check initial mode
-    if (navigationController.currentMode === 2) {
-      setIsActive(true);
-    }
-    
-    return () => {
-      // Restore original callback on cleanup
-      if (navigationController) {
-        navigationController.onModeChange = originalCallback;
-      }
-    };
+async _handleMapClick(e) {
+  const { lat, lng } = e.latlng;
+  
+  // Call the raw map click callback if provided
+  if (this.onMapClick && typeof this.onMapClick === 'function') {
+    this.onMapClick({ lat, lng });
   }
-}, [navigationController]);
+  
+  // Provide immediate feedback with a temporary label
+  const tempLocation = {
+    lat,
+    lng,
+    display_name: "Finding location..."
+  };
+  
+  // Notify location selection
+  if (this.onLocationSelect && typeof this.onLocationSelect === 'function') {
+    this.onLocationSelect(tempLocation);
+  }
+  
+  // Update internal selected location
+  this.setSelectedLocation(tempLocation);
+  
+  // Notify that reverse geocoding is starting
+  this._isReverseGeocoding = true;
+  if (this.onReverseGeocodingStart && typeof this.onReverseGeocodingStart === 'function') {
+    this.onReverseGeocodingStart();
+  }
+  
+  try {
+    // Fetch the actual address using reverse geocoding
+    const results = await searchLocations(null, { lat, lng });
+    
+    if (results && results.length > 0) {
+      const result = results[0];
+      
+      // Determine the best display name
+      let displayName = this._determineDisplayName(result);
+      
+      // Update the search address field
+      if (this.onSearchAddressUpdate && typeof this.onSearchAddressUpdate === 'function') {
+        this.onSearchAddressUpdate(displayName);
+      }
+      
+      // Create the location with the display name
+      const locationWithAddress = {
+        ...result,
+        lat,
+        lng,
+        display_name: displayName
+      };
+      
+      // Update internal selected location
+      this.setSelectedLocation(locationWithAddress);
+      
+      // Notify with the location and display name
+      if (this.onLocationSelect && typeof this.onLocationSelect === 'function') {
+        this.onLocationSelect(locationWithAddress);
+      }
+    }
+  } catch (error) {
+    // Handle errors and provide feedback
+  } finally {
+    // Notify that reverse geocoding is done
+    this._isReverseGeocoding = false;
+    if (this.onReverseGeocodingEnd && typeof this.onReverseGeocodingEnd === 'function') {
+      this.onReverseGeocodingEnd();
+    }
+  }
+}
 ```
 
 Key aspects:
-1. **Preserve Original Callbacks**: Store and restore original callbacks to maintain the chain
-2. **Initial State Check**: Immediately check current state to avoid UI inconsistencies
-3. **Clean Cleanup**: Properly restore original callbacks when component unmounts
+- **Integrated Workflow**: Handles the complete click-to-selection process
+- **Multiple Callbacks**: Provides hooks at each stage of the process
+- **Error Handling**: Robust error management with fallbacks
+- **Display Name Optimization**: Prioritizes meaningful location names
 
-### Component Examples
+## Integration with Components
 
-The pattern has been implemented in several components:
-- **MapComponent**: Primary map instance that registers with the controller
-- **BirdsEyePathOverlay**: Flight path visualization for Bird's Eye View mode
-- **VicinityIndicator**: Visual display for Vicinity mode
-- **MapViewControlBar**: UI control for switching between navigation modes
+### Map Click Handler Component
 
-## Constants and Mode Values
+The `MapClickHandlerWithController` component connects the React-Leaflet map to the controller:
 
-The controller defines constants for navigation modes:
+```jsx
+const MapClickHandlerWithController = ({ navigationController }) => {
+  // Get the map instance from React-Leaflet context
+  const map = useMap();
 
-```javascript
-// Navigation mode constants
-static FREE_NAVIGATION = 1;
-static BIRDS_EYE_VIEW = 2;
-static VICINITY_MODE = 3;
+  useEffect(() => {
+    // Debug information
+    console.log('Map available:', !!map);
+    console.log('Controller available:', !!navigationController);
+
+    if (!map || !navigationController) {
+      console.error('Map or controller not available');
+      return;
+    }
+
+    // Update the controller with the map instance
+    const success = navigationController.updateMapReference(map);
+    console.log('Controller update result:', success ? 'SUCCESS' : 'FAILED');
+    
+    // No cleanup needed as the controller will handle its own event listeners
+  }, [map, navigationController]);
+
+  // This component doesn't render anything
+  return null;
+};
 ```
 
-These provide semantic meaning to the numeric mode values used throughout the application.
+### Main Application Integration
+
+The controller is typically integrated in the main application component:
+
+```javascript
+// In MeetNowApp.jsx
+const navigationController = useRef(null);
+
+// Initialize the controller
+useEffect(() => {
+  navigationController.current = new MapNavigationController({
+    onLocationSelect: (location) => {
+      console.log('Selected location:', location);
+      handleLocationSelect(location);
+    },
+    onReverseGeocodingStart: () => setIsReverseGeocoding(true),
+    onReverseGeocodingEnd: () => setIsReverseGeocoding(false),
+    onSearchAddressUpdate: (displayName) => setSearchAddress(displayName),
+    onError: (error) => {
+      console.error('Navigation error:', error);
+      setError(error.message || 'Navigation error occurred');
+    }
+  });
+  
+  return () => {
+    if (navigationController.current) {
+      navigationController.current.dispose();
+    }
+  };
+}, []);
+
+// In the JSX, within the MapContainer
+<MapContainer
+  center={defaultPosition}
+  zoom={defaultZoom}
+  style={{ height: '100%', width: '100%' }}
+  whenReady={(mapInstance) => handleMapReady(mapInstance.target)}
+>
+  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+  {/* Other map components */}
+  <MapClickHandlerWithController navigationController={navigationController.current} />
+</MapContainer>
+```
 
 ## Troubleshooting Notes
 
 Common issues and solutions:
 
-1. **Callback Chain Broken**: If a component fails to call the original callback, the chain breaks
-   - Solution: Always maintain the callback chain pattern shown above
+1. **Callback Errors**: If callbacks are not being called or throwing errors
+   - Solution: Ensure all callback properties are properly defined functions
+   - Solution: Check for undefined checking before calling callbacks
 
 2. **Map Reference Issues**: When map references are null or undefined unexpectedly
    - Solution: Use `isReadyToNavigate()` to check before performing operations
-   - Solution: Implement retry with `waitUntilReady()` for critical operations
+   - Solution: Ensure the map instance is properly passed to `updateMapReference`
 
-3. **Race Conditions**: When multiple components try to set navigation modes simultaneously
-   - Solution: Use the controller as the single source of truth for mode state
-   - Solution: Implement debouncing for rapid mode changes
+3. **Click Handling Issues**: When map clicks don't trigger the expected behavior
+   - Solution: Verify `MapClickHandlerWithController` is properly included in the MapContainer
+   - Solution: Check that onLocationSelect callback is provided and working
+   - Solution: Monitor the console for any errors during the click/geocoding process
 
 ## Best Practices
 
@@ -167,20 +263,13 @@ Common issues and solutions:
    ```javascript
    // In MeetNowApp.jsx
    navigationController.current = new MapNavigationController({
-     onModeChange: (newMode, previousMode) => {
-       Logger.info('MeetNowApp', `Navigation mode changed: ${previousMode} -> ${newMode}`);
-     },
-     onReady: () => {
-       Logger.info('MeetNowApp', 'Navigation controller is ready');
-     },
-     onLocationChange: (location) => {
-       Logger.debug('MeetNowApp', 'User location updated in navigation controller');
-     },
-     onSelectedLocationChange: (location) => {
-       Logger.debug('MeetNowApp', 'Selected location updated in navigation controller');
-     },
-     onZoomChange: (zoom) => {
-       Logger.debug('MeetNowApp', 'Zoom level updated to:', zoom);
+     onLocationSelect: (location) => handleLocationSelect(location),
+     onReverseGeocodingStart: () => setIsReverseGeocoding(true),
+     onReverseGeocodingEnd: () => setIsReverseGeocoding(false),
+     onSearchAddressUpdate: (displayName) => setSearchAddress(displayName),
+     onError: (error) => {
+       console.error('Navigation error:', error);
+       setError(error.message || 'Navigation error occurred');
      }
    });
    ```
@@ -188,25 +277,38 @@ Common issues and solutions:
 2. **Map Registration**
    ```javascript
    // Most reliable way to register map reference
-   useEffect(() => {
-     if (mapRef.current && navigationController) {
-       const success = navigationController.updateMapReference(mapRef);
+   const handleMapReady = useCallback((map) => {
+     if (navigationController.current) {
+       const success = navigationController.current.updateMapReference(map);
        if (!success) {
-         // Implement retry mechanism
+         console.error('Failed to update map reference in controller');
        }
      }
-   }, [mapRef.current, navigationController]);
+   }, [navigationController]);
    ```
 
-3. **Mode Changes**
+3. **Navigation Operations**
    ```javascript
-   // Best practice for changing modes
-   navigationController.setNavigationMode(
-     MapNavigationController.BIRDS_EYE_VIEW, 
-     { immediate: true }
-   );
+   // Best practice for navigation
+   navigationController.current.navigateTo({
+     lat: location.lat,
+     lng: location.lng
+   }, {
+     zoom: 16,
+     animate: true
+   });
+   ```
+
+4. **Location Selection Without Centering**
+   ```javascript
+   // Set selected location without centering the map
+   navigationController.current.setSelectedLocation({
+     lat: location.lat,
+     lng: location.lng
+   });
    ```
 
 ## Conclusion
 
+The simplified MapNavigationController architecture provides a more robust, flexible, and maintainable system for map navigation. By centralizing map interactions and providing a consistent callback interface, it reduces errors and improves the overall user experience while eliminating complex navigation modes in favor of a more intuitive interaction model. 
 The improved MapNavigationController architecture provides a more robust, flexible, and maintainable system for map navigation. By centralizing map interactions and providing a consistent callback interface, it reduces errors and improves the overall user experience. 

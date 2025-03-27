@@ -1,0 +1,50 @@
+.messageHistoryHeader {
+  width: 100%;
+  padding: 1rem 0;
+  margin-bottom: 1rem;
+  font-family: inherit;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.dividerLine {
+  flex-grow: 1;
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.dividerText {
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+}
+
+.infoContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+}
+
+.timeInfo, .countInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.label {
+  color: rgba(0, 0, 0, 0.6);
+  margin-right: 0.5rem;
+}
+
+.time, .count {
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.8);
+} 

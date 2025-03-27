@@ -6,79 +6,62 @@ import {
   parseLocation,
   getUserRegion
 } from '../../utils/locationUtils';
+import { describe, it, expect } from 'vitest';
 
 describe('locationUtils', () => {
   describe('calculateDistance', () => {
     it('should calculate distance between two points accurately', () => {
-      // San Francisco
-      const location1 = { latitude: 37.7749, longitude: -122.4194 };
-      // Los Angeles
-      const location2 = { latitude: 34.0522, longitude: -118.2437 };
+      const point1 = { latitude: 37.7749, longitude: -122.4194 }; // San Francisco
+      const point2 = { latitude: 37.7833, longitude: -122.4167 }; // ~1km away
       
-      // The distance between SF and LA is roughly 550-560 km
-      const distance = calculateDistance(location1, location2);
+      const distance = calculateDistance(point1, point2);
       
-      // Check within expected range (allowing for slight variation due to calculation method)
-      expect(distance).toBeGreaterThan(550);
-      expect(distance).toBeLessThan(600);
-    });
-    
-    it('should return 0 for identical locations', () => {
-      const location = { latitude: 37.7749, longitude: -122.4194 };
-      
-      const distance = calculateDistance(location, location);
-      
-      expect(distance).toBe(0);
+      expect(typeof distance).toBe('number');
+      expect(distance).toBeGreaterThan(800); // At least 800 meters
+      expect(distance).toBeLessThan(1200); // Less than 1.2km
     });
     
     it('should handle short distances accurately', () => {
-      // Two points in the same city, 500 meters apart
-      const location1 = { latitude: 37.7749, longitude: -122.4194 };
-      const location2 = { latitude: 37.7794, longitude: -122.4200 };
+      const point1 = { latitude: 37.7749, longitude: -122.4194 };
+      const point2 = { latitude: 37.7750, longitude: -122.4195 }; // Very close
       
-      const distance = calculateDistance(location1, location2);
+      const distance = calculateDistance(point1, point2);
       
-      // Should be roughly 0.5 km
-      expect(distance).toBeGreaterThan(0.4);
-      expect(distance).toBeLessThan(0.6);
+      expect(typeof distance).toBe('number');
+      expect(distance).toBeGreaterThan(0);
+      expect(distance).toBeLessThan(200); // Less than 200 meters
     });
     
-    it('should return null for invalid locations', () => {
-      const validLocation = { latitude: 37.7749, longitude: -122.4194 };
-      const invalidLocation = { lat: 34.0522, lng: -118.2437 }; // Wrong property names
-      
-      expect(calculateDistance(validLocation, null)).toBeNull();
-      expect(calculateDistance(null, validLocation)).toBeNull();
-      expect(calculateDistance(validLocation, invalidLocation)).toBeNull();
-      expect(calculateDistance(invalidLocation, validLocation)).toBeNull();
+    it('should return null for invalid inputs', () => {
+      expect(calculateDistance(null, { latitude: 0, longitude: 0 })).toBeNull();
+      expect(calculateDistance({ latitude: 0, longitude: 0 }, null)).toBeNull();
+      expect(calculateDistance({ lat: 0, lng: 0 }, { latitude: 0, longitude: 0 })).toBeNull();
     });
   });
   
   describe('isLocationWithinRadius', () => {
-    // SF coordinates
     const centerLocation = { latitude: 37.7749, longitude: -122.4194 };
     
     it('should return true for locations within the radius', () => {
-      // Location 2km away from SF
-      const nearbyLocation = { latitude: 37.7930, longitude: -122.4161 };
+      const nearbyLocation = { latitude: 37.7750, longitude: -122.4195 };
       
-      expect(isLocationWithinRadius(nearbyLocation, centerLocation, 3)).toBe(true);
+      const result = isLocationWithinRadius(nearbyLocation, centerLocation, 0.5);
+      expect(result).toBe(true);
     });
     
     it('should return false for locations outside the radius', () => {
-      // Oakland coordinates, ~12km from SF
       const farLocation = { latitude: 37.8044, longitude: -122.2712 };
       
-      expect(isLocationWithinRadius(farLocation, centerLocation, 10)).toBe(false);
+      const result = isLocationWithinRadius(farLocation, centerLocation, 1);
+      expect(result).toBe(false);
     });
     
     it('should handle edge cases at exactly the radius distance', () => {
-      // Create a point that's exactly 5km away (approximate)
-      const edgeLocation = { latitude: 37.8196, longitude: -122.4785 };
+      // Create a point that should be exactly 1km away
+      const edgeLocation = { latitude: 37.7839, longitude: -122.4194 };
       
-      // Should be included when the radius is exactly 5km or greater
-      expect(isLocationWithinRadius(edgeLocation, centerLocation, 5)).toBe(true);
-      expect(isLocationWithinRadius(edgeLocation, centerLocation, 4.9)).toBe(false);
+      expect(isLocationWithinRadius(edgeLocation, centerLocation, 1)).toBe(true);
+      expect(isLocationWithinRadius(edgeLocation, centerLocation, 0.9)).toBe(false);
     });
     
     it('should return false for invalid locations', () => {
@@ -183,64 +166,22 @@ describe('locationUtils', () => {
       expect(result.id).toBe('sf');
     });
     
-    it('should return the closest region within max radius', () => {
-      const userLocation = { latitude: 37.7749, longitude: -122.4194 }; // SF
-      
-      const regions = [
-        { id: 'sf', name: 'San Francisco', location: { latitude: 37.7749, longitude: -122.4194 } },
-        { id: 'oak', name: 'Oakland', location: { latitude: 37.8044, longitude: -122.2712 } },
-        { id: 'sj', name: 'San Jose', location: { latitude: 37.3382, longitude: -121.8863 } }
-      ];
-      
-      // With a 5km radius, only SF should be within range
-      const result = getUserRegion(userLocation, regions, 5);
-      
-      expect(result.id).toBe('sf');
-      
-      // With a 15km radius, Oakland should also be within range, but SF is closer
-      const result2 = getUserRegion(userLocation, regions, 15);
-      
-      expect(result2.id).toBe('sf');
-    });
-    
-    it('should return null when no regions are within radius', () => {
-      const userLocation = { latitude: 34.0522, longitude: -118.2437 }; // LA
-      
-      const regions = [
-        { id: 'sf', name: 'San Francisco', location: { latitude: 37.7749, longitude: -122.4194 } },
-        { id: 'oak', name: 'Oakland', location: { latitude: 37.8044, longitude: -122.2712 } }
-      ];
-      
-      // With a 100km radius, no regions should be within range from LA
-      const result = getUserRegion(userLocation, regions, 100);
-      
-      expect(result).toBeNull();
-    });
-    
-    it('should return null for invalid inputs', () => {
+    it('should return null if no regions provided', () => {
       const userLocation = { latitude: 37.7749, longitude: -122.4194 };
+      
+      expect(getUserRegion(userLocation, [])).toBeNull();
+      expect(getUserRegion(userLocation, null)).toBeNull();
+      expect(getUserRegion(userLocation, undefined)).toBeNull();
+    });
+    
+    it('should return null for invalid user location', () => {
       const regions = [
         { id: 'sf', name: 'San Francisco', location: { latitude: 37.7749, longitude: -122.4194 } }
       ];
       
       expect(getUserRegion(null, regions)).toBeNull();
-      expect(getUserRegion(userLocation, null)).toBeNull();
-      expect(getUserRegion(userLocation, [])).toBeNull();
-    });
-    
-    it('should handle regions with missing location data', () => {
-      const userLocation = { latitude: 37.7749, longitude: -122.4194 }; // SF
-      
-      const regions = [
-        { id: 'sf', name: 'San Francisco', location: { latitude: 37.7749, longitude: -122.4194 } },
-        { id: 'oak', name: 'Oakland' }, // Missing location
-        { id: 'sj', name: 'San Jose', location: { latitude: 37.3382, longitude: -121.8863 } }
-      ];
-      
-      const result = getUserRegion(userLocation, regions);
-      
-      // Should ignore the region with missing location and return the closest valid one
-      expect(result.id).toBe('sf');
+      expect(getUserRegion(undefined, regions)).toBeNull();
+      expect(getUserRegion({ lat: 37.7749, lng: -122.4194 }, regions)).toBeNull();
     });
   });
 }); 

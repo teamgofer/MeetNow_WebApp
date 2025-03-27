@@ -9,8 +9,8 @@ import 'leaflet.locatecontrol/dist/L.Control.Locate.css';
 
 // Import our components and utilities
 import MeetNowApp from './MeetNowApp';
-import WasabiTestPage from './routes/WasabiTestPage';
-import ImageUploadTest from './routes/ImageUploadTest';
+import WasabiTestPage from './routes/demos/WasabiTestPage';
+import ImageUploadTest from './routes/demos/ImageUploadTest';
 import Loading from './components/ui/loading.jsx';
 import { setupLeaflet } from './lib/leaflet-setup';
 import { cleanupSupabase } from './lib/supabase';

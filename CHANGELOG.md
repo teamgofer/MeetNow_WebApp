@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reorganized API and storage services
 - Separated layout components from common components
 - Moved static assets to dedicated folder
+- Restructured project organization:
+  - Consolidated documentation into organized `docs/` directory
+  - Unified testing structure in `tests/` directory
+  - Organized scripts and utilities in `scripts/` directory
+- Updated README with new project structure information
 
 ## [1.0.0] - 2023-05-15
 

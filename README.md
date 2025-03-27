@@ -70,54 +70,48 @@ The application includes several demo pages to showcase specific components:
 
 ## Project Structure
 
-```
-├── cypress/                 # Cypress E2E tests
-│   ├── e2e/                 # End-to-end test specs
-│   ├── fixtures/            # Test data
-│   └── support/             # Test utilities and commands
-├── public/                  # Static files
-├── src/                     # Source code
-│   ├── assets/              # Images, fonts, and static assets
-│   ├── components/          # React components
-│   │   ├── common/          # Shared components
-│   │   │   ├── __tests__/   # Tests for common components
-│   │   │   └── ...          
-│   │   ├── filters/         # Filter components
-│   │   ├── layout/          # Layout components (header, footer, etc.)
-│   │   ├── meetup/          # Meetup-related components
-│   │   └── performance/     # Performance monitoring components
-│   ├── config/              # Configuration files
-│   │   ├── __tests__/       # Tests for config modules
-│   │   └── ...            
-│   ├── context/             # React context providers
-│   ├── features/            # Feature-based modules
-│   │   ├── auth/            # Authentication feature
-│   │   ├── map/             # Map feature
-│   │   └── search/          # Search feature
-│   ├── hocs/                # Higher-order components
-│   ├── hooks/               # Custom React hooks
-│   │   ├── __tests__/       # Tests for hooks
-│   │   └── ...             
-│   ├── pages/               # Page components
-│   ├── services/            # API services
-│   │   ├── __tests__/       # Tests for services
-│   │   ├── api/             # API clients
-│   │   ├── storage/         # Storage services
-│   │   └── ...             
-│   ├── styles/              # Global styles and themes
-│   ├── types/               # Type definitions
-│   └── utils/               # Utility functions
-│       ├── __tests__/       # Tests for utilities
-│       ├── performance/     # Performance utilities
-│       ├── format/          # Formatting utilities
-│       └── ...              
-├── .github/                 # GitHub configurations
-│   └── workflows/           # CI/CD workflows
-├── scripts/                 # Build and maintenance scripts
-├── CHANGELOG.md             # Version history
-├── restoration-journal.md   # Project restoration progress
-└── ...                      # Config files (.nvmrc, .eslintrc, etc.)
-```
+The MeetNow webapp is organized with the following directory structure:
+
+### Core Application
+- `src/` - Source code for the application
+  - `components/` - Reusable UI components
+  - `contexts/` - React context providers
+  - `features/` - Feature-specific modules
+  - `hooks/` - Custom React hooks
+  - `lib/` - Core libraries and utilities
+  - `navigation/` - Navigation system
+  - `pages/` - Page components
+  - `types/` - TypeScript type definitions
+  - `utils/` - Utility functions
+
+### Documentation
+- `docs/` - All project documentation
+  - `architecture/` - System design and technical standards
+  - `features/` - Feature-specific documentation
+  - `guides/` - Developer and user guides
+  - `roadmap/` - Product and implementation roadmaps
+  - `testing/` - Testing strategies and documentation
+  - `troubleshooting/` - Solutions to common issues
+
+### Testing
+- `tests/` - Unified testing structure
+  - `unit/` - Unit tests for components and functions
+  - `integration/` - Integration tests
+  - `e2e/` - End-to-end tests
+  - `mocks/` - Mock implementations
+  - `db/` - Database tests
+
+### Scripts & Utilities
+- `scripts/` - Utility scripts
+  - `db/` - Database scripts and migrations
+  - `dev/` - Development utilities
+  - `ci/` - Continuous integration scripts
+
+### Configuration & Build
+- `public/` - Static assets
+- `config/` - Configuration files
+- `.github/` - GitHub workflows and templates
+- `.husky/` - Git hooks
 
 ## Development Process
 

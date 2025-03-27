@@ -1,6 +1,56 @@
 # MeetNow Documentation
 
-Welcome to the documentation for the MeetNow application. This directory contains comprehensive guides to help you understand, maintain, and extend the application.
+This directory contains all technical documentation for the MeetNow webapp. The documentation is organized into the following sections:
+
+## Directory Structure
+
+- **architecture/** - System design, component relationships, and technical standards
+  - Technical specifications and architecture decisions
+  - Navigation system documentation
+  - Location format standards
+
+- **features/** - Detailed documentation for specific features
+  - Smart Search & Intelligent Zoom
+  - Map Overzooming
+  - Proximity Chat
+  - Region Management
+  - And other feature-specific documentation
+
+- **guides/** - Developer and user guides
+  - File handling guidelines
+  - Image storage documentation
+  - Handover documentation
+  - Import guides
+
+- **roadmap/** - Product and implementation roadmaps
+  - Feature roadmap
+  - Development timeline
+  - Implementation plans
+
+- **testing/** - Testing documentation and strategies
+  - Testing approaches
+  - Test coverage guidelines
+  - QA processes
+
+- **troubleshooting/** - Solutions to common issues
+  - General troubleshooting
+  - Wasabi storage troubleshooting
+
+## Version Control
+
+Documentation should follow the same versioning conventions as the codebase. When making significant changes to documentation, update the corresponding version number according to our versioning guidelines.
+
+## Contributing
+
+When adding new documentation:
+1. Place it in the appropriate subdirectory
+2. Follow the existing naming conventions
+3. Link it to related documentation where appropriate
+4. Update this README if you add new categories
+
+## Maintenance
+
+Documentation should be reviewed and updated regularly to ensure it remains accurate. Outdated documentation should be marked as such or removed to prevent confusion.
 
 ## Documentation Index
 

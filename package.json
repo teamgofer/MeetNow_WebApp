@@ -63,7 +63,7 @@
     "ui-components": "open src/features/ui-poc/neumorphic-components.html",
     "start": "react-scripts start",
     "eject": "react-scripts eject",
-    "prepare": "husky && husky install",
+    "prepare": "[ -z \"$HUSKY\" ] && husky && husky install || echo \"Skipping husky install\"",
     "version:patch": "npm version patch && git push && git push --tags",
     "version:minor": "npm version minor && git push && git push --tags",
     "version:major": "npm version major && git push && git push --tags",

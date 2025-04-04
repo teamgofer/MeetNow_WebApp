@@ -1,29 +1,95 @@
+# Dependencies
 node_modules
-node_modules
-node_modules
-.vercel
-
-# Documentation directories
-/docs/
-/DOCUMENTATION/
-*.md
-!README.md
-!CHANGELOG.md
-!LICENSE.md
-
-# Editor files
-.DS_Store
-.vscode/
-.idea/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+package-lock.json
 
 # Build artifacts
 /dist/
 /build/
 /.next/
+/out/
+*.tsbuildinfo
 
-# Environment files
+# Environment files (never commit these!)
 .env
+.env.*
+!.env.example
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.development
+.env.production
+.env.test
+
+# IDE files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-*
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+/coverage/
+/.nyc_output/
+cypress/videos/
+cypress/screenshots/
+/test/
+/tests/
+.specstory/
+
+# Supabase
+/supabase/
+
+# Temp files
+.tmp/
+*.log
+*.tmp
+temp/
+
+# Vercel
+.vercel
+
+# Deployment packages
+*.zip
+deploy-package/
+meetnow-webapp-*.zip
+meetnow-webapp-*-secure-release/
+meetnow-webapp-*-secure-release.zip
+
+# Sensitive documentation and configuration
+/docs/
+/DOCUMENTATION/
+/docs*/
+*_backup*/
+*backup_*/
+config_backup*/
+DOCUMENTATION_backup*/
+*.md
+!README.md
+!CHANGELOG.md
+!RELEASE-NOTES.md
+!DEPLOYMENT.md
+!LICENSE.md
+!SECURITY.md
+
+# Credentials and secrets
+*credential*
+*secret*
+*key*
+*token*
+*password*
+*_auth_*
+*wasabi*
+*supabase*config*
+
+# SQL files - should be in separate database repository
+*.sql
+
+# Unused files without extensions
+_redirects
+
+# Cache files
+.cache/

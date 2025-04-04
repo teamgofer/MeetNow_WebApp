@@ -1,0 +1,296 @@
+/* Accessibility Inline Help Styles */
+
+/* Container for the help component */
+.a11y-help-container {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Help toggle button styling */
+.a11y-help-toggle {
+  background: none;
+  border: none;
+  color: var(--text-color-secondary, #6b7280);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: absolute;
+}
+
+/* Icon styling */
+.a11y-help-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Position the toggle based on placement */
+.a11y-help-top .a11y-help-toggle {
+  top: -12px;
+  right: -12px;
+}
+
+.a11y-help-right .a11y-help-toggle {
+  top: 0;
+  right: -28px;
+}
+
+.a11y-help-bottom .a11y-help-toggle {
+  bottom: -12px;
+  right: -12px;
+}
+
+.a11y-help-left .a11y-help-toggle {
+  top: 0;
+  left: -28px;
+}
+
+/* Focus and hover states */
+.a11y-help-toggle:hover,
+.a11y-help-toggle:focus {
+  color: var(--accent-color, #3b82f6);
+  background-color: var(--hover-bg, rgba(59, 130, 246, 0.1));
+}
+
+.a11y-help-toggle:focus-visible {
+  outline: 2px solid var(--focus-ring-color, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Help content popup */
+.a11y-help-content {
+  position: absolute;
+  background-color: var(--bg-color, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 12px 16px;
+  width: 280px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  font-size: 0.9rem;
+  color: var(--text-color, #333333);
+  animation: helpFadeIn 0.2s ease-out;
+}
+
+/* Positioning based on placement */
+.a11y-help-top .a11y-help-content {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.a11y-help-right .a11y-help-content {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.a11y-help-bottom .a11y-help-content {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.a11y-help-left .a11y-help-content {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Help content styling */
+.a11y-help-title {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--heading-color, #111827);
+}
+
+.a11y-help-description {
+  margin: 0 0 12px 0;
+  line-height: 1.5;
+}
+
+/* Shortcuts section */
+.a11y-help-shortcuts {
+  margin-top: 12px;
+  border-top: 1px solid var(--border-color-light, #f3f4f6);
+  padding-top: 12px;
+}
+
+.a11y-help-shortcuts-title {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--heading-color, #111827);
+}
+
+.a11y-help-shortcuts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.a11y-help-shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.a11y-help-action-name {
+  font-size: 0.85rem;
+}
+
+/* Keyboard shortcut styling */
+.a11y-help-shortcut-key {
+  display: flex;
+  align-items: center;
+}
+
+.a11y-shortcut-key {
+  background-color: var(--kbd-bg-color, #f5f5f5);
+  border: 1px solid var(--kbd-border-color, #d1d5db);
+  border-radius: 3px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  font-family: var(
+    --monospace-font,
+    'SFMono-Regular',
+    Consolas,
+    'Liberation Mono',
+    Menlo,
+    monospace
+  );
+  font-size: 0.75rem;
+  padding: 1px 4px;
+  color: var(--kbd-text-color, #374151);
+  min-width: 16px;
+  text-align: center;
+}
+
+.a11y-shortcut-plus {
+  margin: 0 2px;
+  color: var(--text-color-secondary, #6b7280);
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+.a11y-help-no-shortcut {
+  color: var(--text-color-secondary, #6b7280);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+/* Close button */
+.a11y-help-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-color-secondary, #6b7280);
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.a11y-help-close:hover {
+  color: var(--danger-color, #dc2626);
+  background-color: var(--danger-hover-bg, rgba(220, 38, 38, 0.1));
+}
+
+.a11y-help-close:focus-visible {
+  outline: 2px solid var(--focus-ring-color, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Animation */
+@keyframes helpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) translateX(-50%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(-50%);
+  }
+}
+
+@keyframes helpFadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(4px) translateY(-50%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(-50%);
+  }
+}
+
+.a11y-help-right .a11y-help-content {
+  animation: helpFadeInRight 0.2s ease-out;
+}
+
+/* Dark mode styling */
+@media (prefers-color-scheme: dark) {
+  .a11y-help-content {
+    --bg-color: #1f2937;
+    --text-color: #e5e7eb;
+    --heading-color: #f9fafb;
+    --border-color: #374151;
+    --border-color-light: #2d3748;
+    --kbd-bg-color: #374151;
+    --kbd-border-color: #4b5563;
+    --kbd-text-color: #d1d5db;
+    --text-color-secondary: #9ca3af;
+    --accent-color: #60a5fa;
+    --hover-bg: rgba(96, 165, 250, 0.1);
+    --danger-color: #ef4444;
+    --danger-hover-bg: rgba(239, 68, 68, 0.1);
+    --focus-ring-color: #60a5fa;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .a11y-help-content {
+    width: 250px;
+  }
+
+  /* On small screens, always position above/below */
+  .a11y-help-left .a11y-help-content,
+  .a11y-help-right .a11y-help-content {
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    animation: helpFadeIn 0.2s ease-out;
+  }
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  .a11y-help-toggle,
+  .a11y-help-close {
+    border: 1px solid;
+  }
+
+  .a11y-help-content {
+    border: 1px solid CanvasText;
+  }
+
+  .a11y-shortcut-key {
+    border: 1px solid CanvasText;
+  }
+}

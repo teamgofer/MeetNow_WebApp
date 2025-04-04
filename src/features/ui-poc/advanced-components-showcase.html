@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeetNow Advanced Component Showcase</title>
+  <link rel="stylesheet" href="../../components/neumorphic/neumorphic.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--neu-primary-bg);
+      color: var(--neu-text-color);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .title {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    
+    .section {
+      margin-bottom: 50px;
+    }
+    
+    .section-title {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      position: relative;
+      padding-bottom: 10px;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(90deg, #4776E6, #8E54E9);
+      border-radius: 2px;
+    }
+    
+    .component-demo {
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: var(--neu-shadow-medium);
+      background-color: var(--neu-primary-bg);
+    }
+    
+    /* Specific component styling */
+    .skeleton-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .skeleton-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .accordion-demo {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .sliders-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .glass-cards-demo {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+    
+    .glass-card-demo {
+      width: 250px;
+      height: 200px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    
+    .carousel-demo {
+      height: 300px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .carousel-slide {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .color-pickers-demo {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: center;
+    }
+    
+    .gradient-buttons-demo {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+    
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+      
+      .container {
+        padding: 15px;
+      }
+      
+      .header {
+        margin-bottom: 30px;
+      }
+      
+      .title {
+        font-size: 2rem;
+      }
+      
+      .section {
+        margin-bottom: 40px;
+      }
+      
+      .section-title {
+        font-size: 1.5rem;
+      }
+      
+      .component-demo {
+        padding: 20px;
+      }
+      
+      /* Specific component adjustments */
+      .glass-cards-demo {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .glass-card-demo {
+        width: 100%;
+        max-width: 280px;
+        margin-bottom: 15px;
+      }
+      
+      .color-pickers-demo {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .neu-color-picker-container {
+        width: 100%;
+        max-width: 300px;
+        margin-bottom: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      
+      .container {
+        padding: 10px;
+      }
+      
+      .title {
+        font-size: 1.8rem;
+      }
+      
+      .section-title {
+        font-size: 1.3rem;
+      }
+      
+      .component-demo {
+        padding: 15px;
+        border-radius: 12px;
+      }
+      
+      /* Specific component mobile adjustments */
+      .skeleton-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .skeleton-row > div {
+        width: 100%;
+        margin-top: 10px;
+      }
+      
+      .accordion-demo {
+        width: 100%;
+      }
+      
+      .neu-accordion-header {
+        padding: 12px;
+      }
+      
+      .neu-accordion-title {
+        font-size: 0.9rem;
+      }
+      
+      .neu-accordion-content-inner {
+        padding: 10px;
+        font-size: 0.85rem;
+      }
+      
+      .sliders-demo {
+        width: 100%;
+      }
+      
+      .neu-slider-label {
+        font-size: 0.9rem;
+      }
+      
+      .gradient-buttons-demo {
+        gap: 10px;
+      }
+      
+      .neu-gradient-button {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">Advanced Neumorphic Components</h1>
+      <p>A visual showcase of the advanced neumorphic components</p>
+    </div>
+    
+    <!-- Skeleton Loaders -->
+    <div class="section">
+      <h2 class="section-title">Skeleton Loaders</h2>
+      <div class="component-demo skeleton-demo">
+        <!-- Text Skeletons -->
+        <div>
+          <div class="neu-skeleton neu-skeleton-shine" style="width: 60%; height: 1.2rem;"></div>
+          <div class="neu-skeleton neu-skeleton-shine" style="width: 80%; height: 1rem; margin-top: 10px;"></div>
+          <div class="neu-skeleton neu-skeleton-shine" style="width: 70%; height: 1rem; margin-top: 10px;"></div>
+        </div>
+        
+        <!-- Avatar & Text -->
+        <div class="skeleton-row">
+          <div class="neu-skeleton neu-skeleton-circle neu-skeleton-pulse" style="width: 60px; height: 60px;"></div>
+          <div style="flex: 1;">
+            <div class="neu-skeleton neu-skeleton-wave" style="width: 40%; height: 1rem;"></div>
+            <div class="neu-skeleton neu-skeleton-wave" style="width: 70%; height: 0.8rem; margin-top: 10px;"></div>
+          </div>
+        </div>
+        
+        <!-- Cards -->
+        <div class="skeleton-row">
+          <div class="neu-skeleton" style="width: 120px; height: 80px; border-radius: 8px;"></div>
+          <div class="neu-skeleton" style="width: 120px; height: 80px; border-radius: 8px;"></div>
+          <div class="neu-skeleton" style="width: 120px; height: 80px; border-radius: 8px;"></div>
+        </div>
+        
+        <!-- Button -->
+        <div>
+          <div class="neu-skeleton neu-skeleton-button" style="width: 120px; height: 40px;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Accordions -->
+    <div class="section">
+      <h2 class="section-title">Accordions</h2>
+      <div class="component-demo accordion-demo">
+        <div class="neu-accordion">
+          <div class="neu-accordion-item">
+            <button class="neu-accordion-header">
+              <span class="neu-accordion-title">What is Neumorphism?</span>
+              <span class="neu-accordion-arrow">
+                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </button>
+            <div class="neu-accordion-content" style="height: 0px;">
+              <div class="neu-accordion-content-inner">
+                <p>Neumorphism is a design style that combines elements of skeuomorphism and flat design. It features soft UI elements that appear to extrude from the background.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="neu-accordion-item neu-accordion-item-open">
+            <button class="neu-accordion-header">
+              <span class="neu-accordion-title">Key Features</span>
+              <span class="neu-accordion-arrow neu-accordion-arrow-open">
+                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </button>
+            <div class="neu-accordion-content" style="height: auto;">
+              <div class="neu-accordion-content-inner">
+                <p>Key features of our neumorphic components:</p>
+                <ul>
+                  <li>Soft shadows and highlights</li>
+                  <li>Subtle depth effects</li>
+                  <li>Minimal color palette</li>
+                  <li>Clean and modern aesthetic</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="neu-accordion-item">
+            <button class="neu-accordion-header">
+              <span class="neu-accordion-title">Customization Options</span>
+              <span class="neu-accordion-arrow">
+                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </button>
+            <div class="neu-accordion-content" style="height: 0px;">
+              <div class="neu-accordion-content-inner">
+                <p>Our components offer extensive customization options including themes, sizes, animations, and more.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sliders -->
+    <div class="section">
+      <h2 class="section-title">Sliders</h2>
+      <div class="component-demo sliders-demo">
+        <div class="neu-slider-container">
+          <div class="neu-slider-label">
+            <span>Default Slider</span>
+            <span class="neu-slider-value">50</span>
+          </div>
+          <div class="neu-slider-track">
+            <div class="neu-slider-track-inner">
+              <div class="neu-slider-progress" style="width: 50%;"></div>
+              <div class="neu-slider-thumb" style="left: 50%"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="neu-slider-container neu-slider-primary">
+          <div class="neu-slider-label">
+            <span>Primary Variant</span>
+            <span class="neu-slider-value">75%</span>
+          </div>
+          <div class="neu-slider-track">
+            <div class="neu-slider-track-inner">
+              <div class="neu-slider-progress" style="width: 75%;"></div>
+              <div class="neu-slider-thumb" style="left: 75%"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="neu-slider-container neu-slider-success neu-slider-small">
+          <div class="neu-slider-label">
+            <span>Small Success Variant</span>
+            <span class="neu-slider-value">25%</span>
+          </div>
+          <div class="neu-slider-track">
+            <div class="neu-slider-track-inner">
+              <div class="neu-slider-progress" style="width: 25%;"></div>
+              <div class="neu-slider-thumb" style="left: 25%"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="neu-slider-container neu-slider-gradient neu-slider-large">
+          <div class="neu-slider-label">
+            <span>Large Gradient Variant</span>
+            <span class="neu-slider-value">60%</span>
+          </div>
+          <div class="neu-slider-track">
+            <div class="neu-slider-track-inner">
+              <div class="neu-slider-progress" style="width: 60%;"></div>
+              <div class="neu-slider-thumb" style="left: 60%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Glass Cards -->
+    <div class="section">
+      <h2 class="section-title">Glass Cards</h2>
+      <div class="component-demo glass-cards-demo">
+        <div class="neu-glass-card glass-card-demo">
+          <div class="neu-glass-card-content">
+            <h3>Default Glass Card</h3>
+            <p>A modern card with glassmorphism effects</p>
+          </div>
+          <div class="neu-glass-card-background"></div>
+          <div class="neu-glass-card-border"></div>
+        </div>
+        
+        <div class="neu-glass-card neu-glass-card-primary glass-card-demo">
+          <div class="neu-glass-card-content">
+            <h3>Primary Variant</h3>
+            <p>With primary color tint</p>
+          </div>
+          <div class="neu-glass-card-background"></div>
+          <div class="neu-glass-card-border"></div>
+        </div>
+        
+        <div class="neu-glass-card neu-glass-card-rainbow glass-card-demo">
+          <div class="neu-glass-card-content">
+            <h3>Rainbow Effect</h3>
+            <p>With animated gradient background</p>
+          </div>
+          <div class="neu-glass-card-background"></div>
+          <div class="neu-glass-card-border"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Color Pickers -->
+    <div class="section">
+      <h2 class="section-title">Color Pickers</h2>
+      <div class="component-demo color-pickers-demo">
+        <div class="neu-color-picker-container">
+          <label class="neu-color-picker-label">Default Color Picker</label>
+          <div class="neu-color-picker-swatch-container">
+            <button class="neu-color-picker-swatch" style="background-color: #3f51b5;">
+              <span class="neu-color-picker-swatch-inner"></span>
+            </button>
+            <div class="neu-color-picker-value">#3f51b5</div>
+          </div>
+        </div>
+        
+        <div class="neu-color-picker-container neu-color-picker-primary">
+          <label class="neu-color-picker-label">Primary Variant</label>
+          <div class="neu-color-picker-swatch-container">
+            <button class="neu-color-picker-swatch" style="background-color: #9c27b0;">
+              <span class="neu-color-picker-swatch-inner"></span>
+            </button>
+            <div class="neu-color-picker-value">#9c27b0</div>
+          </div>
+        </div>
+        
+        <div class="neu-color-picker-container neu-color-picker-inset">
+          <label class="neu-color-picker-label">Inset Variant</label>
+          <div class="neu-color-picker-swatch-container">
+            <button class="neu-color-picker-swatch" style="background-color: #2196f3;">
+              <span class="neu-color-picker-swatch-inner"></span>
+            </button>
+            <div class="neu-color-picker-value">#2196f3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Gradient Buttons -->
+    <div class="section">
+      <h2 class="section-title">Gradient Buttons</h2>
+      <div class="component-demo gradient-buttons-demo">
+        <button class="neu-gradient-button">
+          <span class="neu-gradient-button-content">Default</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-primary">
+          <span class="neu-gradient-button-content">Primary</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-success">
+          <span class="neu-gradient-button-content">Success</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-danger">
+          <span class="neu-gradient-button-content">Danger</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-warning">
+          <span class="neu-gradient-button-content">Warning</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-info">
+          <span class="neu-gradient-button-content">Info</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-ocean">
+          <span class="neu-gradient-button-content">Ocean</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-sunset">
+          <span class="neu-gradient-button-content">Sunset</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-rainbow neu-gradient-button-animated">
+          <span class="neu-gradient-button-content">Animated Rainbow</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-pulse">
+          <span class="neu-gradient-button-content">With Pulse</span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-sheen">
+          <span class="neu-gradient-button-content">With Sheen</span>
+          <span class="neu-gradient-button-sheen-effect"></span>
+        </button>
+        
+        <button class="neu-gradient-button neu-gradient-button-rounded">
+          <span class="neu-gradient-button-content">Rounded</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple script to make the accordions interactive
+    document.querySelectorAll('.neu-accordion-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const item = header.parentElement;
+        const content = header.nextElementSibling;
+        const arrow = header.querySelector('.neu-accordion-arrow');
+        
+        // Toggle open state
+        const isOpen = item.classList.contains('neu-accordion-item-open');
+        
+        if (isOpen) {
+          item.classList.remove('neu-accordion-item-open');
+          arrow.classList.remove('neu-accordion-arrow-open');
+          content.style.height = '0px';
+        } else {
+          item.classList.add('neu-accordion-item-open');
+          arrow.classList.add('neu-accordion-arrow-open');
+          content.style.height = content.scrollHeight + 'px';
+        }
+      });
+    });
+    
+    // Initialize the open accordion
+    document.querySelectorAll('.neu-accordion-item-open').forEach(item => {
+      const content = item.querySelector('.neu-accordion-content');
+      content.style.height = content.scrollHeight + 'px';
+    });
+  </script>
+</body>
+</html> 

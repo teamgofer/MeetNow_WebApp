@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeetNow Neumorphic UI Components</title>
+  <style>
+    :root {
+      --neu-primary-bg: #e0e5ec;
+      --neu-primary-dark: #a3b1c6;
+      --neu-primary-light: #ffffff;
+      --neu-text-color: #333;
+      --neu-text-color-light: #666;
+      
+      --neu-shadow-small: 3px 3px 6px var(--neu-primary-dark), -3px -3px 6px var(--neu-primary-light);
+      --neu-shadow-small-hover: 4px 4px 8px var(--neu-primary-dark), -4px -4px 8px var(--neu-primary-light);
+      --neu-shadow-small-pressed: inset 2px 2px 5px var(--neu-primary-dark), inset -2px -2px 5px var(--neu-primary-light);
+      
+      --neu-shadow-medium: 5px 5px 10px var(--neu-primary-dark), -5px -5px 10px var(--neu-primary-light);
+      --neu-shadow-soft: 3px 3px 5px var(--neu-primary-dark), -3px -3px 5px var(--neu-primary-light);
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--neu-primary-bg);
+      color: var(--neu-text-color);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .title {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--neu-text-color-light);
+      margin-bottom: 30px;
+    }
+    
+    .components-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    .component-card {
+      background-color: var(--neu-primary-bg);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: var(--neu-shadow-medium);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .component-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 8px 8px 16px var(--neu-primary-dark), -8px -8px 16px var(--neu-primary-light);
+    }
+    
+    .component-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      background-color: var(--neu-primary-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+      box-shadow: var(--neu-shadow-small);
+    }
+    
+    .component-icon svg {
+      width: 30px;
+      height: 30px;
+      color: var(--neu-text-color);
+    }
+    
+    .component-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .component-description {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--neu-text-color-light);
+    }
+    
+    .demo-button {
+      display: block;
+      width: 200px;
+      margin: 0 auto;
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      background-color: var(--neu-primary-bg);
+      color: var(--neu-text-color);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: var(--neu-shadow-small);
+      transition: all 0.3s ease;
+    }
+    
+    .demo-button:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--neu-shadow-small-hover);
+    }
+    
+    .demo-button:active {
+      transform: translateY(0);
+      box-shadow: var(--neu-shadow-small-pressed);
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-size: 1.5rem;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #4dbbbb;
+      animation: spin 1s linear infinite;
+      margin-right: 15px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+      }, 1500);
+      
+      document.getElementById('demoButton').addEventListener('click', () => {
+        const message = document.createElement('div');
+        message.textContent = 'In a full implementation, this would load the React component demo.';
+        message.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          padding: 20px;
+          background-color: var(--neu-primary-bg);
+          border-radius: 12px;
+          box-shadow: var(--neu-shadow-medium);
+          z-index: 1000;
+          text-align: center;
+          max-width: 80%;
+        `;
+        document.body.appendChild(message);
+        
+        setTimeout(() => {
+          message.style.opacity = '0';
+          message.style.transition = 'opacity 0.5s ease';
+          setTimeout(() => {
+            document.body.removeChild(message);
+          }, 500);
+        }, 3000);
+      });
+    });
+  </script>
+</head>
+<body>
+  <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
+    <span>Loading MeetNow UI Components...</span>
+  </div>
+
+  <div id="content" style="display: none">
+    <div class="container">
+      <div class="header">
+        <h1 class="title">MeetNow Neumorphic UI Components</h1>
+        <p class="subtitle">A comprehensive library of neumorphic UI components for the MeetNow platform</p>
+      </div>
+      
+      <div class="components-list">
+        <div class="component-card">
+          <div class="component-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+              <line x1="12" y1="16" x2="12" y2="16"></line>
+              <line x1="12" y1="8" x2="12" y2="8"></line>
+            </svg>
+          </div>
+          <h3 class="component-name">Buttons</h3>
+          <p class="component-description">Standard, icon, and variant buttons with neumorphic styling</p>
+        </div>
+        
+        <div class="component-card">
+          <div class="component-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            </svg>
+          </div>
+          <h3 class="component-name">Cards</h3>
+          <p class="component-description">Content containers with various elevations and styles</p>
+        </div>
+        
+        <div class="component-card">
+          <div class="component-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <h3 class="component-name">Icons</h3>
+          <p class="component-description">Comprehensive set of icons with neumorphic styling</p>
+        </div>
+        
+        <div class="component-card">
+          <div class="component-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"></line>
+              <line x1="4" y1="10" x2="4" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12" y2="3"></line>
+              <line x1="20" y1="21" x2="20" y2="16"></line>
+              <line x1="20" y1="12" x2="20" y2="3"></line>
+              <line x1="1" y1="14" x2="7" y2="14"></line>
+              <line x1="9" y1="8" x2="15" y2="8"></line>
+              <line x1="17" y1="16" x2="23" y2="16"></line>
+            </svg>
+          </div>
+          <h3 class="component-name">Controls</h3>
+          <p class="component-description">Form inputs, checkboxes, selects, and toggles</p>
+        </div>
+        
+        <div class="component-card">
+          <div class="component-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </div>
+          <h3 class="component-name">Feedback</h3>
+          <p class="component-description">Alerts, progress indicators, and modals</p>
+        </div>
+        
+        <div class="component-card">
+          <div class="component-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+          </div>
+          <h3 class="component-name">Navigation</h3>
+          <p class="component-description">Navigation bars, tabs, and breadcrumbs</p>
+        </div>
+        
+        <div class="component-card">
+          <div class="component-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <h3 class="component-name">Avatars</h3>
+          <p class="component-description">User avatars with various states and sizes</p>
+        </div>
+        
+        <div class="component-card">
+          <div class="component-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </div>
+          <h3 class="component-name">Layout</h3>
+          <p class="component-description">Containers, grids, and dividers</p>
+        </div>
+      </div>
+      
+      <button id="demoButton" class="demo-button">View Full Demo</button>
+    </div>
+  </div>
+</body>
+</html> 

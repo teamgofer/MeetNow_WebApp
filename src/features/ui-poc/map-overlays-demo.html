@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeetNow Neumorphic - Map Overlays Demo</title>
+  <link rel="stylesheet" href="../../components/neumorphic/neumorphic.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--neu-primary-bg);
+      color: var(--neu-text-color);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+    }
+    
+    .title {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--neu-text-color-light);
+      margin-bottom: 30px;
+    }
+    
+    .theme-toggle-container {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .theme-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .map-section {
+      margin-bottom: 60px;
+    }
+    
+    .section-title {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      position: relative;
+      padding-bottom: 10px;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(90deg, #4776E6, #8E54E9);
+      border-radius: 2px;
+    }
+    
+    .section-description {
+      margin-bottom: 25px;
+      line-height: 1.6;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    .control-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-right: 5px;
+    }
+    
+    .map-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .map-card {
+      flex: 1 1 400px;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: var(--neu-shadow-medium);
+      margin-bottom: 20px;
+    }
+    
+    .map-card-title {
+      padding: 15px;
+      font-size: 1.2rem;
+      background-color: var(--neu-primary-dark);
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .map-placeholder {
+      width: 100%;
+      height: 100%;
+      background-color: #e2e3e5;
+      background-position: center;
+      background-size: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(0,0,0,0.5);
+      font-weight: 500;
+    }
+    
+    .neu-dark-theme .map-placeholder {
+      background-color: #2a2a2a;
+      color: rgba(255,255,255,0.5);
+    }
+    
+    .map-info {
+      padding: 15px;
+      background-color: var(--neu-primary-bg);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    
+    .info-card {
+      padding: 25px;
+      border-radius: 15px;
+      background-color: var(--neu-primary-bg);
+      box-shadow: var(--neu-shadow-medium);
+      margin-bottom: 40px;
+    }
+    
+    .info-title {
+      font-size: 1.4rem;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    .tech-details {
+      margin-top: 20px;
+      background-color: var(--neu-primary-dark);
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .title {
+        font-size: 2rem;
+      }
+      
+      .map-card {
+        flex: 1 1 100%;
+      }
+      
+      .theme-toggle-container {
+        top: 5px;
+        right: 5px;
+      }
+      
+      .controls {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .tech-details {
+        overflow-x: auto;
+      }
+    }
+    
+    /* Custom map styles */
+    .city-map {
+      background-image: url('https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80');
+    }
+    
+    .satellite-map {
+      background-image: url('https://images.unsplash.com/photo-1569336415962-a4bd9f69c8bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80');
+    }
+    
+    .terrain-map {
+      background-image: url('https://images.unsplash.com/photo-1552244461-9823eaed7a75?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80');
+    }
+    
+    .custom-map-control {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    .map-control-button {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background-color: var(--neu-primary-bg);
+      border: none;
+      box-shadow: var(--neu-shadow-small);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .map-control-button:hover {
+      box-shadow: var(--neu-shadow-small-hover);
+      transform: translateY(-2px);
+    }
+    
+    .map-control-button:active {
+      box-shadow: var(--neu-shadow-small-pressed);
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">Map Overlays</h1>
+      <p class="subtitle">Interactive neumorphic map overlay components</p>
+      
+      <div class="theme-toggle-container">
+        <span class="theme-label">Light</span>
+        <label class="neu-switch neu-switch-small neu-theme-toggle">
+          <input type="checkbox" class="neu-switch-input">
+          <span class="neu-switch-slider"></span>
+        </label>
+        <span class="theme-label">Dark</span>
+      </div>
+    </div>
+    
+    <!-- Introduction -->
+    <div class="info-card">
+      <h2 class="info-title">Map Overlays</h2>
+      <p>Map overlays provide visual information layers that can be applied on top of map interfaces. These overlays can represent various data types such as radar tracking, weather conditions, traffic congestion, or heatmaps of activity.</p>
+      <p>Each overlay is fully customizable with different color schemes, animation speeds, and data visualization options. The animations are optimized for performance and support reduced motion preferences.</p>
+      
+      <div class="controls" style="margin-top: 20px;">
+        <label class="neu-checkbox-container">
+          <input type="checkbox" id="real-data-toggle" checked>
+          <span class="neu-checkbox-checkmark"></span>
+          <span class="neu-checkbox-label">Use real-time API data for overlays when available</span>
+        </label>
+      </div>
+      
+      <div class="location-selector" style="margin-top: 15px;">
+        <div style="margin-bottom: 10px; font-weight: 500;">Location for API data:</div>
+        <div class="neu-button-group">
+          <button class="neu-button neu-button-small location-button" data-lat="40.7128" data-lon="-74.0060">New York</button>
+          <button class="neu-button neu-button-small location-button" data-lat="51.5074" data-lon="-0.1278">London</button>
+          <button class="neu-button neu-button-small location-button" data-lat="35.6762" data-lon="139.6503">Tokyo</button>
+          <button class="neu-button neu-button-small location-button" data-lat="-33.8688" data-lon="151.2093">Sydney</button>
+        </div>
+      </div>
+      
+      <div class="tech-details">
+        <p><strong>Features:</strong></p>
+        <ul>
+          <li>Sonar/Radar overlay with animated scanning and blips</li>
+          <li>Weather overlay with animated rain effects</li>
+          <li>Heat map overlay for data density visualization</li>
+          <li>Traffic overlay with congestion indicators</li>
+          <li>Pollution overlay with AQI data from OpenAQ API</li>
+          <li>Sunshine overlay with data from Sunrise-Sunset API</li>
+          <li>Dark theme support with custom color schemes</li>
+          <li>Responsive design for all screen sizes</li>
+          <li>Accessibility features and reduced motion support</li>
+        </ul>
+      </div>
+    </div>
+    
+    <!-- Sonar/Radar Overlay -->
+    <div class="map-section">
+      <h2 class="section-title">Sonar/Radar Overlay</h2>
+      <p class="section-description">
+        The sonar/radar overlay simulates a scanning radar system with rotating scan lines, pulsing waves, and blips that represent detected objects. This effect is ideal for tracking applications, location services, or to add a tech-inspired aesthetic to your maps.
+      </p>
+      
+      <div class="controls">
+        <div>
+          <span class="control-label">Scan Speed:</span>
+          <div class="neu-slider-container neu-slider-small" style="width: 200px;" id="scan-speed-slider">
+            <div class="neu-slider-track">
+              <div class="neu-slider-track-inner">
+                <div class="neu-slider-progress" style="width: 50%"></div>
+              </div>
+            </div>
+            <div class="neu-slider-thumb" style="left: 50%" tabindex="0"></div>
+            <span class="neu-slider-value">50%</span>
+          </div>
+        </div>
+        
+        <div>
+          <span class="control-label">Pulse Intensity:</span>
+          <div class="neu-slider-container neu-slider-small" style="width: 200px;" id="pulse-intensity-slider">
+            <div class="neu-slider-track">
+              <div class="neu-slider-track-inner">
+                <div class="neu-slider-progress" style="width: 70%"></div>
+              </div>
+            </div>
+            <div class="neu-slider-thumb" style="left: 70%" tabindex="0"></div>
+            <span class="neu-slider-value">70%</span>
+          </div>
+        </div>
+        
+        <div>
+          <span class="control-label">Add Blip:</span>
+          <button class="neu-button neu-button-small" id="add-blip-btn">Add Random Blip</button>
+        </div>
+      </div>
+      
+      <div class="map-row">
+        <div class="map-card">
+          <div class="map-card-title">City Map with Radar</div>
+          <div class="neu-map-container" data-lat="40.7128" data-lon="-74.0060">
+            <div class="neu-map">
+              <div class="map-placeholder city-map"></div>
+            </div>
+            <div class="neu-map-overlay" data-overlay-type="radar"></div>
+            
+            <div class="custom-map-control">
+              <button class="map-control-button" title="Zoom In">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+              <button class="map-control-button" title="Zoom Out">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+              <button class="map-control-button" title="Center Map">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="22" y1="12" x2="18" y2="12"></line>
+                  <line x1="6" y1="12" x2="2" y2="12"></line>
+                  <line x1="12" y1="6" x2="12" y2="2"></line>
+                  <line x1="12" y1="22" x2="12" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="map-info">
+            The radar overlay creates a scanning effect that rotates around a central point, with grid lines and concentric circles to simulate radar display.
+          </div>
+        </div>
+        
+        <div class="map-card">
+          <div class="map-card-title">Satellite Map with Radar</div>
+          <div class="neu-map-container" data-lat="40.7128" data-lon="-74.0060">
+            <div class="neu-map">
+              <div class="map-placeholder satellite-map"></div>
+            </div>
+            <div class="neu-map-overlay" data-overlay-type="radar"></div>
+            
+            <div class="custom-map-control">
+              <button class="map-control-button" title="Zoom In">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+              <button class="map-control-button" title="Zoom Out">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+              <button class="map-control-button" title="Center Map">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="22" y1="12" x2="18" y2="12"></line>
+                  <line x1="6" y1="12" x2="2" y2="12"></line>
+                  <line x1="12" y1="6" x2="12" y2="2"></line>
+                  <line x1="12" y1="22" x2="12" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="map-info">
+            On satellite imagery, the radar overlay adapts with different colors and opacity to ensure visibility against the detailed background.
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Weather Overlay -->
+    <div class="map-section">
+      <h2 class="section-title">Weather Overlay</h2>
+      <p class="section-description">
+        The weather overlay adds animated precipitation effects like rain to your maps. This can be used to visualize current weather conditions, forecasts, or to create atmospheric effects in your application.
+      </p>
+      
+      <div class="map-row">
+        <div class="map-card">
+          <div class="map-card-title">Weather Overlay</div>
+          <div class="neu-map-container" data-lat="40.7128" data-lon="-74.0060">
+            <div class="neu-map">
+              <div class="map-placeholder terrain-map"></div>
+            </div>
+            <div class="neu-map-overlay" data-overlay-type="weather"></div>
+          </div>
+          <div class="map-info">
+            The weather overlay uses real-time weather data from the Open-Meteo API to show current conditions, including temperature, precipitation, and cloud cover.
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Heat Map Overlay -->
+    <div class="map-section">
+      <h2 class="section-title">Heat Map Overlay</h2>
+      <p class="section-description">
+        Heat map overlays visualize data density or intensity across geographic areas using color gradients. This is ideal for showing population density, activity hotspots, or other metrics with spatial distribution.
+      </p>
+      
+      <div class="map-row">
+        <div class="map-card">
+          <div class="map-card-title">Heat Map Overlay</div>
+          <div class="neu-map-container" data-lat="40.7128" data-lon="-74.0060" data-heat-points='[{"x":30,"y":40,"intensity":0.8},{"x":70,"y":60,"intensity":0.6},{"x":50,"y":30,"intensity":0.9},{"x":20,"y":70,"intensity":0.5},{"x":80,"y":20,"intensity":0.7}]'>
+            <div class="neu-map">
+              <div class="map-placeholder city-map"></div>
+            </div>
+            <div class="neu-map-overlay" data-overlay-type="heat"></div>
+          </div>
+          <div class="map-info">
+            Heat map overlays use color gradients to represent data density, with brighter areas indicating higher concentration or intensity.
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Traffic Overlay -->
+    <div class="map-section">
+      <h2 class="section-title">Traffic Overlay</h2>
+      <p class="section-description">
+        Traffic overlays visualize road congestion with color-coded paths and animated indicators. These can be used to show real-time traffic conditions, route planning, or movement patterns.
+      </p>
+      
+      <div class="map-row">
+        <div class="map-card">
+          <div class="map-card-title">Traffic Overlay</div>
+          <div class="neu-map-container" data-lat="40.7128" data-lon="-74.0060" data-traffic-paths='[{"start":{"x":20,"y":30},"end":{"x":80,"y":30},"congestion":"medium"},{"start":{"x":50,"y":20},"end":{"x":50,"y":80},"congestion":"high"},{"start":{"x":30,"y":70},"end":{"x":70,"y":70},"congestion":"low"}]'>
+            <div class="neu-map">
+              <div class="map-placeholder city-map"></div>
+            </div>
+            <div class="neu-map-overlay" data-overlay-type="traffic"></div>
+          </div>
+          <div class="map-info">
+            Traffic overlays show color-coded paths representing road congestion levels, with green for flowing traffic, yellow for moderate congestion, and red for heavy traffic.
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Pollution Overlay -->
+    <div class="map-section">
+      <h2 class="section-title">Pollution Overlay</h2>
+      <p class="section-description">
+        Pollution overlays visualize air quality and pollution levels in different areas of a city. These can be used to highlight areas with poor air quality, identify pollution sources, or plan cleaner meeting spots.
+      </p>
+      
+      <div class="controls">
+        <div>
+          <span class="control-label">Pollution Intensity:</span>
+          <div class="neu-slider-container neu-slider-small" style="width: 200px;" id="pollution-intensity-slider">
+            <div class="neu-slider-track">
+              <div class="neu-slider-track-inner">
+                <div class="neu-slider-progress" style="width: 60%"></div>
+              </div>
+            </div>
+            <div class="neu-slider-thumb" style="left: 60%" tabindex="0"></div>
+            <span class="neu-slider-value">60%</span>
+          </div>
+        </div>
+        
+        <div>
+          <span class="control-label">Particle Density:</span>
+          <div class="neu-slider-container neu-slider-small" style="width: 200px;" id="particle-density-slider">
+            <div class="neu-slider-track">
+              <div class="neu-slider-track-inner">
+                <div class="neu-slider-progress" style="width: 50%"></div>
+              </div>
+            </div>
+            <div class="neu-slider-thumb" style="left: 50%" tabindex="0"></div>
+            <span class="neu-slider-value">50%</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="map-row">
+        <div class="map-card">
+          <div class="map-card-title">City Pollution Levels <span class="api-badge">Real-time API</span></div>
+          <div class="neu-map-container" data-lat="40.7128" data-lon="-74.0060" data-pollution-areas='[{"x":30,"y":40,"radius":25,"aqi":142},{"x":70,"y":30,"radius":15,"aqi":78},{"x":50,"y":70,"radius":20,"aqi":42}]'>
+            <div class="neu-map">
+              <div class="map-placeholder city-map"></div>
+            </div>
+            <div class="neu-map-overlay" data-overlay-type="pollution"></div>
+          </div>
+          <div class="map-info">
+            This pollution overlay uses real-time data from the OpenAQ API to show air quality levels. Each colored area represents a monitoring station, with AQI (Air Quality Index) values color-coded from green (good) to red (hazardous).
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sunshine Overlay -->
+    <div class="map-section">
+      <h2 class="section-title">Sunshine Overlay</h2>
+      <p class="section-description">
+        Sunshine overlays highlight the sunniest areas on a map, making it easy to find ideal outdoor meeting spots. These can be used for planning outdoor activities, identifying shadow-free areas, or optimal seating arrangements.
+      </p>
+      
+      <div class="controls">
+        <div>
+          <span class="control-label">Sunshine Brightness:</span>
+          <div class="neu-slider-container neu-slider-small" style="width: 200px;" id="sunshine-brightness-slider">
+            <div class="neu-slider-track">
+              <div class="neu-slider-track-inner">
+                <div class="neu-slider-progress" style="width: 70%"></div>
+              </div>
+            </div>
+            <div class="neu-slider-thumb" style="left: 70%" tabindex="0"></div>
+            <span class="neu-slider-value">70%</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="map-row">
+        <div class="map-card">
+          <div class="map-card-title">Sunny Meeting Spots <span class="api-badge">Real-time API</span></div>
+          <div class="neu-map-container" data-lat="40.7128" data-lon="-74.0060" data-sunny-areas='[{"x":25,"y":35,"radius":15,"label":"Morning Sun"},{"x":65,"y":45,"radius":20,"label":"All Day Sun"},{"x":40,"y":75,"radius":12,"label":"Afternoon Sun"}]'>
+            <div class="neu-map">
+              <div class="map-placeholder terrain-map"></div>
+            </div>
+            <div class="neu-map-overlay" data-overlay-type="sunshine"></div>
+          </div>
+          <div class="map-info">
+            The sunshine overlay uses real-time data from the Sunrise-Sunset API to show current sun position, sunrise/sunset times, and areas with optimal sun exposure during different times of day.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../components/neumorphic/map-api.js"></script>
+  <script src="../../components/neumorphic/neumorphic.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize all map overlays
+      window.neumorphicUI.initMapOverlays();
+      
+      // Handle scan speed slider
+      const scanSpeedSlider = document.getElementById('scan-speed-slider');
+      scanSpeedSlider.addEventListener('neu-slider-change', (e) => {
+        const scanLines = document.querySelectorAll('.neu-sonar-scan-line');
+        const speed = 8 - (e.detail.value / 100 * 7); // 1s (fast) to 8s (slow)
+        
+        scanLines.forEach(line => {
+          line.style.animationDuration = `${speed}s`;
+        });
+      });
+      
+      // Handle pulse intensity slider
+      const pulseIntensitySlider = document.getElementById('pulse-intensity-slider');
+      pulseIntensitySlider.addEventListener('neu-slider-change', (e) => {
+        const pulses = document.querySelectorAll('.neu-sonar-pulse');
+        const opacity = e.detail.value / 100;
+        
+        pulses.forEach(pulse => {
+          pulse.style.opacity = opacity;
+        });
+      });
+      
+      // Add random blip button
+      const addBlipBtn = document.getElementById('add-blip-btn');
+      addBlipBtn.addEventListener('click', () => {
+        const overlays = document.querySelectorAll('.neu-map-overlay[data-overlay-type="radar"]');
+        
+        overlays.forEach(overlay => {
+          const blip = document.createElement('div');
+          blip.className = 'neu-sonar-blip';
+          
+          // Random position
+          const left = 10 + Math.random() * 80;
+          const top = 10 + Math.random() * 80;
+          
+          blip.style.left = `${left}%`;
+          blip.style.top = `${top}%`;
+          
+          overlay.appendChild(blip);
+          
+          // Remove after animation completes
+          setTimeout(() => {
+            blip.remove();
+          }, 1000);
+        });
+      });
+      
+      // Handle pollution intensity slider
+      const pollutionIntensitySlider = document.getElementById('pollution-intensity-slider');
+      if (pollutionIntensitySlider) {
+        pollutionIntensitySlider.addEventListener('neu-slider-change', (e) => {
+          const pollutionAreas = document.querySelectorAll('.neu-pollution-area');
+          const intensity = e.detail.value / 100;
+          
+          pollutionAreas.forEach(area => {
+            area.style.opacity = 0.4 + (intensity * 0.6); // Scale from 0.4 to 1.0
+          });
+        });
+      }
+      
+      // Handle particle density slider
+      const particleDensitySlider = document.getElementById('particle-density-slider');
+      if (particleDensitySlider) {
+        particleDensitySlider.addEventListener('neu-slider-change', (e) => {
+          const density = e.detail.value / 100;
+          const pollutionOverlays = document.querySelectorAll('.neu-map-overlay[data-overlay-type="pollution"]');
+          
+          pollutionOverlays.forEach(overlay => {
+            // Remove existing particles
+            const existingParticles = overlay.querySelectorAll('.neu-pollution-particle');
+            existingParticles.forEach(particle => {
+              particle.remove();
+            });
+            
+            // Get pollution areas data
+            const container = overlay.closest('.neu-map-container');
+            if (!container) return;
+            
+            const pollutionAreas = container.getAttribute('data-pollution-areas');
+            if (!pollutionAreas) return;
+            
+            try {
+              // Add new particles based on density
+              const areas = JSON.parse(pollutionAreas);
+              areas.forEach(area => {
+                const particleCount = Math.round(area.radius / 2 * density * 2); // 0 to 2x base density
+                
+                for (let i = 0; i < particleCount; i++) {
+                  const particle = document.createElement('div');
+                  particle.className = 'neu-pollution-particle';
+                  
+                  // Random position within the area
+                  const angle = Math.random() * Math.PI * 2;
+                  const distance = Math.random() * area.radius;
+                  const x = area.x + Math.cos(angle) * distance;
+                  const y = area.y + Math.sin(angle) * distance;
+                  
+                  // Random float direction and duration
+                  const floatX = (Math.random() - 0.5) * 30;
+                  const floatY = (Math.random() - 0.5) * 30;
+                  const duration = 5 + Math.random() * 10;
+                  
+                  particle.style.left = `${x}%`;
+                  particle.style.top = `${y}%`;
+                  particle.style.setProperty('--float-x', `${floatX}px`);
+                  particle.style.setProperty('--float-y', `${floatY}px`);
+                  particle.style.animationDuration = `${duration}s`;
+                  
+                  overlay.appendChild(particle);
+                }
+              });
+            } catch(e) {
+              console.error('Error updating pollution particles', e);
+            }
+          });
+        });
+      }
+      
+      // Handle sunshine brightness slider
+      const sunshineBrightnessSlider = document.getElementById('sunshine-brightness-slider');
+      if (sunshineBrightnessSlider) {
+        sunshineBrightnessSlider.addEventListener('neu-slider-change', (e) => {
+          const brightness = e.detail.value / 100;
+          const sunshineAreas = document.querySelectorAll('.neu-sunshine-area');
+          
+          sunshineAreas.forEach(area => {
+            area.style.opacity = 0.5 + (brightness * 0.5); // Scale from 0.5 to 1.0
+            area.style.filter = `blur(${15 - brightness * 10}px)`; // Less blur with more brightness
+            
+            const rays = area.querySelectorAll('.neu-sunshine-ray');
+            rays.forEach(ray => {
+              ray.style.opacity = 0.3 + (brightness * 0.7); // Scale from 0.3 to 1.0
+            });
+          });
+        });
+      }
+      
+      // Handle real-time data toggle
+      const realDataToggle = document.getElementById('real-data-toggle');
+      if (realDataToggle) {
+        realDataToggle.addEventListener('change', () => {
+          const useRealData = realDataToggle.checked;
+          
+          // Update all map containers with the new setting
+          const mapContainers = document.querySelectorAll('.neu-map-container');
+          mapContainers.forEach(container => {
+            container.setAttribute('data-use-real-data', useRealData);
+          });
+          
+          // Reinitialize overlays
+          window.neumorphicUI.initMapOverlays();
+        });
+      }
+      
+      // Handle location selection
+      const locationButtons = document.querySelectorAll('.location-button');
+      if (locationButtons.length > 0) {
+        locationButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            // Remove active class from all buttons
+            locationButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            button.classList.add('active');
+            
+            // Get lat/lon from button data attributes
+            const lat = button.getAttribute('data-lat');
+            const lon = button.getAttribute('data-lon');
+            
+            if (lat && lon) {
+              // Update all map containers with new coordinates
+              const mapContainers = document.querySelectorAll('.neu-map-container');
+              mapContainers.forEach(container => {
+                container.setAttribute('data-lat', lat);
+                container.setAttribute('data-lon', lon);
+              });
+              
+              // Reinitialize overlays
+              window.neumorphicUI.initMapOverlays();
+            }
+          });
+        });
+        
+        // Set the first button as active by default
+        locationButtons[0].classList.add('active');
+      }
+    });
+  </script>
+  
+  <style>
+    /* Additional styles for API-related UI */
+    .api-badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 6px;
+      background-color: var(--neu-info-color);
+      color: white;
+      border-radius: 4px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    
+    .neu-button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .location-button {
+      min-width: 80px;
+    }
+    
+    .location-button.active {
+      background-color: var(--neu-primary-color);
+      color: white;
+      box-shadow: var(--neu-shadow-small-pressed);
+      transform: translateY(1px);
+    }
+    
+    .neu-dark-theme .location-button.active {
+      background-color: var(--neu-primary-color);
+      color: white;
+    }
+  </style>
+</body>
+</html> 

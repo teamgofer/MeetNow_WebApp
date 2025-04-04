@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetNow Navigation Components</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f7f9fc;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 40px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      letter-spacing: -0.5px;
+    }
+    
+    .header p {
+      margin: 10px 0 0;
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+    
+    .design-set {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 40px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .design-set h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 1.8rem;
+      position: relative;
+      padding-bottom: 10px;
+    }
+    
+    .design-set h2::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: #4a90e2;
+      border-radius: 3px;
+    }
+    
+    .example-wrapper {
+      background: #f8f9fa;
+      padding: 30px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+    
+    .example-title {
+      position: absolute;
+      top: -10px;
+      left: 20px;
+      background: #4a90e2;
+      color: white;
+      padding: 2px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    
+    /* Modern Navigation */
+    .modern-nav {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      height: 70px;
+    }
+    
+    .modern-logo {
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #4a90e2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .modern-logo-icon {
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modern-nav-items {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .modern-nav-item {
+      color: #555;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.3s ease;
+      position: relative;
+    }
+    
+    .modern-nav-item:hover {
+      color: #4a90e2;
+    }
+    
+    .modern-nav-item.active {
+      color: #4a90e2;
+    }
+    
+    .modern-nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -26px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: #4a90e2;
+      border-radius: 3px 3px 0 0;
+    }
+    
+    .modern-actions {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .modern-button {
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+    }
+    
+    .modern-button-outline {
+      color: #4a90e2;
+      background: white;
+      border: 1px solid #4a90e2;
+    }
+    
+    .modern-button-outline:hover {
+      background: #f5f9ff;
+    }
+    
+    .modern-button-filled {
+      color: white;
+      background: linear-gradient(135deg, #4a90e2 0%, #357ae8 100%);
+    }
+    
+    .modern-button-filled:hover {
+      box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+      transform: translateY(-1px);
+    }
+    
+    /* Mobile Menu */
+    .modern-mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #333;
+      cursor: pointer;
+    }
+    
+    @media (max-width: 768px) {
+      .modern-nav-items {
+        display: none;
+      }
+      
+      .modern-mobile-toggle {
+        display: block;
+      }
+      
+      .modern-nav {
+        padding: 0 15px;
+      }
+      
+      .modern-actions {
+        gap: 10px;
+      }
+      
+      .modern-button {
+        padding: 8px 15px;
+        font-size: 0.85rem;
+      }
+    }
+    
+    /* Luxury Navigation */
+    .luxury-nav {
+      background: #1a1a1a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 30px;
+      height: 80px;
+      border-bottom: 1px solid #DDB458;
+    }
+    
+    .luxury-logo {
+      font-family: 'Times New Roman', serif;
+      font-weight: 600;
+      font-size: 1.6rem;
+      color: #DDB458;
+      letter-spacing: 1.5px;
+    }
+    
+    .luxury-nav-items {
+      display: flex;
+      gap: 40px;
+    }
+    
+    .luxury-nav-item {
+      color: white;
+      font-family: 'Times New Roman', serif;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.3s ease;
+      position: relative;
+      letter-spacing: 1px;
+    }
+    
+    .luxury-nav-item:hover {
+      color: #DDB458;
+    }
+    
+    .luxury-nav-item.active {
+      color: #DDB458;
+    }
+    
+    .luxury-nav-item::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: #DDB458;
+      transition: width 0.3s ease;
+    }
+    
+    .luxury-nav-item:hover::after,
+    .luxury-nav-item.active::after {
+      width: 100%;
+    }
+    
+    .luxury-actions {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    
+    .luxury-button {
+      background: transparent;
+      border: 1px solid #DDB458;
+      color: #DDB458;
+      padding: 10px 25px;
+      font-family: 'Times New Roman', serif;
+      font-weight: 500;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .luxury-button:hover {
+      background: #DDB458;
+      color: #1a1a1a;
+    }
+    
+    /* Playful Navigation */
+    .playful-nav {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 25px;
+      height: 70px;
+      border: 3px solid #FF6B6B;
+    }
+    
+    .playful-logo {
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: #FF6B6B;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .playful-logo-icon {
+      background: #FF6B6B;
+      color: white;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transform: rotate(-5deg);
+    }
+    
+    .playful-nav-items {
+      display: flex;
+      gap: 25px;
+    }
+    
+    .playful-nav-item {
+      color: #333;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      font-size: 1.1rem;
+    }
+    
+    .playful-nav-item:hover {
+      color: #FF6B6B;
+      transform: translateY(-2px);
+    }
+    
+    .playful-nav-item.active {
+      color: #FF6B6B;
+    }
+    
+    .playful-nav-item.active::before {
+      content: '•';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #FF6B6B;
+      font-size: 1.5rem;
+    }
+    
+    .playful-actions {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .playful-button {
+      background: #4ECDC4;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transform: rotate(2deg);
+      box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .playful-button:hover {
+      transform: rotate(-2deg) translateY(-3px);
+      box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Minimalist Navigation */
+    .minimal-nav {
+      background: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      height: 60px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .minimal-logo {
+      font-weight: 500;
+      font-size: 1.3rem;
+      color: #333;
+    }
+    
+    .minimal-nav-items {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .minimal-nav-item {
+      color: #555;
+      font-weight: 400;
+      text-decoration: none;
+      transition: color 0.3s ease;
+      position: relative;
+      font-size: 0.95rem;
+    }
+    
+    .minimal-nav-item:hover {
+      color: #000;
+    }
+    
+    .minimal-nav-item.active {
+      color: #000;
+    }
+    
+    .minimal-nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: #000;
+    }
+    
+    .minimal-actions {
+      display: flex;
+      align-items: center;
+    }
+    
+    .minimal-button {
+      background: transparent;
+      border: 1px solid #333;
+      color: #333;
+      padding: 8px 18px;
+      font-weight: 400;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .minimal-button:hover {
+      background: #333;
+      color: white;
+    }
+    
+    /* Neumorphic Navigation */
+    .neumorphic-nav {
+      background: #EBECF0;
+      border-radius: 15px;
+      box-shadow: 8px 8px 15px #D1D9E6, -8px -8px 15px #FFFFFF;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 25px;
+      height: 70px;
+      margin: 15px;
+    }
+    
+    .neumorphic-logo {
+      font-weight: 600;
+      font-size: 1.4rem;
+      color: #6D7587;
+    }
+    
+    .neumorphic-nav-items {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .neumorphic-nav-item {
+      color: #6D7587;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      padding: 8px 15px;
+      border-radius: 10px;
+    }
+    
+    .neumorphic-nav-item:hover {
+      color: #4a90e2;
+    }
+    
+    .neumorphic-nav-item.active {
+      color: #4a90e2;
+      box-shadow: inset 2px 2px 5px #D1D9E6, inset -2px -2px 5px #FFFFFF;
+    }
+    
+    .neumorphic-actions {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .neumorphic-button {
+      background: #EBECF0;
+      color: #6D7587;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 5px 5px 10px #D1D9E6, -5px -5px 10px #FFFFFF;
+    }
+    
+    .neumorphic-button:hover {
+      box-shadow: 3px 3px 5px #D1D9E6, -3px -3px 5px #FFFFFF;
+    }
+    
+    .neumorphic-button:active {
+      box-shadow: inset 2px 2px 5px #D1D9E6, inset -2px -2px 5px #FFFFFF;
+    }
+    
+    /* Mobile Navigation */
+    .mobile-nav-example {
+      position: relative;
+      height: 500px;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #f0f0f0;
+    }
+    
+    .mobile-phone {
+      position: absolute;
+      width: 300px;
+      height: 600px;
+      background: #111;
+      border-radius: 30px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 10px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+    
+    .mobile-screen {
+      background: white;
+      height: 100%;
+      width: 100%;
+      border-radius: 22px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .mobile-status-bar {
+      height: 30px;
+      background: #4a90e2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 15px;
+      color: white;
+      font-size: 0.8rem;
+    }
+    
+    .mobile-content {
+      height: calc(100% - 30px);
+      overflow-y: auto;
+    }
+    
+    .bottom-tab-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      background: white;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      color: #999;
+      font-size: 0.7rem;
+      padding: 10px 0;
+      width: 25%;
+      text-align: center;
+    }
+    
+    .tab-item.active {
+      color: #4a90e2;
+    }
+    
+    .tab-icon {
+      font-size: 1.3rem;
+    }
+    
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      padding: 30px;
+      border-top: 1px solid #eee;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>MeetNow Navigation Components</h1>
+      <p>Stylish navigation bars and menus for different design systems</p>
+    </div>
+    
+    <!-- Modern Navigation -->
+    <div class="design-set">
+      <h2>Modern Navigation</h2>
+      <p>Clean, modern navigation with subtle gradients and hover effects.</p>
+      
+      <div class="example-wrapper">
+        <span class="example-title">Desktop</span>
+        <nav class="modern-nav">
+          <div class="modern-logo">
+            <div class="modern-logo-icon">M</div>
+            <span>MeetNow</span>
+          </div>
+          
+          <div class="modern-nav-items">
+            <a href="#" class="modern-nav-item active">Home</a>
+            <a href="#" class="modern-nav-item">Discover</a>
+            <a href="#" class="modern-nav-item">Create</a>
+            <a href="#" class="modern-nav-item">My Events</a>
+          </div>
+          
+          <div class="modern-actions">
+            <button class="modern-button modern-button-outline">Sign In</button>
+            <button class="modern-button modern-button-filled">Sign Up</button>
+          </div>
+          
+          <button class="modern-mobile-toggle">☰</button>
+        </nav>
+      </div>
+    </div>
+    
+    <!-- Luxury Navigation -->
+    <div class="design-set">
+      <h2>Luxury Navigation</h2>
+      <p>Elegant navigation with gold accents and sophisticated animations.</p>
+      
+      <div class="example-wrapper">
+        <span class="example-title">Desktop</span>
+        <nav class="luxury-nav">
+          <div class="luxury-logo">MEETNOW</div>
+          
+          <div class="luxury-nav-items">
+            <a href="#" class="luxury-nav-item">Home</a>
+            <a href="#" class="luxury-nav-item active">Experiences</a>
+            <a href="#" class="luxury-nav-item">Premium</a>
+            <a href="#" class="luxury-nav-item">Concierge</a>
+          </div>
+          
+          <div class="luxury-actions">
+            <button class="luxury-button">Member Access</button>
+          </div>
+        </nav>
+      </div>
+    </div>
+    
+    <!-- Playful Navigation -->
+    <div class="design-set">
+      <h2>Playful Navigation</h2>
+      <p>Fun, colorful navigation with bold elements and energetic animations.</p>
+      
+      <div class="example-wrapper">
+        <span class="example-title">Desktop</span>
+        <nav class="playful-nav">
+          <div class="playful-logo">
+            <div class="playful-logo-icon">M!</div>
+            <span>MeetNow</span>
+          </div>
+          
+          <div class="playful-nav-items">
+            <a href="#" class="playful-nav-item">Home</a>
+            <a href="#" class="playful-nav-item active">Events</a>
+            <a href="#" class="playful-nav-item">Friends</a>
+            <a href="#" class="playful-nav-item">Games</a>
+          </div>
+          
+          <div class="playful-actions">
+            <button class="playful-button">Join the Fun!</button>
+          </div>
+        </nav>
+      </div>
+    </div>
+    
+    <!-- Minimalist Navigation -->
+    <div class="design-set">
+      <h2>Minimalist Navigation</h2>
+      <p>Simple, clean navigation with focus on typography and essential elements.</p>
+      
+      <div class="example-wrapper">
+        <span class="example-title">Desktop</span>
+        <nav class="minimal-nav">
+          <div class="minimal-logo">meetnow</div>
+          
+          <div class="minimal-nav-items">
+            <a href="#" class="minimal-nav-item">Home</a>
+            <a href="#" class="minimal-nav-item active">Events</a>
+            <a href="#" class="minimal-nav-item">About</a>
+            <a href="#" class="minimal-nav-item">Contact</a>
+          </div>
+          
+          <div class="minimal-actions">
+            <button class="minimal-button">Sign In</button>
+          </div>
+        </nav>
+      </div>
+    </div>
+    
+    <!-- Neumorphic Navigation -->
+    <div class="design-set">
+      <h2>Neumorphic Navigation</h2>
+      <p>Soft UI navigation with realistic light and shadow effects.</p>
+      
+      <div class="example-wrapper">
+        <span class="example-title">Desktop</span>
+        <nav class="neumorphic-nav">
+          <div class="neumorphic-logo">MeetNow</div>
+          
+          <div class="neumorphic-nav-items">
+            <a href="#" class="neumorphic-nav-item">Dashboard</a>
+            <a href="#" class="neumorphic-nav-item active">Events</a>
+            <a href="#" class="neumorphic-nav-item">Messages</a>
+            <a href="#" class="neumorphic-nav-item">Profile</a>
+          </div>
+          
+          <div class="neumorphic-actions">
+            <button class="neumorphic-button">Create Event</button>
+          </div>
+        </nav>
+      </div>
+    </div>
+    
+    <!-- Mobile Navigation -->
+    <div class="design-set">
+      <h2>Mobile Navigation</h2>
+      <p>Mobile-optimized bottom tab navigation for easy access to key features.</p>
+      
+      <div class="example-wrapper mobile-nav-example">
+        <div class="mobile-phone">
+          <div class="mobile-screen">
+            <div class="mobile-status-bar">
+              <span>9:41</span>
+              <span>MeetNow</span>
+              <span>100%</span>
+            </div>
+            <div class="mobile-content" style="background: #fafafa; height: 100%;">
+              <!-- Mobile content goes here -->
+            </div>
+            <div class="bottom-tab-nav">
+              <div class="tab-item active">
+                <div class="tab-icon">🏠</div>
+                <span>Home</span>
+              </div>
+              <div class="tab-item">
+                <div class="tab-icon">🔍</div>
+                <span>Discover</span>
+              </div>
+              <div class="tab-item">
+                <div class="tab-icon">➕</div>
+                <span>Create</span>
+              </div>
+              <div class="tab-item">
+                <div class="tab-icon">👤</div>
+                <span>Profile</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    MeetNow &copy; 2023 - UI Component Design System
+  </footer>
+</body>
+</html> 

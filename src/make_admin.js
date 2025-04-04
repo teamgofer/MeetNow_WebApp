@@ -1,0 +1,11 @@
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+async function markUserAsAdmin() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ is_admin: true })
+    .eq('id', '7fdb92db');
+  if (error) console.error('Error updating user:', error);
+  else console.log('User updated successfully:', data);
+}
+markUserAsAdmin();

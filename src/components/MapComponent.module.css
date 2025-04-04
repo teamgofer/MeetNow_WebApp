@@ -1,0 +1,133 @@
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.map-container.mobile {
+  /* Mobile-specific styles */
+  touch-action: none;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Mobile-specific control styles */
+.mobile :global(.leaflet-control-container) {
+  /* Adjust control container for mobile */
+  z-index: 1000;
+}
+
+.mobile :global(.leaflet-control-zoom) {
+  /* Style zoom controls for mobile */
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mobile :global(.leaflet-control-zoom-in),
+.mobile :global(.leaflet-control-zoom-out) {
+  /* Make zoom buttons more touch-friendly */
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 24px;
+}
+
+.mobile :global(.leaflet-control-attribution) {
+  /* Style attribution for mobile */
+  font-size: 10px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile-specific popup styles */
+.mobile :global(.leaflet-popup) {
+  /* Make popups more touch-friendly */
+  max-width: 90vw;
+  margin-bottom: 20px;
+}
+
+.mobile :global(.leaflet-popup-content-wrapper) {
+  /* Style popup content for mobile */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.mobile :global(.leaflet-popup-content) {
+  /* Adjust popup content for mobile */
+  margin: 12px;
+  font-size: 14px;
+}
+
+.mobile :global(.leaflet-popup-tip) {
+  /* Style popup tip for mobile */
+  margin-top: -1px;
+}
+
+/* Mobile-specific marker styles */
+.mobile :global(.leaflet-marker-icon) {
+  /* Make markers more touch-friendly */
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  margin-top: -16px;
+}
+
+/* Mobile-specific loading state */
+.mobile .loading-overlay {
+  /* Style loading overlay for mobile */
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Mobile-specific error state */
+.mobile .error-overlay {
+  /* Style error overlay for mobile */
+  background: rgba(255, 255, 255, 0.9);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .map-container {
+    background-color: #1a1a1a;
+  }
+
+  .mobile :global(.leaflet-control-zoom) {
+    background-color: #2d2d2d;
+    color: #ffffff;
+  }
+
+  .mobile :global(.leaflet-control-zoom-in),
+  .mobile :global(.leaflet-control-zoom-out) {
+    color: #ffffff;
+  }
+
+  .mobile :global(.leaflet-control-attribution) {
+    background: rgba(45, 45, 45, 0.9);
+    color: #ffffff;
+  }
+
+  .mobile :global(.leaflet-popup-content-wrapper) {
+    background-color: #2d2d2d;
+    color: #ffffff;
+  }
+
+  .mobile .loading-overlay {
+    background: rgba(45, 45, 45, 0.9);
+  }
+
+  .mobile .error-overlay {
+    background: rgba(45, 45, 45, 0.9);
+    color: #ffffff;
+  }
+}

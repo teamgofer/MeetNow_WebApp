@@ -1,0 +1,116 @@
+.location-search-example {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+.location-search-example h2 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  color: #2d3748;
+  font-size: 1.8rem;
+}
+
+.search-container {
+  margin-bottom: 32px;
+}
+
+.selected-location-info {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.selected-location-info h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #2d3748;
+  font-size: 1.5rem;
+}
+
+.location-details {
+  margin-bottom: 24px;
+}
+
+.location-details p {
+  margin: 8px 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.address-components {
+  margin-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+}
+
+.address-components h4 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #4a5568;
+  font-size: 1.1rem;
+}
+
+.address-components ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.address-components li {
+  font-size: 0.95rem;
+  padding: 4px 0;
+}
+
+.location-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.location-action-button {
+  background-color: #4a8fe7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.location-action-button:hover {
+  background-color: #3a7fcf;
+}
+
+.location-action-button.secondary {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.location-action-button.secondary:hover {
+  background-color: #cbd5e0;
+}
+
+@media (max-width: 640px) {
+  .location-search-example {
+    padding: 16px;
+  }
+
+  .selected-location-info {
+    padding: 16px;
+  }
+
+  .address-components ul {
+    grid-template-columns: 1fr;
+  }
+}

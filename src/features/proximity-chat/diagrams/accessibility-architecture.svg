@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="800" viewBox="0 0 1000 800">
+  <style>
+    .title { font: bold 24px sans-serif; fill: #333; }
+    .subtitle { font: 16px sans-serif; fill: #666; }
+    .component { fill: #e1f5fe; stroke: #03a9f4; stroke-width: 2; rx: 8; ry: 8; }
+    .utility { fill: #e8f5e9; stroke: #4caf50; stroke-width: 2; rx: 8; ry: 8; }
+    .ui { fill: #fff3e0; stroke: #ff9800; stroke-width: 2; rx: 8; ry: 8; }
+    .test { fill: #f3e5f5; stroke: #9c27b0; stroke-width: 2; rx: 8; ry: 8; }
+    .arrow { stroke: #666; stroke-width: 2; marker-end: url(#arrowhead); }
+    .label { font: 12px sans-serif; fill: #555; }
+    .component-title { font: bold 14px sans-serif; fill: #333; }
+    .component-desc { font: 12px sans-serif; fill: #666; }
+    .section-title { font: bold 18px sans-serif; fill: #333; }
+    .legend-item { font: 14px sans-serif; fill: #333; }
+    .a11y-text { fill: #4527a0; font-weight: bold; }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="500" y="40" text-anchor="middle" class="title">Proximity Chat Accessibility Architecture</text>
+  <text x="500" y="70" text-anchor="middle" class="subtitle">Components, Utilities, and User Interface Elements for Accessible Experience</text>
+
+  <!-- Utility Section -->
+  <text x="250" y="120" class="section-title">Utility Layer</text>
+  <rect x="50" y="140" width="400" height="80" class="utility" />
+  <text x="250" y="170" text-anchor="middle" class="component-title">accessibilityUtils.js</text>
+  <text x="250" y="190" text-anchor="middle" class="component-desc">Core utility functions for accessibility features</text>
+
+  <rect x="50" y="240" width="190" height="80" class="utility" />
+  <text x="145" y="270" text-anchor="middle" class="component-title">keyboardShortcuts.js</text>
+  <text x="145" y="290" text-anchor="middle" class="component-desc">Keyboard navigation management</text>
+
+  <rect x="260" y="240" width="190" height="80" class="utility" />
+  <text x="355" y="270" text-anchor="middle" class="component-title">formatting.js</text>
+  <text x="355" y="290" text-anchor="middle" class="component-desc">Accessible content formatting</text>
+
+  <!-- Component Section -->
+  <text x="250" y="360" class="section-title">Component Layer</text>
+  <rect x="50" y="380" width="190" height="80" class="component" />
+  <text x="145" y="410" text-anchor="middle" class="component-title">KeyboardShortcutsHelp</text>
+  <text x="145" y="430" text-anchor="middle" class="component-desc">Keyboard shortcuts dialog</text>
+
+  <rect x="260" y="380" width="190" height="80" class="component" />
+  <text x="355" y="410" text-anchor="middle" class="component-title">AccessibilityInlineHelp</text>
+  <text x="355" y="430" text-anchor="middle" class="component-desc">Context-sensitive help</text>
+
+  <rect x="150" y="480" width="200" height="80" class="component" />
+  <text x="250" y="510" text-anchor="middle" class="component-title">ScreenReaderAnnouncements</text>
+  <text x="250" y="530" text-anchor="middle" class="component-desc">Dynamic screen reader updates</text>
+
+  <!-- UI Elements -->
+  <text x="750" y="120" class="section-title">User Interface Layer</text>
+  <rect x="550" y="140" width="400" height="80" class="ui" />
+  <text x="750" y="170" text-anchor="middle" class="component-title">ChatContainer</text>
+  <text x="750" y="190" text-anchor="middle" class="component-desc">Main container with landmark roles and skip links</text>
+
+  <rect x="550" y="240" width="190" height="80" class="ui" />
+  <text x="645" y="270" text-anchor="middle" class="component-title">ChatMessageList</text>
+  <text x="645" y="290" text-anchor="middle" class="component-desc">Accessible message navigation</text>
+
+  <rect x="760" y="240" width="190" height="80" class="ui" />
+  <text x="855" y="270" text-anchor="middle" class="component-title">ChatInput</text>
+  <text x="855" y="290" text-anchor="middle" class="component-desc">Accessible message entry</text>
+
+  <rect x="550" y="340" width="190" height="80" class="ui" />
+  <text x="645" y="370" text-anchor="middle" class="component-title">UserList</text>
+  <text x="645" y="390" text-anchor="middle" class="component-desc">Keyboard navigable user list</text>
+
+  <rect x="760" y="340" width="190" height="80" class="ui" />
+  <text x="855" y="370" text-anchor="middle" class="component-title">SoundControls</text>
+  <text x="855" y="390" text-anchor="middle" class="component-desc">Accessible sound preferences</text>
+
+  <!-- Testing Section -->
+  <text x="750" y="460" class="section-title">Testing Layer</text>
+  <rect x="550" y="480" width="400" height="80" class="test" />
+  <text x="750" y="510" text-anchor="middle" class="component-title">Accessibility Testing Guide</text>
+  <text x="750" y="530" text-anchor="middle" class="component-desc">Comprehensive test procedures and checklist</text>
+
+  <!-- Connections -->
+  <!-- Utility to Component -->
+  <line x1="145" y1="320" x2="145" y2="380" class="arrow" />
+  <line x1="355" y1="320" x2="355" y2="380" class="arrow" />
+  <line x1="250" y1="220" x2="250" y2="480" class="arrow" />
+
+  <!-- Utility to UI -->
+  <line x1="450" y1="180" x2="550" y2="180" class="arrow" />
+  <line x1="240" y1="240" x2="550" y2="280" class="arrow" />
+  <line x1="240" y1="290" x2="550" y2="370" class="arrow" />
+  <line x1="450" y1="280" x2="760" y2="280" class="arrow" />
+  <line x1="450" y1="260" x2="800" y2="340" class="arrow" />
+
+  <!-- Component to UI -->
+  <line x1="450" y1="420" x2="550" y2="180" class="arrow" />
+  <line x1="450" y1="390" x2="550" y2="280" class="arrow" />
+  <line x1="350" y1="480" x2="710" y2="340" class="arrow" />
+  <line x1="350" y1="520" x2="760" y2="380" class="arrow" />
+
+  <!-- UI to Testing -->
+  <line x1="645" y1="420" x2="645" y2="480" class="arrow" />
+  <line x1="855" y1="420" x2="855" y2="480" class="arrow" />
+
+  <!-- Legend -->
+  <rect x="350" y="600" width="20" height="20" class="utility" />
+  <text x="380" y="615" class="legend-item">Utility Layer - Core accessibility functions</text>
+
+  <rect x="350" y="630" width="20" height="20" class="component" />
+  <text x="380" y="645" class="legend-item">Component Layer - Reusable accessibility components</text>
+
+  <rect x="350" y="660" width="20" height="20" class="ui" />
+  <text x="380" y="675" class="legend-item">UI Layer - Enhanced UI with accessibility features</text>
+
+  <rect x="350" y="690" width="20" height="20" class="test" />
+  <text x="380" y="705" class="legend-item">Testing Layer - Accessibility validation and testing</text>
+
+  <!-- WCAG Compliance Note -->
+  <text x="500" y="750" text-anchor="middle" class="subtitle">
+    Designed to meet <tspan class="a11y-text">WCAG 2.1 AA</tspan> standards with support for screen readers, keyboard navigation, and high contrast modes
+  </text>
+</svg> 

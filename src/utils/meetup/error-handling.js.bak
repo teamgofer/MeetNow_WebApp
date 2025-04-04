@@ -1,0 +1,30 @@
+export var ErrorCategory;
+(function (ErrorCategory) {
+    ErrorCategory["VALIDATION"] = "validation";
+    ErrorCategory["NETWORK"] = "network";
+    ErrorCategory["STORAGE"] = "storage";
+    ErrorCategory["DATABASE"] = "database";
+    ErrorCategory["UNKNOWN"] = "unknown";
+})(ErrorCategory || (ErrorCategory = {}));
+export const handleMeetupError = (error, operation) => {
+    let category = ErrorCategory.UNKNOWN;
+    if (error.message.includes('validation')) {
+        category = ErrorCategory.VALIDATION;
+    }
+    else if (error.message.includes('network') || error.message.includes('fetch')) {
+        category = ErrorCategory.NETWORK;
+    }
+    else if (error.message.includes('storage') || error.message.includes('upload')) {
+        category = ErrorCategory.STORAGE;
+    }
+    else if (error.message.includes('database') || error.message.includes('supabase')) {
+        category = ErrorCategory.DATABASE;
+    }
+    return {
+        category,
+        message: error.message ?? `Failed to ${operation}`,
+        timestamp: new Date().toISOString(),
+        originalError: error
+    };
+};
+//# sourceMappingURL=error-handling.js.map

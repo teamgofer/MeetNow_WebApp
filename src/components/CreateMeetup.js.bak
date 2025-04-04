@@ -1,0 +1,84 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useState, useRef, useEffect } from 'react';
+import { IoLocationOutline, IoCalendarOutline, IoPersonOutline, IoTimeOutline, IoDocumentTextOutline } from 'react-icons/io5';
+import { ensureProfile } from '../utils/auth';
+import { createMeetup } from '../utils/meetup';
+import LocationSearchEnhanced from './search/LocationSearchEnhanced';
+import './CreateMeetup.css';
+const CreateMeetup = ({ onClose, initialLocation = null }) => {
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [address, setAddress] = useState('');
+    const [maxParticipants, setMaxParticipants] = useState('10');
+    const [duration, setDuration] = useState('60');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [time, setTime] = useState('18:00');
+    const [location, setLocation] = useState(initialLocation);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState(null);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const titleRef = useRef(null);
+    const formRef = useRef(null);
+    useEffect(() => {
+        if (titleRef.current) {
+            titleRef.current.focus();
+        }
+        if (initialLocation?.display_name) {
+            setAddress(initialLocation.display_name);
+        }
+    }, [initialLocation]);
+    const handleLocationSelect = (selectedLocation) => {
+        if (selectedLocation) {
+            setLocation({
+                lat: selectedLocation.lat,
+                lng: selectedLocation.lng,
+                display_name: selectedLocation.display_name ?? ''
+            });
+            setAddress(selectedLocation.display_name ?? '');
+            if (!title) {
+                const locationName = selectedLocation.display_name?.split(',')[0] ?? 'Location';
+                setTitle(`Meetup at ${locationName}`);
+            }
+        }
+        else {
+            setLocation(null);
+            setAddress('');
+        }
+    };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!title || !location) {
+            setError('Title and location are required');
+            return;
+        }
+        setIsSubmitting(true);
+        setError(null);
+        try {
+            await ensureProfile();
+            const meetupDateTime = new Date(`${date}T${time}`);
+            const meetupData = {
+                title: title.trim(),
+                description: description.trim() || '',
+                lat: location.lat,
+                lng: location.lng,
+                address: (address ?? location.display_name) || '',
+                duration: parseInt(duration) || 60,
+                user_id: null
+            };
+            const result = await createMeetup(meetupData);
+            setIsSuccess(true);
+            setTimeout(() => {
+                onClose(result);
+            }, 2000);
+        }
+        catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+        }
+        finally {
+            setIsSubmitting(false);
+        }
+    };
+    return (_jsxs("div", { className: "create-meetup-container", children: [_jsxs("div", { className: "create-meetup-header", children: [_jsx("h2", { children: "Create a New Meetup" }), _jsx("button", { className: "close-button", onClick: () => onClose(), "aria-label": "Close", children: "\u00D7" })] }), isSuccess ? (_jsxs("div", { className: "success-message", children: [_jsx("div", { className: "success-icon", children: "\u2713" }), _jsx("h3", { children: "Meetup Created!" }), _jsx("p", { children: "Your meetup has been successfully created." })] })) : (_jsxs("form", { ref: formRef, onSubmit: handleSubmit, className: "create-meetup-form", children: [error && _jsx("div", { className: "error-message", children: error }), _jsxs("div", { className: "form-group", children: [_jsxs("label", { htmlFor: "meetup-title", children: [_jsx(IoDocumentTextOutline, {}), " Title"] }), _jsx("input", { ref: titleRef, id: "meetup-title", type: "text", value: title, onChange: (e) => setTitle(e.target.value), placeholder: "Enter meetup title", required: true, maxLength: 100 })] }), _jsxs("div", { className: "form-group", children: [_jsxs("label", { children: [_jsx(IoLocationOutline, {}), " Location"] }), _jsx("div", { className: "location-search-wrapper", children: _jsx(LocationSearchEnhanced, { onLocationSelect: handleLocationSelect, initialQuery: address, placeholder: "Search for a location", showCurrentLocation: true, autoFocus: !title }) }), location && (_jsxs("div", { className: "selected-location-info", children: [_jsx("span", { children: "Selected: " }), _jsx("span", { className: "location-name", children: location.display_name })] }))] }), _jsxs("div", { className: "form-row", children: [_jsxs("div", { className: "form-group half", children: [_jsxs("label", { htmlFor: "meetup-date", children: [_jsx(IoCalendarOutline, {}), " Date"] }), _jsx("input", { id: "meetup-date", type: "date", value: date, onChange: (e) => setDate(e.target.value), min: new Date().toISOString().split('T')[0], required: true })] }), _jsxs("div", { className: "form-group half", children: [_jsxs("label", { htmlFor: "meetup-time", children: [_jsx(IoTimeOutline, {}), " Time"] }), _jsx("input", { id: "meetup-time", type: "time", value: time, onChange: (e) => setTime(e.target.value), required: true })] })] }), _jsxs("div", { className: "form-row", children: [_jsxs("div", { className: "form-group half", children: [_jsxs("label", { htmlFor: "meetup-duration", children: [_jsx(IoTimeOutline, {}), " Duration (minutes)"] }), _jsx("input", { id: "meetup-duration", type: "number", value: duration, onChange: (e) => setDuration(e.target.value), min: "15", max: "480", required: true })] }), _jsxs("div", { className: "form-group half", children: [_jsxs("label", { htmlFor: "meetup-participants", children: [_jsx(IoPersonOutline, {}), " Max Participants"] }), _jsx("input", { id: "meetup-participants", type: "number", value: maxParticipants, onChange: (e) => setMaxParticipants(e.target.value), min: "1", max: "100", required: true })] })] }), _jsxs("div", { className: "form-group", children: [_jsxs("label", { htmlFor: "meetup-description", children: [_jsx(IoDocumentTextOutline, {}), " Description"] }), _jsx("textarea", { id: "meetup-description", value: description, onChange: (e) => setDescription(e.target.value), placeholder: "Enter meetup description", maxLength: 1000 })] }), _jsxs("div", { className: "form-actions", children: [_jsx("button", { type: "button", className: "cancel-button", onClick: () => onClose(), disabled: isSubmitting, children: "Cancel" }), _jsx("button", { type: "submit", className: "submit-button", disabled: isSubmitting || (!title || !location), children: isSubmitting ? 'Creating...' : 'Create Meetup' })] })] }))] }));
+};
+export default CreateMeetup;
+//# sourceMappingURL=CreateMeetup.js.map

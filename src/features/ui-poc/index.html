@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeetNow Neumorphic UI System</title>
+  <link rel="stylesheet" href="../../components/neumorphic/neumorphic.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--neu-primary-bg);
+      color: var(--neu-text-color);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 60px;
+      position: relative;
+    }
+    
+    .title {
+      font-size: 2.8rem;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      font-size: 1.3rem;
+      color: var(--neu-text-color-light);
+      margin-bottom: 5px;
+    }
+    
+    .description {
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    
+    .theme-toggle-container {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .theme-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .demos-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 60px;
+    }
+    
+    .demo-card {
+      border-radius: 15px;
+      background-color: var(--neu-primary-bg);
+      box-shadow: var(--neu-shadow-medium);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .demo-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 8px 8px 16px var(--neu-primary-dark), -8px -8px 16px var(--neu-primary-light);
+    }
+    
+    .demo-thumbnail {
+      width: 100%;
+      height: 180px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+    
+    .thumbnail-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%);
+    }
+    
+    .demo-content {
+      padding: 20px;
+    }
+    
+    .demo-title {
+      font-size: 1.3rem;
+      margin: 0 0 10px 0;
+    }
+    
+    .demo-description {
+      color: var(--neu-text-color-light);
+      font-size: 0.95rem;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+    
+    .demo-link {
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 8px;
+      background-color: var(--neu-primary-bg);
+      color: var(--neu-text-color);
+      text-decoration: none;
+      box-shadow: var(--neu-shadow-small);
+      transition: all 0.3s ease;
+    }
+    
+    .demo-link:hover {
+      box-shadow: var(--neu-shadow-small-hover);
+      transform: translateY(-2px);
+    }
+    
+    .demo-link:active {
+      box-shadow: var(--neu-shadow-small-pressed);
+      transform: translateY(0);
+    }
+    
+    .neu-dark-theme .thumbnail-overlay {
+      background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%);
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .title {
+        font-size: 2.2rem;
+        padding-right: 80px;
+      }
+      
+      .subtitle {
+        font-size: 1.1rem;
+      }
+      
+      .demos-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .theme-toggle-container {
+        top: 5px;
+        right: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">MeetNow Neumorphic UI</h1>
+      <p class="subtitle">A comprehensive UI system with soft neumorphic aesthetics</p>
+      <p class="description">Explore our collection of neumorphic UI components designed for modern web applications. All components feature accessibility support, dark theme compatibility, and responsive design.</p>
+      
+      <div class="theme-toggle-container">
+        <span class="theme-label">Light</span>
+        <label class="neu-switch neu-switch-small neu-theme-toggle">
+          <input type="checkbox" class="neu-switch-input">
+          <span class="neu-switch-slider"></span>
+        </label>
+        <span class="theme-label">Dark</span>
+      </div>
+    </div>
+    
+    <div class="demos-container">
+      <!-- Basic Components -->
+      <div class="demo-card">
+        <div class="demo-thumbnail" style="background-color: var(--neu-primary-bg); display: flex; justify-content: center; align-items: center;">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="9" y1="21" x2="9" y2="9"></line>
+          </svg>
+          <div class="thumbnail-overlay"></div>
+        </div>
+        <div class="demo-content">
+          <h3 class="demo-title">Basic Components</h3>
+          <p class="demo-description">Explore the core neumorphic components including buttons, cards, badges, and more.</p>
+          <a href="./neumorphic-components.html" class="demo-link">View Demo</a>
+        </div>
+      </div>
+      
+      <!-- Advanced Components -->
+      <div class="demo-card">
+        <div class="demo-thumbnail" style="background-color: var(--neu-primary-bg); display: flex; justify-content: center; align-items: center;">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <div class="thumbnail-overlay"></div>
+        </div>
+        <div class="demo-content">
+          <h3 class="demo-title">Advanced Components</h3>
+          <p class="demo-description">Check out our advanced components like skeletons, accordions, sliders, and glass cards.</p>
+          <a href="./advanced-neumorphic-demo.html" class="demo-link">View Demo</a>
+        </div>
+      </div>
+      
+      <!-- Advanced Components Showcase -->
+      <div class="demo-card">
+        <div class="demo-thumbnail" style="background-color: var(--neu-primary-bg); display: flex; justify-content: center; align-items: center;">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <div class="thumbnail-overlay"></div>
+        </div>
+        <div class="demo-content">
+          <h3 class="demo-title">Components in Action</h3>
+          <p class="demo-description">See the advanced components in action with working examples and interactive elements.</p>
+          <a href="./advanced-components-showcase.html" class="demo-link">View Demo</a>
+        </div>
+      </div>
+      
+      <!-- Fog of War Map Feature -->
+      <div class="demo-card">
+        <div class="demo-thumbnail" style="background-color: var(--neu-primary-bg); display: flex; justify-content: center; align-items: center;">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="4"></circle>
+            <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line>
+            <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line>
+            <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line>
+            <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line>
+          </svg>
+          <div class="thumbnail-overlay"></div>
+        </div>
+        <div class="demo-content">
+          <h3 class="demo-title">Fog of War Map</h3>
+          <p class="demo-description">Explore our premium map feature that limits visibility to a configurable radius around the user.</p>
+          <a href="./fog-of-war-demo.html" class="demo-link">View Demo</a>
+        </div>
+      </div>
+      
+      <!-- Form Elements -->
+      <div class="demo-card">
+        <div class="demo-thumbnail" style="background-color: var(--neu-primary-bg); display: flex; justify-content: center; align-items: center;">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <div class="thumbnail-overlay"></div>
+        </div>
+        <div class="demo-content">
+          <h3 class="demo-title">Form Elements & Theme Toggle</h3>
+          <p class="demo-description">Explore form inputs, checkboxes, switches, and more. Try out the dark theme toggle.</p>
+          <a href="./theme-toggle-demo.html" class="demo-link">View Demo</a>
+        </div>
+      </div>
+      
+      <!-- Map Overlays -->
+      <div class="demo-card">
+        <div class="demo-thumbnail" style="background-color: var(--neu-primary-bg); display: flex; justify-content: center; align-items: center;">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M16.2 7.8l-2 6.3-6.4 2.1 2-6.3z"></path>
+            <line x1="7.2" y1="12" x2="16.8" y2="12"></line>
+            <line x1="12" y1="16.8" x2="12" y2="7.2"></line>
+          </svg>
+          <div class="thumbnail-overlay"></div>
+        </div>
+        <div class="demo-content">
+          <h3 class="demo-title">Map Overlays</h3>
+          <p class="demo-description">Discover interactive map overlays including sonar/radar, weather, heatmap, and traffic visualizations.</p>
+          <a href="./map-overlays-demo.html" class="demo-link">View Demo</a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="neu-glass-card" style="padding: 30px; margin-bottom: 40px;">
+      <div class="neu-glass-card-content">
+        <h2 style="margin-top: 0;">Features & Highlights</h2>
+        <ul style="padding-left: 20px; line-height: 1.6;">
+          <li><strong>Dark Theme Support</strong> - Automatic system preference detection with manual toggle option</li>
+          <li><strong>Accessibility</strong> - ARIA attributes, keyboard navigation, focus visibility</li>
+          <li><strong>Responsive Design</strong> - Mobile-first approach with optimized components for all devices</li>
+          <li><strong>Performance Optimized</strong> - Efficient animations with hardware acceleration</li>
+          <li><strong>Reduced Motion Support</strong> - Respects user preferences for reduced motion</li>
+          <li><strong>Comprehensive Components</strong> - From basic buttons to advanced form elements</li>
+          <li><strong>Interactive Map Overlays</strong> - Including radar, weather, traffic, pollution, and sunshine visualizations</li>
+        </ul>
+      </div>
+      <div class="neu-glass-card-background"></div>
+      <div class="neu-glass-card-border"></div>
+    </div>
+  </div>
+
+  <script src="../../components/neumorphic/neumorphic.js"></script>
+</body>
+</html> 

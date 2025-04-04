@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetNow Neumorphic Chart Icons</title>
+  <style>
+    :root {
+      --primary-bg: #E0E5EC;
+      --primary-light: #FFFFFF;
+      --primary-dark: #A3B1C6;
+      --text-color: #6D7587;
+      --text-color-dark: #394050;
+      --accent-blue: #4a90e2;
+      --accent-purple: #9370DB;
+      --accent-green: #66bb6a;
+      --accent-red: #e57373;
+      --accent-teal: #4db6ac;
+      --accent-orange: #ffb74d;
+      --accent-pink: #F06292;
+      --shadow-distance: 10px;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--primary-bg);
+      color: var(--text-color);
+      min-height: 100vh;
+      padding: 30px 0;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 30px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 40px;
+      border-radius: 20px;
+      background: var(--primary-bg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .header h1 {
+      color: var(--text-color-dark);
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      padding-bottom: 15px;
+      position: relative;
+    }
+    
+    .header h1::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+      border-radius: 3px;
+    }
+    
+    .header p {
+      color: var(--text-color);
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      margin-bottom: 60px;
+    }
+    
+    .section-title {
+      color: var(--text-color-dark);
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      position: relative;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+      border-radius: 3px;
+    }
+    
+    .section-description {
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 30px;
+      margin-top: 30px;
+    }
+    
+    .icon-block {
+      padding: 20px;
+      background: var(--primary-bg);
+      border-radius: 15px;
+      box-shadow: 
+        5px 5px 10px var(--primary-dark),
+        -5px -5px 10px var(--primary-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 140px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .icon-block:hover {
+      transform: translateY(-5px);
+      box-shadow: 
+        7px 7px 14px var(--primary-dark),
+        -7px -7px 14px var(--primary-light);
+    }
+    
+    .icon-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      background: var(--primary-bg);
+      box-shadow: 
+        3px 3px 6px var(--primary-dark),
+        -3px -3px 6px var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+      color: var(--text-color);
+      transition: all 0.3s ease;
+    }
+    
+    .icon-block:hover .icon-box {
+      color: var(--accent-blue);
+    }
+    
+    .icon-box.chart:hover {
+      color: var(--accent-purple);
+    }
+    
+    .icon-box.graph:hover {
+      color: var(--accent-teal);
+    }
+    
+    .icon-box.stats:hover {
+      color: var(--accent-orange);
+    }
+    
+    .icon-box.up:hover {
+      color: var(--accent-green);
+    }
+    
+    .icon-box.down:hover {
+      color: var(--accent-red);
+    }
+    
+    .icon-box.active {
+      box-shadow: 
+        inset 2px 2px 5px var(--primary-dark),
+        inset -2px -2px 5px var(--primary-light);
+      color: var(--accent-blue);
+    }
+    
+    .icon-box svg {
+      width: 24px;
+      height: 24px;
+    }
+    
+    .icon-name {
+      font-size: 0.9rem;
+      color: var(--text-color);
+      text-align: center;
+      margin-top: 8px;
+    }
+    
+    .icon-block:hover .icon-name {
+      color: var(--text-color-dark);
+    }
+    
+    .example-section {
+      margin-top: 60px;
+      padding: 30px;
+      border-radius: 15px;
+      background: var(--primary-bg);
+      box-shadow: 
+        5px 5px 10px var(--primary-dark),
+        -5px -5px 10px var(--primary-light);
+    }
+    
+    .example-title {
+      font-size: 1.4rem;
+      color: var(--text-color-dark);
+      margin-bottom: 20px;
+    }
+    
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      padding: 30px;
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .icon-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Neumorphic Chart Icons</h1>
+      <p>Data visualization and analytics icons with neumorphic styling for the MeetNow platform</p>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Chart Icons</h2>
+      <p class="section-description">
+        These icons represent various chart types for data visualization within the MeetNow platform.
+        They enable users to understand attendance, participation trends, and other analytics.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Bar Chart Icon -->
+        <div class="icon-block">
+          <div class="icon-box chart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+              <line x1="3" y1="20" x2="21" y2="20"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Bar Chart</span>
+        </div>
+        
+        <!-- Line Chart Icon -->
+        <div class="icon-block">
+          <div class="icon-box chart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </div>
+          <span class="icon-name">Line Chart</span>
+        </div>
+        
+        <!-- Pie Chart Icon -->
+        <div class="icon-block">
+          <div class="icon-box chart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a10 10 0 0 1 10 10"></path>
+              <path d="M12 12L2 12"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Pie Chart</span>
+        </div>
+        
+        <!-- Donut Chart Icon -->
+        <div class="icon-block">
+          <div class="icon-box chart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2a10 10 0 0 1 10 10"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Donut Chart</span>
+        </div>
+        
+        <!-- Area Chart Icon -->
+        <div class="icon-block">
+          <div class="icon-box chart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"></path>
+              <path d="M3 18l6-7 4 3 8-10v14H3z"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Area Chart</span>
+        </div>
+        
+        <!-- Scatter Plot Icon -->
+        <div class="icon-block">
+          <div class="icon-box chart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"></path>
+              <circle cx="7" cy="12" r="1"></circle>
+              <circle cx="12" cy="8" r="1"></circle>
+              <circle cx="17" cy="14" r="1"></circle>
+              <circle cx="9" cy="17" r="1"></circle>
+              <circle cx="15" cy="5" r="1"></circle>
+            </svg>
+          </div>
+          <span class="icon-name">Scatter Plot</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Trend Icons</h2>
+      <p class="section-description">
+        These icons represent different trends and patterns in data, helping users identify growth, 
+        decline, and other important metrics for meetup success.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Trending Up Icon -->
+        <div class="icon-block">
+          <div class="icon-box up">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>
+          <span class="icon-name">Trending Up</span>
+        </div>
+        
+        <!-- Trending Down Icon -->
+        <div class="icon-block">
+          <div class="icon-box down">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+              <polyline points="17 18 23 18 23 12"></polyline>
+            </svg>
+          </div>
+          <span class="icon-name">Trending Down</span>
+        </div>
+        
+        <!-- Growth Icon -->
+        <div class="icon-block">
+          <div class="icon-box up">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v18"></path>
+              <path d="M17 8l-5-5-5 5 8 7 8-7z"></path>
+              <path d="M3 13h18"></path>
+              <path d="M19 8l-5 5-5-5"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Growth</span>
+        </div>
+        
+        <!-- Comparison Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+              <line x1="3" y1="20" x2="21" y2="20"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Comparison</span>
+        </div>
+        
+        <!-- Forecast Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"></path>
+              <path d="M3 12l5-3 5 5 8-7v14H3z"></path>
+              <path d="M15 13l6-3"></path>
+              <path d="M21 10v3"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Forecast</span>
+        </div>
+        
+        <!-- Target Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="6"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+          </div>
+          <span class="icon-name">Target</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Statistical Icons</h2>
+      <p class="section-description">
+        These icons represent statistical analysis and metrics tracking features within the MeetNow platform.
+        They help visualize important data points and performance indicators.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Analytics Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"></path>
+              <path d="M18 12.5V3"></path>
+              <path d="M13.5 8V3"></path>
+              <path d="M9 10.5V3"></path>
+              <path d="M3 3l5 9 5-5 5.5 9 3.5-3"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Analytics</span>
+        </div>
+        
+        <!-- Metrics Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"></path>
+              <circle cx="9" cy="9" r="2"></circle>
+              <circle cx="15" cy="15" r="2"></circle>
+              <path d="M3 3l18 18"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Metrics</span>
+        </div>
+        
+        <!-- Dashboard Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Dashboard</span>
+        </div>
+        
+        <!-- Insights Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12h6"></path>
+              <path d="M22 12h-6"></path>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="M19.07 4.93l-1.41 1.41"></path>
+              <path d="M6.34 17.66l-1.41 1.41"></path>
+              <path d="M4.93 4.93l1.41 1.41"></path>
+              <path d="M17.66 17.66l1.41 1.41"></path>
+              <circle cx="12" cy="12" r="4"></circle>
+            </svg>
+          </div>
+          <span class="icon-name">Insights</span>
+        </div>
+        
+        <!-- Performance Icon -->
+        <div class="icon-block">
+          <div class="icon-box up">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <path d="M2 12l10 5 10-5"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Performance</span>
+        </div>
+        
+        <!-- Stats Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 11 12 14 22 4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Stats</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Data Tools</h2>
+      <p class="section-description">
+        These icons represent tools for interacting with and analyzing data within the MeetNow platform.
+        They enable users to filter, sort, and manage data visualizations effectively.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Filter Icon -->
+        <div class="icon-block">
+          <div class="icon-box graph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+          </div>
+          <span class="icon-name">Filter</span>
+        </div>
+        
+        <!-- Sort Icon -->
+        <div class="icon-block">
+          <div class="icon-box graph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="12" x2="14" y2="12"></line>
+              <line x1="4" y1="18" x2="10" y2="18"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Sort</span>
+        </div>
+        
+        <!-- Export Icon -->
+        <div class="icon-block">
+          <div class="icon-box graph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Export</span>
+        </div>
+        
+        <!-- Refresh Icon -->
+        <div class="icon-block">
+          <div class="icon-box graph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <polyline points="23 20 23 14 17 14"></polyline>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Refresh</span>
+        </div>
+        
+        <!-- Timeframe Icon -->
+        <div class="icon-block">
+          <div class="icon-box graph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <span class="icon-name">Timeframe</span>
+        </div>
+        
+        <!-- Compare Icon -->
+        <div class="icon-block">
+          <div class="icon-box graph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5"></path>
+              <path d="M8 21H3v-5"></path>
+              <path d="M21 3l-7 7"></path>
+              <path d="M3 21l7-7"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Compare</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Dashboard Elements</h2>
+      <p class="section-description">
+        These icons represent various dashboard elements and widgets for creating comprehensive analytics interfaces.
+        They help organize and present data in meaningful ways.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Card Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Card</span>
+        </div>
+        
+        <!-- Widget Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </div>
+          <span class="icon-name">Widget</span>
+        </div>
+        
+        <!-- Calendar Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Calendar</span>
+        </div>
+        
+        <!-- Table Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="3" y1="15" x2="21" y2="15"></line>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Table</span>
+        </div>
+        
+        <!-- List Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </div>
+          <span class="icon-name">List</span>
+        </div>
+        
+        <!-- Graph Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 8 17 15 13 11 9 15 1 7"></polyline>
+              <polyline points="17 8 23 8 23 14"></polyline>
+            </svg>
+          </div>
+          <span class="icon-name">Graph</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Event Analytics Icons</h2>
+      <p class="section-description">
+        These icons represent metrics and data points specific to meetups and events in the MeetNow platform.
+        They help organizers track attendance, engagement, and overall event success.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Attendance Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Attendance</span>
+        </div>
+        
+        <!-- RSVP Rate Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 11 12 14 22 4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+          </div>
+          <span class="icon-name">RSVP Rate</span>
+        </div>
+        
+        <!-- Event Duration Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <span class="icon-name">Duration</span>
+        </div>
+        
+        <!-- Demographics Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Demographics</span>
+        </div>
+        
+        <!-- Engagement Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Engagement</span>
+        </div>
+        
+        <!-- Retention Icon -->
+        <div class="icon-block">
+          <div class="icon-box up">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Retention</span>
+        </div>
+        
+        <!-- Conversion Icon -->
+        <div class="icon-block">
+          <div class="icon-box up">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5"></path>
+              <path d="M4 20L21 3"></path>
+              <path d="M21 16v5h-5"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Conversion</span>
+        </div>
+        
+        <!-- Feedback Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              <line x1="9" y1="9" x2="15" y2="9"></line>
+              <line x1="9" y1="13" x2="15" y2="13"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Feedback</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Location Analytics Icons</h2>
+      <p class="section-description">
+        These icons represent geographic and location-based analytics for the MeetNow platform.
+        They help visualize venue performance, attendee distribution, and other spatial metrics.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Map Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+              <line x1="8" y1="2" x2="8" y2="18"></line>
+              <line x1="16" y1="6" x2="16" y2="22"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Map</span>
+        </div>
+        
+        <!-- Location Pin Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <span class="icon-name">Location</span>
+        </div>
+        
+        <!-- Distance Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="12" r="3"></circle>
+              <line x1="9" y1="12" x2="15" y2="12"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Distance</span>
+        </div>
+        
+        <!-- Heat Map Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" opacity="0.4"></circle>
+              <circle cx="15.5" cy="8.5" r="1.5" fill="currentColor" opacity="0.6"></circle>
+              <circle cx="15.5" cy="15.5" r="1.5" fill="currentColor" opacity="1"></circle>
+              <circle cx="8.5" cy="15.5" r="1.5" fill="currentColor" opacity="0.8"></circle>
+            </svg>
+          </div>
+          <span class="icon-name">Heat Map</span>
+        </div>
+        
+        <!-- Radius Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="6"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+              <path d="M12 2v4"></path>
+              <path d="M12 18v4"></path>
+              <path d="M2 12h4"></path>
+              <path d="M18 12h4"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Radius</span>
+        </div>
+        
+        <!-- Cluster Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="3"></circle>
+              <circle cx="16" cy="16" r="3"></circle>
+              <circle cx="16" cy="8" r="3"></circle>
+              <circle cx="8" cy="16" r="3"></circle>
+            </svg>
+          </div>
+          <span class="icon-name">Cluster</span>
+        </div>
+        
+        <!-- Route Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="4" cy="4" r="2"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+              <circle cx="20" cy="20" r="2"></circle>
+              <path d="M5.5 5.5l5 5"></path>
+              <path d="M13.5 13.5l5 5"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Route</span>
+        </div>
+        
+        <!-- Region Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4l4 4l-4 4l4 4l-4 4"></path>
+              <path d="M20 4l-4 4l4 4l-4 4l4 4"></path>
+              <path d="M4 4h16"></path>
+              <path d="M4 20h16"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Region</span>
+        </div>
+        
+        <!-- Venue Icon -->
+        <div class="icon-block">
+          <div class="icon-box stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </div>
+          <span class="icon-name">Venue</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Additional Category Icons</h2>
+      <p class="section-description">
+        These icons represent additional categories or interests for MeetNow platform.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Hiking Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Hiking</span>
+        </div>
+        
+        <!-- Reading Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Reading</span>
+        </div>
+        
+        <!-- Language Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 8h14"></path>
+              <path d="M12 8v12"></path>
+              <path d="M5 12h14"></path>
+              <path d="M12 3s2 3 7 3-7 3-7 3-2-3-7-3 7-3 7-3z"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Language</span>
+        </div>
+        
+        <!-- Networking Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Networking</span>
+        </div>
+        
+        <!-- Crafts Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Crafts</span>
+        </div>
+        
+        <!-- Pets Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5"></path>
+              <path d="M14.328 5.172c0-1.39 1.576-2.493 3.5-2.172 2.825.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5"></path>
+              <path d="M8 14v.5"></path>
+              <path d="M16 14v.5"></path>
+              <path d="M11.25 16.25h1.5L12 17l-.75-.75z"></path>
+              <path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.16.306"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Pets</span>
+        </div>
+        
+        <!-- Meditation Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path>
+              <path d="M12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path>
+              <path d="M12 19v3"></path>
+              <path d="M8 19h8"></path>
+              <path d="M2 10h3"></path>
+              <path d="M19 10h3"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Meditation</span>
+        </div>
+        
+        <!-- Fashion Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Fashion</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Community Activities</h2>
+      <p class="section-description">
+        These icons represent popular community activities and gathering types for the MeetNow platform.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Workshop Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Workshop</span>
+        </div>
+        
+        <!-- Conference Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <circle cx="15.5" cy="8.5" r="1.5"></circle>
+              <circle cx="8.5" cy="15.5" r="1.5"></circle>
+              <circle cx="15.5" cy="15.5" r="1.5"></circle>
+              <path d="M3 12h18"></path>
+              <path d="M12 3v18"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Conference</span>
+        </div>
+        
+        <!-- Outdoor Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7.86 2l1.64 3.7c.39.86 1.24 1.43 2.18 1.55.93.12 1.74.61 2.24 1.35l1.16 1.7c.33.48.79.84 1.35 1.06l7.73 3.02"></path>
+              <path d="M6 16l-2 6h16l-2-6"></path>
+              <path d="M14.5 10l-3-7.5L8.5 10"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Outdoor</span>
+        </div>
+        
+        <!-- Party Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5.8 11.3l2.8-9 2.8 9"></path>
+              <path d="M4 8h10"></path>
+              <path d="M18 16.4a4 4 0 1 0 0-8.8"></path>
+              <path d="M18 16v2"></path>
+              <path d="M18 7V5"></path>
+              <path d="M22 12h-2"></path>
+              <path d="M8 22h8"></path>
+              <path d="M12 16v6"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Party</span>
+        </div>
+        
+        <!-- Music Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+          </div>
+          <span class="icon-name">Music</span>
+        </div>
+        
+        <!-- Sports Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 6a2 2 0 0 0 2-2c0-1.1-.9-2-2-2s-2 .9-2 2c0 1.1.9 2 2 2z"></path>
+              <path d="M6.399 15.5C5.699 15.9 5 16.5 5 17.4 5 18.4 5.8 19 6.5 19c.9 0 1.5-.6 1.5-1.2.1-1.4-1-1.9-1.6-2.3z"></path>
+              <path d="M17.399 15.5c.7.4 1.4 1 1.4 1.9 0 1-0.8 1.6-1.5 1.6-.9 0-1.5-.6-1.5-1.2-.1-1.4 1-1.9 1.6-2.3z"></path>
+              <path d="M12 22v-4"></path>
+              <path d="M8 22h8"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Sports</span>
+        </div>
+        
+        <!-- Study Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <path d="M2 12l10 5 10-5"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Study</span>
+        </div>
+        
+        <!-- Gaming Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="6" y1="12" x2="10" y2="12"></line>
+              <line x1="8" y1="10" x2="8" y2="14"></line>
+              <line x1="15" y1="13" x2="15" y2="13"></line>
+              <line x1="17" y1="11" x2="17" y2="11"></line>
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+            </svg>
+          </div>
+          <span class="icon-name">Gaming</span>
+        </div>
+        
+        <!-- Food Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+              <path d="M5 8h11v9a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8z"></path>
+              <line x1="12" y1="2" x2="12" y2="8"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Food</span>
+        </div>
+        
+        <!-- Networking Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"></path>
+              <path d="M15.5 2H9a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V6.5L15.5 2z"></path>
+              <line x1="9" y1="8" x2="19" y2="8"></line>
+              <line x1="9" y1="12" x2="19" y2="12"></line>
+              <line x1="9" y1="16" x2="13" y2="16"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Business</span>
+        </div>
+        
+        <!-- Art Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="8" cy="8" r="2"></circle>
+              <circle cx="16" cy="16" r="2"></circle>
+              <path d="M9.5 9.5L14.5 14.5"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Art</span>
+        </div>
+        
+        <!-- Film Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+              <line x1="7" y1="2" x2="7" y2="22"></line>
+              <line x1="17" y1="2" x2="17" y2="22"></line>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <line x1="2" y1="7" x2="7" y2="7"></line>
+              <line x1="2" y1="17" x2="7" y2="17"></line>
+              <line x1="17" y1="17" x2="22" y2="17"></line>
+              <line x1="17" y1="7" x2="22" y2="7"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Film</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Specialized Meetup Types</h2>
+      <p class="section-description">
+        These icons represent more specific and specialized types of meetups for the MeetNow platform.
+      </p>
+      
+      <div class="icon-grid">
+        <!-- Tech/Coding Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+          </div>
+          <span class="icon-name">Tech/Coding</span>
+        </div>
+        
+        <!-- Career Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Career</span>
+        </div>
+        
+        <!-- Finance Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Finance</span>
+        </div>
+        
+        <!-- Wellness Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+              <line x1="6" y1="1" x2="6" y2="4"></line>
+              <line x1="10" y1="1" x2="10" y2="4"></line>
+              <line x1="14" y1="1" x2="14" y2="4"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Wellness</span>
+        </div>
+        
+        <!-- Education Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <line x1="12" y1="12" x2="12" y2="22"></line>
+              <line x1="7" y1="9.5" x2="17" y2="9.5"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Education</span>
+        </div>
+        
+        <!-- Dance Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="5" r="3"></circle>
+              <path d="M10 22l1-15-4 6 3 3-3 4"></path>
+              <path d="M14 22l-1-15 4 6-3 3 3 4"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Dance</span>
+        </div>
+        
+        <!-- Theatre Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="19 2 5 2 12 9 19 2"></polygon>
+              <path d="M5 16V2l14 14V2"></path>
+              <line x1="12" y1="9" x2="12" y2="22"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Theatre</span>
+        </div>
+        
+        <!-- Travel Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Travel</span>
+        </div>
+        
+        <!-- Environment Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9"></path>
+              <path d="M12 3v6l3 3"></path>
+              <path d="M9 9a3 3 0 0 1 3-3"></path>
+              <path d="M16 9a3 3 0 0 0-3-3"></path>
+              <path d="M8 13l-1-4 3 2"></path>
+              <path d="M16 13l1-4-3 2"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Environment</span>
+        </div>
+        
+        <!-- Writing Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 5.5L12 13.5L8 9.5L4 13.5"></path>
+              <path d="M16 5.5H20V9.5"></path>
+              <line x1="16" y1="13.5" x2="20" y2="13.5"></line>
+              <line x1="4" y1="17.5" x2="20" y2="17.5"></line>
+            </svg>
+          </div>
+          <span class="icon-name">Writing</span>
+        </div>
+        
+        <!-- DIY/Makers Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h5l2 5-2.5 2.5L3 11l1-7z"></path>
+              <path d="M17.5 15.5L22 11l-1-7h-5l-2 5 3.5 6.5z"></path>
+              <path d="M14.5 11.5l-3-6-3 6"></path>
+              <path d="M8 22h8"></path>
+              <path d="M12 17v5"></path>
+            </svg>
+          </div>
+          <span class="icon-name">DIY/Makers</span>
+        </div>
+        
+        <!-- Science Icon -->
+        <div class="icon-block">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 2v4"></path>
+              <path d="M8 2v4"></path>
+              <path d="M12 18a4 4 0 0 0 0-8 4 4 0 0 0 0 8z"></path>
+              <path d="M9 22h6"></path>
+              <path d="M12 14v4"></path>
+              <path d="M14 6h4"></path>
+              <path d="M6 6h4"></path>
+            </svg>
+          </div>
+          <span class="icon-name">Science</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    MeetNow &copy; 2023 - Neumorphic Chart Icons
+  </footer>
+</body>
+</html> 

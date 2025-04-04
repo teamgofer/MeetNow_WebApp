@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="800" viewBox="0 0 1000 800">
+  <style>
+    .title { font: bold 24px sans-serif; fill: #333; }
+    .subtitle { font: 16px sans-serif; fill: #666; }
+    .box { fill: white; stroke: #444; stroke-width: 2; rx: 8; ry: 8; }
+    .action { fill: #e3f2fd; stroke: #1976d2; stroke-width: 2; rx: 8; ry: 8; }
+    .keyboard { fill: #e8f5e9; stroke: #388e3c; stroke-width: 2; rx: 8; ry: 8; }
+    .screen-reader { fill: #fff8e1; stroke: #ff8f00; stroke-width: 2; rx: 8; ry: 8; }
+    .arrow { stroke: #666; stroke-width: 2; marker-end: url(#arrowhead); }
+    .dashed { stroke-dasharray: 5, 5; }
+    .label { font: 14px sans-serif; fill: #555; }
+    .action-label { font: bold 14px sans-serif; fill: #1976d2; }
+    .keyboard-label { font: bold 14px sans-serif; fill: #388e3c; }
+    .screen-reader-label { font: bold 14px sans-serif; fill: #ff8f00; }
+    .step-text { font: 14px sans-serif; fill: #333; }
+    .key { font: bold 12px monospace; fill: white; }
+    .key-bg { fill: #333; rx: 3; ry: 3; }
+    .sr-announce { font: italic 12px sans-serif; fill: #333; }
+  </style>
+  
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="500" y="40" text-anchor="middle" class="title">Proximity Chat Accessibility Interaction Flow</text>
+  <text x="500" y="70" text-anchor="middle" class="subtitle">Keyboard Navigation and Screen Reader Interaction Paths</text>
+  
+  <!-- Starting Point -->
+  <rect x="425" y="100" width="150" height="60" class="box" />
+  <text x="500" y="135" text-anchor="middle" class="step-text">Open Chat Feature</text>
+  
+  <!-- Keyboard Navigation Flow - Left Side -->
+  <text x="260" y="200" class="keyboard-label">Keyboard Navigation Path</text>
+  
+  <rect x="160" y="220" width="200" height="60" class="keyboard" />
+  <text x="260" y="255" text-anchor="middle" class="step-text">Skip to Content Link (Tab)</text>
+  
+  <rect x="160" y="320" width="200" height="60" class="keyboard" />
+  <text x="260" y="355" text-anchor="middle" class="step-text">Chat Header Navigation (Alt+1)</text>
+  
+  <rect x="160" y="420" width="200" height="60" class="keyboard" />
+  <text x="260" y="455" text-anchor="middle" class="step-text">Message List (Alt+2, Arrow Keys)</text>
+  
+  <rect x="160" y="520" width="200" height="60" class="keyboard" />
+  <text x="260" y="555" text-anchor="middle" class="step-text">User List (Alt+3, Arrow Keys)</text>
+  
+  <rect x="160" y="620" width="200" height="60" class="keyboard" />
+  <text x="260" y="655" text-anchor="middle" class="step-text">Chat Input (Alt+4, Ctrl+Enter)</text>
+  
+  <!-- Screen Reader Path - Right Side -->
+  <text x="740" y="200" class="screen-reader-label">Screen Reader Interaction</text>
+  
+  <rect x="640" y="220" width="200" height="60" class="screen-reader" />
+  <text x="740" y="245" text-anchor="middle" class="step-text">Landmarks Navigation</text>
+  <text x="740" y="265" text-anchor="middle" class="sr-announce">"Chat application region"</text>
+  
+  <rect x="640" y="320" width="200" height="60" class="screen-reader" />
+  <text x="740" y="345" text-anchor="middle" class="step-text">Live Announcements</text>
+  <text x="740" y="365" text-anchor="middle" class="sr-announce">"3 users nearby, 2 unread messages"</text>
+  
+  <rect x="640" y="420" width="200" height="60" class="screen-reader" />
+  <text x="740" y="445" text-anchor="middle" class="step-text">Messages Context</text>
+  <text x="740" y="465" text-anchor="middle" class="sr-announce">"Message from John, 2 min ago"</text>
+  
+  <rect x="640" y="520" width="200" height="60" class="screen-reader" />
+  <text x="740" y="545" text-anchor="middle" class="step-text">User Distance Information</text>
+  <text x="740" y="565" text-anchor="middle" class="sr-announce">"Sarah, 150 meters away"</text>
+  
+  <rect x="640" y="620" width="200" height="60" class="screen-reader" />
+  <text x="740" y="645" text-anchor="middle" class="step-text">Input Status Updates</text>
+  <text x="740" y="665" text-anchor="middle" class="sr-announce">"John is typing..."</text>
+  
+  <!-- Shared Actions - Center -->
+  <rect x="400" y="220" width="200" height="60" class="action" />
+  <text x="500" y="255" text-anchor="middle" class="step-text">Open Keyboard Shortcuts (?)</text>
+  
+  <rect x="400" y="320" width="200" height="60" class="action" />
+  <text x="500" y="355" text-anchor="middle" class="step-text">Toggle Sound Settings (Alt+M)</text>
+  
+  <rect x="400" y="420" width="200" height="60" class="action" />
+  <text x="500" y="455" text-anchor="middle" class="step-text">Access Inline Help (Context)</text>
+  
+  <rect x="400" y="520" width="200" height="60" class="action" />
+  <text x="500" y="555" text-anchor="middle" class="step-text">Refresh Users (Alt+U)</text>
+  
+  <rect x="400" y="620" width="200" height="60" class="action" />
+  <text x="500" y="655" text-anchor="middle" class="step-text">Send Message (Ctrl+Enter)</text>
+  
+  <!-- Connections from start -->
+  <line x1="500" y1="160" x2="500" y2="220" class="arrow" />
+  <line x1="425" y1="130" x2="260" y2="220" class="arrow" />
+  <line x1="575" y1="130" x2="740" y2="220" class="arrow" />
+  
+  <!-- Keyboard Nav Connections -->
+  <line x1="260" y1="280" x2="260" y2="320" class="arrow" />
+  <line x1="260" y1="380" x2="260" y2="420" class="arrow" />
+  <line x1="260" y1="480" x2="260" y2="520" class="arrow" />
+  <line x1="260" y1="580" x2="260" y2="620" class="arrow" />
+  
+  <!-- Screen Reader Connections -->
+  <line x1="740" y1="280" x2="740" y2="320" class="arrow" />
+  <line x1="740" y1="380" x2="740" y2="420" class="arrow" />
+  <line x1="740" y1="480" x2="740" y2="520" class="arrow" />
+  <line x1="740" y1="580" x2="740" y2="620" class="arrow" />
+  
+  <!-- Action Connections -->
+  <line x1="500" y1="280" x2="500" y2="320" class="arrow" />
+  <line x1="500" y1="380" x2="500" y2="420" class="arrow" />
+  <line x1="500" y1="480" x2="500" y2="520" class="arrow" />
+  <line x1="500" y1="580" x2="500" y2="620" class="arrow" />
+  
+  <!-- Horizontal Connections - Keyboard to Action -->
+  <line x1="360" y1="250" x2="400" y2="250" class="arrow" />
+  <line x1="360" y1="350" x2="400" y2="350" class="arrow" />
+  <line x1="360" y1="450" x2="400" y2="450" class="arrow" />
+  <line x1="360" y1="550" x2="400" y2="550" class="arrow" />
+  <line x1="360" y1="650" x2="400" y2="650" class="arrow" />
+  
+  <!-- Horizontal Connections - Action to Screen Reader -->
+  <line x1="600" y1="250" x2="640" y2="250" class="arrow" />
+  <line x1="600" y1="350" x2="640" y2="350" class="arrow" />
+  <line x1="600" y1="450" x2="640" y2="450" class="arrow" />
+  <line x1="600" y1="550" x2="640" y2="550" class="arrow" />
+  <line x1="600" y1="650" x2="640" y2="650" class="arrow" />
+  
+  <!-- Keyboard Shortcuts Visualization -->
+  <g transform="translate(100, 700)">
+    <rect x="0" y="0" width="30" height="30" class="key-bg" />
+    <text x="15" y="20" text-anchor="middle" class="key">Alt</text>
+    <text x="40" y="20" class="keyboard-label">+</text>
+    <rect x="60" y="0" width="30" height="30" class="key-bg" />
+    <text x="75" y="20" text-anchor="middle" class="key">1-4</text>
+    <text x="100" y="20" class="label">Navigation</text>
+  </g>
+  
+  <g transform="translate(300, 700)">
+    <rect x="0" y="0" width="30" height="30" class="key-bg" />
+    <text x="15" y="20" text-anchor="middle" class="key">?</text>
+    <text x="40" y="20" class="label">Help</text>
+  </g>
+  
+  <g transform="translate(400, 700)">
+    <rect x="0" y="0" width="40" height="30" class="key-bg" />
+    <text x="20" y="20" text-anchor="middle" class="key">Ctrl</text>
+    <text x="50" y="20" class="keyboard-label">+</text>
+    <rect x="70" y="0" width="50" height="30" class="key-bg" />
+    <text x="95" y="20" text-anchor="middle" class="key">Enter</text>
+    <text x="130" y="20" class="label">Send</text>
+  </g>
+  
+  <g transform="translate(600, 700)">
+    <rect x="0" y="0" width="30" height="30" class="key-bg" />
+    <text x="15" y="20" text-anchor="middle" class="key">Esc</text>
+    <text x="40" y="20" class="label">Close/Cancel</text>
+  </g>
+  
+  <g transform="translate(750, 700)">
+    <rect x="0" y="0" width="40" height="30" class="key-bg" />
+    <text x="20" y="20" text-anchor="middle" class="key">Tab</text>
+    <text x="50" y="20" class="label">Navigate</text>
+  </g>
+  
+  <!-- Legend -->
+  <rect x="250" y="750" width="20" height="20" class="keyboard" />
+  <text x="280" y="765" class="keyboard-label">Keyboard Navigation</text>
+  
+  <rect x="450" y="750" width="20" height="20" class="action" />
+  <text x="480" y="765" class="action-label">Shared Actions</text>
+  
+  <rect x="650" y="750" width="20" height="20" class="screen-reader" />
+  <text x="680" y="765" class="screen-reader-label">Screen Reader Feedback</text>
+</svg> 

@@ -1,0 +1,1433 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+    --bottom-sheet-height: 70vh;
+    --content-max-width: 600px;
+    --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+    --breakpoint-xs: 375px;
+    --breakpoint-sm: 414px;
+    --breakpoint-md: 576px;
+    --breakpoint-lg: 768px;
+    --breakpoint-xl: 1024px;
+    --breakpoint-2xl: 1536px;
+    --z-map: 100;
+    --z-map-container: 110;
+    --z-map-pane: 120;
+    --z-map-controls: 150;
+    --z-popup: 200;
+    --z-floating-windows: 300;
+    --z-backdrop: 400;
+    --z-bottom-sheet: 500;
+    --z-modal: 600;
+    --z-tooltip: 700;
+    --transition-duration: 0.3s;
+    --transition-duration-fast: 0.2s;
+    --animation-slide: cubic-bezier(0.4, 0, 0.2, 1);
+    --touch-target-size: 44px;
+    --touch-target-size-small: 40px;
+    --primary-color: #4dbbbb;
+    --secondary-color: #2c3e50;
+    --accent-color: #e74c3c;
+    --text-color: #333;
+    --background-color: #f5f5f5;
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 350ms ease;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+/* Hide all map zoom controls on all devices */
+.leaflet-control-zoom,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-bar,
+.leaflet-touch .leaflet-bar,
+.leaflet-touch .leaflet-control-zoom {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide mobile-specific zoom controls */
+@media (max-width: 640px) {
+  .leaflet-control-container .leaflet-top,
+  .leaflet-control-container .leaflet-top.leaflet-right,
+  .leaflet-control-container .leaflet-top.leaflet-left,
+  .leaflet-control-container .leaflet-bottom.leaflet-right,
+  .leaflet-control-container .leaflet-bottom.leaflet-left {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+/* Smiley Earth Icon Styles */
+.smiley-earth {
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2));
+  animation: earth-bounce 3s infinite ease-in-out;
+  transform-origin: center;
+  z-index: 1000 !important;
+  transition: transform 0.2s ease-out;
+}
+
+.smiley-earth:hover {
+  transform: scale(1.15) !important;
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.3));
+}
+
+.smiley-face-container {
+  width: 48px;
+  height: 48px;
+  position: relative;
+}
+
+.smiley-face {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #ffeb3b, #ffc107);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.1),
+    inset 0 2px 5px rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.smiley-face::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.7) 5%, transparent 50%);
+  z-index: 1;
+}
+
+.smiley-eye {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: #333;
+  border-radius: 50%;
+  top: 14px;
+  animation: blink 6s infinite;
+}
+
+.smiley-eye.left {
+  left: 12px;
+}
+
+.smiley-eye.right {
+  right: 12px;
+}
+
+.smiley-mouth {
+  position: absolute;
+  width: 24px;
+  height: 12px;
+  border-bottom: 3px solid #333;
+  border-radius: 0 0 12px 12px;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes blink {
+  0%,
+  48%,
+  52%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes earth-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(5deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(-3deg);
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    width: 48px;
+    height: 48px;
+  }
+  50% {
+    opacity: 0.6;
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* Base map container styles */
+.map-view-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  background: #f8f9fa;
+  user-select: none;
+}
+
+.map-view-container .leaflet-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  opacity: 1;
+  transition: opacity 0.3s var(--transition-timing);
+  touch-action: pan-x pan-y pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Navigation controls */
+.map-navigation {
+  margin: 10px !important;
+  transition: all 0.3s ease-out;
+}
+
+.map-navigation.adaptive {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(4px);
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Location markers */
+.location-pin-user,
+.location-pin-event {
+  transition: transform 0.2s ease-out;
+}
+
+.location-pin-user:hover,
+.location-pin-event:hover {
+  transform: scale(1.1);
+}
+
+/* Locate control styles */
+.leaflet-control-locate {
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.leaflet-control-locate a {
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 4px !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  text-align: center !important;
+  font-size: 18px !important;
+  transition: all 0.2s ease-out !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-control-locate a:hover {
+  background-color: #f8f9fa !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.leaflet-control-locate.active a {
+  background-color: #e8f5e9 !important;
+  border-color: #4caf50 !important;
+  color: #2e7d32 !important;
+}
+
+.leaflet-control-locate.following a {
+  background-color: #e3f2fd !important;
+  border-color: #2196f3 !important;
+  color: #1976d2 !important;
+}
+
+/* Bottom panel styles */
+.bottom-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 850;
+  touch-action: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background-color: var(--background);
+  color: var(--foreground);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(calc(100% - 60px));
+  transition:
+    transform 0.3s ease-out,
+    height 0.3s ease-out;
+}
+
+.bottom-panel.active {
+  transform: translateY(0);
+}
+
+.panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  pointer-events: none;
+  z-index: 800;
+}
+
+.panel-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Side panel styles */
+.side-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 400px;
+  max-height: calc(100vh - 40px);
+  z-index: 700;
+  overflow: visible;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s ease-out;
+}
+
+/* Hide side panel in mobile layout */
+@media (max-width: 1024px), (max-height: 768px) {
+  .side-panel {
+    display: none !important;
+  }
+}
+
+/* Ensure proper content display */
+.bottom-panel-content {
+  height: calc(100% - 24px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* iOS safe area support */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .bottom-panel {
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(70vh - env(safe-area-inset-top)) !important;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px), (max-height: 768px) {
+  .bottom-panel.active ~ .leaflet-control-container .leaflet-bottom {
+    bottom: calc(40vh + 20px) !important;
+  }
+}
+
+/* Z-index hierarchy */
+.map-view {
+  z-index: 1;
+}
+
+.leaflet-container {
+  z-index: 2;
+}
+
+.leaflet-control-container {
+  z-index: 600;
+}
+
+.panel-overlay {
+  z-index: 800;
+}
+
+.bottom-panel {
+  z-index: 850;
+}
+
+.side-panel {
+  z-index: 700;
+}
+
+/* Fluid Animation Classes */
+.fade-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.3s ease-in-out,
+    transform 0.3s ease-out;
+}
+
+.fade-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition:
+    opacity 0.3s ease-in-out,
+    transform 0.3s ease-in;
+}
+
+/* Smooth Transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.hover-scale {
+  transition: transform 0.2s ease-in-out;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Loading States */
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Map Marker Animations */
+.marker-bounce {
+  animation: marker-bounce 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes marker-bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-10px);
+  }
+}
+
+/* Smooth Property List Transitions */
+.property-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.property-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Search Results Animation */
+.search-results-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.search-results-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.2s ease-out;
+}
+
+.search-results-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.search-results-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition:
+    opacity 0.2s ease-in,
+    transform 0.2s ease-in;
+}
+
+/* Mobile-friendly map styles */
+.leaflet-container {
+  touch-action: pan-x pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  min-width: 200px;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+
+.custom-popup .leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+
+/* Improve touch targets */
+.leaflet-control-zoom a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 18px;
+}
+
+/* Responsive font sizes */
+@media (max-width: 640px) {
+  .text-base {
+    font-size: 1rem;
+  }
+  .text-sm {
+    font-size: 0.875rem;
+  }
+}
+
+/* Improve scrolling on mobile */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide attribution on small screens */
+@media (max-width: 640px) {
+  .leaflet-control-attribution {
+    font-size: 8px;
+  }
+}
+
+/* Custom marker size for mobile */
+@media (max-width: 640px) {
+  .leaflet-marker-icon {
+    margin-left: -16px !important;
+    margin-top: -16px !important;
+  }
+}
+
+/* System-specific styles */
+/* iOS-specific styles */
+@supports (-webkit-touch-callout: none) {
+  .map-view-container {
+    height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom)) !important;
+  }
+
+  .leaflet-control-zoom a {
+    /* Prevent grey highlight on tap */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Smoother scrolling for iOS */
+  .leaflet-container {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Fix for iOS Safari bottom bar */
+  .mobile-popup .leaflet-popup-content-wrapper {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Android-specific styles */
+@supports (-webkit-appearance: none) and (not (-webkit-touch-callout: none)) {
+  .leaflet-control-zoom a {
+    /* Material Design-like touch feedback */
+    background-image: radial-gradient(circle, transparent 1%, rgba(0, 0, 0, 0.1) 1%);
+    background-position: center;
+    background-size: 15000%;
+    transition: background 0.8s;
+  }
+
+  .leaflet-control-zoom a:active {
+    background-size: 100%;
+    transition: background 0s;
+  }
+
+  /* Larger touch targets for Android */
+  .mobile-popup .leaflet-popup-content-wrapper {
+    padding: 12px;
+  }
+}
+
+/* Desktop-specific styles */
+@media (hover: hover) and (pointer: fine) {
+  .leaflet-control-zoom a:hover {
+    background-color: #f4f4f4;
+  }
+
+  .marker-hover {
+    transition: transform 0.2s ease-out;
+  }
+
+  .marker-hover:hover {
+    transform: scale(1.1);
+  }
+
+  .custom-popup {
+    transition: transform 0.2s ease-out;
+  }
+
+  .custom-popup:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+  .leaflet-control-zoom {
+    opacity: 0.9;
+    backdrop-filter: blur(4px);
+  }
+
+  .mobile-popup .leaflet-popup-content-wrapper {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .mobile-popup .leaflet-popup-content {
+    margin: 0;
+    padding: 12px;
+  }
+
+  /* Larger hit areas for touch */
+  .leaflet-control-zoom a {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* PWA (standalone mode) adjustments */
+@media all and (display-mode: standalone) {
+  .map-view-container {
+    height: 100vh !important;
+  }
+
+  .leaflet-control-attribution {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  .leaflet-control-zoom a {
+    border: 2px solid #000;
+  }
+
+  .custom-popup .leaflet-popup-content-wrapper {
+    border: 2px solid #000;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .marker-bounce,
+  .fade-enter-active,
+  .fade-exit-active,
+  .search-results-enter-active,
+  .search-results-exit-active {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .leaflet-control-zoom a {
+    background-color: #2d2d2d;
+    color: #fff;
+  }
+
+  .custom-popup .leaflet-popup-content-wrapper {
+    background-color: #2d2d2d;
+    color: #fff;
+  }
+
+  .custom-popup .leaflet-popup-tip {
+    background-color: #2d2d2d;
+  }
+}
+
+/* Existing mobile styles with improvements */
+.leaflet-container {
+  touch-action: pan-x pan-y pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+/* Mobile-specific popup styles */
+.mobile-popup .leaflet-popup-content-wrapper {
+  border-radius: 16px;
+  min-width: 250px;
+}
+
+.mobile-popup .leaflet-popup-content {
+  padding: 16px;
+  font-size: 16px;
+}
+
+/* Existing responsive styles... */
+
+/* Prevent overlapping on small screens */
+@media (max-width: 640px) {
+  /* Dynamic popup sizing */
+  .leaflet-popup {
+    /* Remove the margin that was creating the white band */
+    position: relative;
+    z-index: 1000;
+  }
+
+  .leaflet-popup-content-wrapper {
+    max-width: min(300px, calc(100vw - 40px));
+    width: auto !important;
+    transform-origin: bottom;
+    transform: scale(0.95); /* Slightly smaller on mobile for better fit */
+  }
+
+  .leaflet-popup-content {
+    max-height: min(300px, calc(60vh - 100px));
+    overflow-y: auto;
+    padding: 12px;
+    margin: 0 !important;
+  }
+
+  /* Improved control positioning */
+  .leaflet-control-container {
+    display: grid;
+    grid-template-areas:
+      'topleft top topright'
+      'left center right'
+      'bottomleft bottom bottomright';
+    height: 100%;
+    width: 100%;
+    pointer-events: none;
+  }
+
+  /* Adjust controls to overlay on map */
+  .leaflet-bottom {
+    bottom: 0;
+    z-index: 1001; /* Ensure controls stay above popups */
+  }
+
+  .leaflet-right {
+    right: 0;
+  }
+
+  /* Stack controls with proper spacing */
+  .leaflet-control-container .leaflet-bottom.leaflet-right {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  /* Ensure controls don't overlap */
+  .leaflet-control {
+    margin: 0 !important;
+    clear: both;
+  }
+
+  /* Scale controls for better touch */
+  .leaflet-control-zoom {
+    transform: scale(0.9);
+    transform-origin: bottom right;
+  }
+}
+
+/* Ensure map container is full height */
+.map-view-container {
+  height: 100vh !important;
+  overflow: hidden;
+}
+
+.map-view-container .leaflet-container {
+  height: 100% !important;
+}
+
+/* Improved popup animations and scaling */
+.leaflet-popup {
+  transition: transform 0.2s ease-out;
+}
+
+.leaflet-popup-content-wrapper {
+  transition: transform 0.2s ease-out;
+  transform-origin: bottom;
+}
+
+.leaflet-popup-tip {
+  transition: transform 0.2s ease-out;
+}
+
+/* Ensure popups stay within bounds */
+.leaflet-popup-content-wrapper {
+  max-width: min(400px, calc(100vw - 40px));
+  width: auto !important;
+}
+
+.leaflet-popup-content {
+  max-height: min(400px, calc(70vh - 100px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0;
+  padding: 16px;
+}
+
+/* Improved control visibility */
+.leaflet-control {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(4px);
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Bottom Sheet Styles */
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-bottom-sheet);
+  touch-action: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background-color: var(--background);
+  color: var(--foreground);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(calc(100% - 60px));
+  transition:
+    transform var(--transition-duration) var(--transition-timing),
+    height var(--transition-duration) var(--transition-timing);
+  height: var(--bottom-sheet-height);
+  max-height: calc(100vh - var(--safe-area-top));
+  padding-bottom: var(--safe-area-bottom);
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+  will-change: transform, height;
+}
+
+.bottom-sheet.active {
+  transform: translateY(0);
+}
+
+.bottom-sheet-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  pointer-events: none;
+  z-index: var(--z-backdrop);
+}
+
+.bottom-sheet-backdrop.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bottom-sheet-content {
+  height: calc(100% - 24px);
+  max-height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tab styles */
+.bottom-sheet .flex.border-b {
+  background-color: var(--background);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.bottom-sheet button {
+  position: relative;
+  transition: all 0.2s ease-in-out;
+  min-height: var(--touch-target-size);
+}
+
+.bottom-sheet button::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary);
+  transform: scaleX(0);
+  transition: transform 0.2s ease-in-out;
+}
+
+.bottom-sheet button.active::after {
+  transform: scaleX(1);
+}
+
+.bottom-sheet-inner-content {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Ensure content is properly spaced */
+.InstantMeetup-content,
+.NearbyMeetups-content {
+  height: auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 0;
+}
+
+/* Custom scrollbar for bottom sheet content */
+.bottom-sheet-inner-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.bottom-sheet-inner-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bottom-sheet-inner-content::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+.dark .bottom-sheet-inner-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Bottom sheet sections */
+.bottom-sheet-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.bottom-sheet-section + .bottom-sheet-section {
+  margin-top: 12px;
+}
+
+/* Ensure proper spacing in bottom sheet */
+.bottom-sheet .meetup-card {
+  margin: 0;
+  width: 100%;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* Improved Touch Target Class */
+.touch-target {
+  min-width: var(--touch-target-size);
+  min-height: var(--touch-target-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Create a larger invisible touch area */
+.touch-target::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  min-width: var(--touch-target-size);
+  min-height: var(--touch-target-size);
+  transform: translate(-50%, -50%);
+  z-index: -1;
+}
+
+/* Enhanced map control positioning and sizing for better touch */
+.map-control {
+  margin: 10px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(4px);
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transition: all var(--transition-duration) var(--transition-timing);
+}
+
+.map-control a {
+  min-width: var(--touch-target-size) !important;
+  min-height: var(--touch-target-size) !important;
+  line-height: var(--touch-target-size) !important;
+  font-size: 18px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Adjust control position when bottom sheet is open */
+.bottom-sheet.active ~ .leaflet-control-container .map-control {
+  transform: translateY(calc(-1 * var(--bottom-sheet-height, 20vh)));
+}
+
+/* Improved responsive breakpoints for mobile devices */
+@media (max-width: var(--breakpoint-xs)) {
+  .bottom-sheet {
+    height: 85vh !important;
+    max-height: calc(100vh - 16px) !important;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .bottom-sheet-inner-content {
+    padding: 12px;
+  }
+
+  .map-control {
+    transform: scale(0.85);
+    margin: 8px !important;
+  }
+
+  .touch-target {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Adjust font sizes for readability */
+  .bottom-sheet-content {
+    font-size: 14px;
+  }
+
+  /* Compact UI for small screens */
+  .compact-for-mobile {
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+
+  /* Reduce visual clutter */
+  .mobile-hidden {
+    display: none !important;
+  }
+}
+
+/* Small devices (phones) */
+@media (min-width: calc(var(--breakpoint-xs) + 1px)) and (max-width: var(--breakpoint-sm)) {
+  .bottom-sheet {
+    height: 75vh !important;
+  }
+
+  .map-control {
+    transform: scale(0.9);
+  }
+
+  .touch-target {
+    min-width: 42px;
+    min-height: 42px;
+  }
+}
+
+/* Medium devices (larger phones, small tablets) */
+@media (min-width: calc(var(--breakpoint-sm) + 1px)) and (max-width: var(--breakpoint-md)) {
+  .bottom-sheet {
+    height: 70vh !important;
+  }
+
+  .touch-target {
+    min-width: var(--touch-target-size);
+    min-height: var(--touch-target-size);
+  }
+}
+
+/* Improved landscape handling */
+@media (orientation: landscape) and (max-height: 500px) {
+  .bottom-sheet {
+    height: 90vh !important;
+  }
+
+  .bottom-sheet-tabs {
+    padding: 4px 0;
+  }
+
+  /* Hide decorative elements in landscape on small screens */
+  .decorative-element {
+    display: none !important;
+  }
+
+  .map-control {
+    transform: scale(0.8);
+  }
+}
+
+/* Handle notched devices and safe areas */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .bottom-sheet {
+    --safe-area-top: env(safe-area-inset-top);
+    --safe-area-bottom: env(safe-area-inset-bottom);
+    --safe-area-left: env(safe-area-inset-left);
+    --safe-area-right: env(safe-area-inset-right);
+
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .app-footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .bottom-sheet,
+  .touch-target,
+  .bottom-sheet button::after,
+  .leaflet-popup,
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip,
+  .map-control {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Meetup Status Styles */
+.meetup-card {
+  transition:
+    opacity var(--transition-duration) var(--transition-timing),
+    transform var(--transition-duration) var(--transition-timing);
+}
+
+.meetup-card[data-status='inactive'],
+.meetup-card[data-status='expired'] {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  position: absolute;
+  visibility: hidden;
+}
+
+/* Animation for meetup status changes */
+@keyframes fadeOutMeetup {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.meetup-fade-out {
+  animation: fadeOutMeetup var(--transition-duration) var(--transition-timing) forwards;
+}
+
+/* Ensure proper spacing when items are hidden */
+.NearbyMeetups-content
+  > div:not([data-status='inactive']):not([data-status='expired'])
+  + div:not([data-status='inactive']):not([data-status='expired']) {
+  margin-top: 8px;
+}
+
+/* Bottom sheet adjustments for hidden items */
+.bottom-sheet-inner-content {
+  contain: content;
+}
+
+/* Add these styles for map markers */
+
+/* User marker styles */
+.user-marker-inner {
+  position: relative;
+  width: 20px;
+  height: 20px;
+}
+
+.marker-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background-color: #3b82f6; /* Blue */
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.pulse-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  background-color: rgba(59, 130, 246, 0.3); /* Blue with transparency */
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+/* Meetup marker styles */
+.meetup-marker-inner {
+  position: relative;
+  width: 30px;
+  height: 30px;
+}
+
+/* These basic marker styles are still needed for non-selected markers */
+.meetup-inner-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background-color: #ef4444; /* Red */
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.meetup-outer-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ef4444; /* Red */
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* Removed redundant 3D glow effect CSS - now implemented in MemoizedMeetupMarker.tsx */
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0.2;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* Countdown Timer */
+.countdown-timer {
+  margin-top: 8px;
+  text-align: center;
+  color: #000000;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 0.95rem;
+  padding: 4px 0;
+  border-top: 1px solid #eaeaea;
+}
+
+.countdown-timer .flex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-text {
+  letter-spacing: 0.05em;
+  margin: 0 6px;
+}
+
+/* Ensure popup has a minimum width for better appearance */
+.meetup-popup {
+  min-width: 200px;
+  padding: 8px 4px;
+}
+
+/* Add custom animations */
+@keyframes slide-down {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+}
+
+/* Map Pin Marker Styles - keep these as they affect non-selected states */
+.map-pin-marker {
+  z-index: 500 !important;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
+  transition:
+    transform 0.2s ease-out,
+    filter 0.2s ease-out;
+  transform-origin: bottom center;
+}
+
+.map-pin-marker img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.map-pin-marker:hover {
+  z-index: 600 !important;
+  transform: scale(1.1);
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.4));
+}
+
+.map-pin-marker.expired {
+  opacity: 0.7;
+  filter: grayscale(80%) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+.map-pin-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}

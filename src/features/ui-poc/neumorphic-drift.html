@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetNow Drifting Neumorphic UI</title>
+  <style>
+    :root {
+      --primary-bg: #E0E5EC;
+      --primary-light: #FFFFFF;
+      --primary-dark: #A3B1C6;
+      --text-color: #6D7587;
+      --text-color-dark: #394050;
+      --accent-blue: #4a90e2;
+      --accent-purple: #9370DB;
+      --accent-green: #66bb6a;
+      --accent-red: #e57373;
+      --shadow-distance: 10px;
+      --glass-bg: rgba(255, 255, 255, 0.25);
+      --glass-border: rgba(255, 255, 255, 0.18);
+      --gradient-blue: linear-gradient(135deg, rgba(74, 144, 226, 0.8) 0%, rgba(59, 130, 246, 0.6) 100%);
+      --gradient-purple: linear-gradient(135deg, rgba(147, 112, 219, 0.8) 0%, rgba(124, 58, 237, 0.6) 100%);
+      --gradient-green: linear-gradient(135deg, rgba(102, 187, 106, 0.8) 0%, rgba(16, 185, 129, 0.6) 100%);
+      --gradient-pink: linear-gradient(135deg, rgba(236, 72, 153, 0.8) 0%, rgba(219, 39, 119, 0.6) 100%);
+      --hue-blue-light: rgba(74, 144, 226, 0.15);
+      --hue-purple-light: rgba(147, 112, 219, 0.15);
+      --hue-green-light: rgba(102, 187, 106, 0.15);
+      --hue-pink-light: rgba(236, 72, 153, 0.15);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      min-height: 100vh;
+      padding: 30px 0;
+      position: relative;
+      overflow-x: hidden;
+      background-color: var(--primary-bg);
+    }
+    
+    /* Drifting Background Effect */
+    .drift-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .drift-particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.3;
+      animation: drift-upward linear infinite;
+    }
+    
+    .particle-blue {
+      background: var(--accent-blue);
+      filter: blur(3px);
+    }
+    
+    .particle-purple {
+      background: var(--accent-purple);
+      filter: blur(3px);
+    }
+    
+    .particle-green {
+      background: var(--accent-green);
+      filter: blur(3px);
+    }
+    
+    .particle-pink {
+      background: var(--accent-red);
+      filter: blur(3px);
+    }
+    
+    @keyframes drift-upward {
+      0% {
+        transform: translateY(100vh) translateX(0);
+      }
+      100% {
+        transform: translateY(-100vh) translateX(20px);
+      }
+    }
+    
+    .bg-gradient {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 20%, var(--hue-blue-light) 0%, transparent 30%),
+        radial-gradient(circle at 80% 40%, var(--hue-purple-light) 0%, transparent 30%),
+        radial-gradient(circle at 40% 70%, var(--hue-green-light) 0%, transparent 30%),
+        radial-gradient(circle at 70% 90%, var(--hue-pink-light) 0%, transparent 30%);
+      animation: drift-gradient 20s ease-in-out infinite;
+      z-index: -2;
+    }
+    
+    @keyframes drift-gradient {
+      0%, 100% {
+        background-position: 0% 0%;
+      }
+      50% {
+        background-position: 0% 10%;
+      }
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 30px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 40px;
+      border-radius: 20px;
+      background: var(--primary-bg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, 
+        transparent 0%, 
+        rgba(74, 144, 226, 0.05) 25%, 
+        transparent 50%,
+        rgba(147, 112, 219, 0.05) 75%,
+        transparent 100%
+      );
+      animation: headerShimmer 15s linear infinite;
+      pointer-events: none;
+    }
+    
+    @keyframes headerShimmer {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .header h1 {
+      color: var(--text-color-dark);
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      padding-bottom: 15px;
+      position: relative;
+    }
+    
+    .header h1::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+      border-radius: 3px;
+    }
+    
+    .header p {
+      color: var(--text-color);
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      margin-bottom: 60px;
+    }
+    
+    .section-title {
+      color: var(--text-color-dark);
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      position: relative;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+      border-radius: 3px;
+    }
+    
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 30px;
+    }
+    
+    .component-block {
+      padding: 30px;
+      background: var(--primary-bg);
+      border-radius: 20px;
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.5s ease;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    
+    .component-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        var(--hue-blue-light) 25%, 
+        transparent 50%
+      );
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+    
+    .component-block:nth-child(2n)::before {
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        var(--hue-purple-light) 25%, 
+        transparent 50%
+      );
+    }
+    
+    .component-block:nth-child(3n)::before {
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        var(--hue-green-light) 25%, 
+        transparent 50%
+      );
+    }
+    
+    .component-block:nth-child(4n)::before {
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        var(--hue-pink-light) 25%, 
+        transparent 50%
+      );
+    }
+    
+    .component-block:hover::before {
+      opacity: 1;
+    }
+    
+    .component-title {
+      margin-bottom: 20px;
+      color: var(--text-color-dark);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    /* Advanced Buttons */
+    .neu-button {
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-color);
+      background: var(--primary-bg);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .neu-button-raised {
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+    }
+    
+    .neu-button-pressed {
+      box-shadow: 
+        inset 5px 5px 10px var(--primary-dark),
+        inset -5px -5px 10px var(--primary-light);
+    }
+    
+    .neu-button-raised:hover {
+      box-shadow: 
+        calc(var(--shadow-distance) * 0.7) calc(var(--shadow-distance) * 0.7) calc(var(--shadow-distance)) var(--primary-dark),
+        calc(var(--shadow-distance) * -0.7) calc(var(--shadow-distance) * -0.7) calc(var(--shadow-distance)) var(--primary-light);
+    }
+    
+    .neu-button-raised:active {
+      box-shadow: 
+        inset 5px 5px 10px var(--primary-dark),
+        inset -5px -5px 10px var(--primary-light);
+    }
+    
+    .neu-button-pressed:hover {
+      box-shadow: 
+        inset 3px 3px 6px var(--primary-dark),
+        inset -3px -3px 6px var(--primary-light);
+    }
+    
+    .neu-button-glowing {
+      position: relative;
+      z-index: 1;
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+    }
+    
+    .neu-button-glowing::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      z-index: -1;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-blue));
+      background-size: 200%;
+      border-radius: 12px;
+      animation: glowing 3s linear infinite;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .neu-button-glowing:hover::before {
+      opacity: 1;
+    }
+    
+    .neu-button-glowing::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      background: var(--primary-bg);
+      border-radius: 10px;
+    }
+    
+    .neu-button-glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
+      color: var(--text-color-dark);
+      box-shadow: 
+        4px 4px 10px rgba(0, 0, 0, 0.1),
+        -4px -4px 10px rgba(255, 255, 255, 0.2);
+    }
+    
+    .neu-button-glass:hover {
+      box-shadow: 
+        6px 6px 15px rgba(0, 0, 0, 0.15),
+        -6px -6px 15px rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .neu-button-gradient {
+      position: relative;
+      overflow: hidden;
+      color: white;
+      box-shadow: 
+        4px 4px 10px rgba(0, 0, 0, 0.2),
+        -4px -4px 10px rgba(255, 255, 255, 0.1);
+      background: var(--gradient-blue);
+      z-index: 1;
+    }
+    
+    .neu-button-gradient::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--gradient-purple);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+    }
+    
+    .neu-button-gradient:hover::before {
+      opacity: 1;
+    }
+    
+    @keyframes glowing {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    .neu-button-pill {
+      border-radius: 50px;
+      box-shadow: 
+        7px 7px 12px var(--primary-dark),
+        -7px -7px 12px var(--primary-light);
+    }
+    
+    .neu-button-pill:hover {
+      box-shadow: 
+        5px 5px 10px var(--primary-dark),
+        -5px -5px 10px var(--primary-light);
+    }
+    
+    .neu-button-3d {
+      transform: perspective(800px) rotateX(0deg) rotateY(0deg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+      transition: all 0.5s ease;
+    }
+    
+    .neu-button-3d:hover {
+      transform: perspective(800px) rotateX(-5deg) rotateY(5deg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+    }
+    
+    .neu-button-prism {
+      position: relative;
+      overflow: hidden;
+      color: var(--text-color-dark);
+      background: var(--primary-bg);
+      box-shadow: 
+        4px 4px 10px var(--primary-dark),
+        -4px -4px 10px var(--primary-light);
+    }
+    
+    .neu-button-prism::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        rgba(255, 0, 0, 0.1),
+        rgba(255, 165, 0, 0.1),
+        rgba(255, 255, 0, 0.1),
+        rgba(0, 128, 0, 0.1),
+        rgba(0, 0, 255, 0.1),
+        rgba(75, 0, 130, 0.1),
+        rgba(238, 130, 238, 0.1)
+      );
+      animation: prismRotate 5s linear infinite;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      mix-blend-mode: color;
+    }
+    
+    .neu-button-prism:hover::before {
+      opacity: 1;
+    }
+    
+    @keyframes prismRotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .neu-button-glow {
+      background: var(--primary-bg);
+      color: var(--text-color-dark);
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-weight: 600;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      box-shadow: 
+        4px 4px 8px var(--primary-dark),
+        -4px -4px 8px var(--primary-light);
+    }
+    
+    .neu-button-glow::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      border-radius: 12px;
+      background: linear-gradient(
+        90deg,
+        rgba(74, 144, 226, 0),
+        rgba(74, 144, 226, 0.5),
+        rgba(147, 112, 219, 0.5),
+        rgba(236, 72, 153, 0.5),
+        rgba(74, 144, 226, 0)
+      );
+      z-index: -1;
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+    
+    .neu-button-glow:hover::before {
+      transform: translateX(100%);
+    }
+    
+    /* Toggle Switch */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      border-radius: 15px;
+      background: var(--primary-bg);
+      box-shadow: 
+        inset 3px 3px 5px var(--primary-dark),
+        inset -3px -3px 5px var(--primary-light);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    
+    .toggle-switch::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--gradient-blue);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      box-shadow: 
+        2px 2px 5px var(--primary-dark),
+        -2px -2px 5px var(--primary-light);
+      transition: all 0.3s ease;
+      z-index: 1;
+    }
+    
+    .toggle-switch.active::before {
+      opacity: 0.8;
+    }
+    
+    .toggle-switch.active::after {
+      left: 33px;
+      background: white;
+      box-shadow: 
+        2px 2px 5px rgba(0, 0, 0, 0.2),
+        -2px -2px 5px rgba(255, 255, 255, 0.7);
+    }
+    
+    .toggle-label {
+      font-size: 0.9rem;
+      color: var(--text-color);
+    }
+    
+    /* Other styles from the original file */
+    /* ... */
+    
+    /* Glass Card */
+    .glass-card {
+      width: 100%;
+      height: 180px;
+      position: relative;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      transition: all 0.5s ease;
+    }
+    
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 20%,
+        rgba(255, 255, 255, 0) 60%
+      );
+      transform: translateX(-100%);
+      transition: transform 0.7s ease;
+    }
+    
+    .glass-card:hover::before {
+      transform: translateX(100%);
+    }
+    
+    .glass-card-content {
+      position: relative;
+      z-index: 1;
+      padding: 20px;
+    }
+    
+    .glass-card-title {
+      color: var(--text-color-dark);
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .glass-card-text {
+      color: var(--text-color);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    
+    /* Color Shifting Animation */
+    .color-shift {
+      width: 100%;
+      height: 120px;
+      border-radius: 15px;
+      background: linear-gradient(90deg,
+        rgba(74, 144, 226, 0.5),
+        rgba(147, 112, 219, 0.5),
+        rgba(236, 72, 153, 0.5),
+        rgba(74, 144, 226, 0.5)
+      );
+      background-size: 400% 100%;
+      animation: colorShift 10s infinite linear;
+      box-shadow: 
+        4px 4px 8px rgba(0, 0, 0, 0.1),
+        -4px -4px 8px rgba(255, 255, 255, 0.5);
+    }
+    
+    @keyframes colorShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 400% 50%; }
+    }
+    
+    /* Rest of the styles */
+    /* ... */
+    
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      padding: 30px;
+      color: var(--text-color);
+      font-size: 0.9rem;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+  </style>
+</head>
+<body>
+  <!-- Drifting Background -->
+  <div class="drift-bg">
+    <div class="bg-gradient"></div>
+    <!-- Particles will be dynamically generated via JavaScript -->
+  </div>
+  
+  <div class="container">
+    <div class="header">
+      <h1>Drifting Neumorphic UI</h1>
+      <p>Experience the advanced soft UI with a gently drifting background effect</p>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Enhanced Button Styles</h2>
+      <p>Advanced button components with unique effects and animations</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">3D Rotation Button</h3>
+          <button class="neu-button neu-button-3d">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Glowing Accent Button</h3>
+          <button class="neu-button neu-button-glowing">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Glassmorphic Button</h3>
+          <button class="neu-button neu-button-glass">Glass Effect</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Gradient Button</h3>
+          <button class="neu-button neu-button-gradient">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Prism Effect Button</h3>
+          <button class="neu-button neu-button-prism">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Glow Button</h3>
+          <button class="neu-button neu-button-glow">Hover Me</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Advanced Color Effects</h2>
+      <p>Subtle colorful hues with transparency for more visual impact</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">Color Shifting</h3>
+          <div class="color-shift"></div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Glass Card with Shimmer</h3>
+          <div class="glass-card">
+            <div class="glass-card-content">
+              <h4 class="glass-card-title">Glass Effect</h4>
+              <p class="glass-card-text">Hover over this card to see the shimmer animation effect with transparency.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    MeetNow &copy; 2023 - Drifting Neumorphic UI Components
+  </footer>
+  
+  <script>
+    // Generate drifting particles
+    function createParticles() {
+      const driftBg = document.querySelector('.drift-bg');
+      const particleCount = 30; // Number of particles
+      
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('drift-particle');
+        
+        // Randomize particle properties
+        const size = Math.random() * 40 + 10; // Size between 10-50px
+        const left = Math.random() * 100; // Position from 0-100%
+        const duration = Math.random() * 40 + 20; // Animation duration 20-60s
+        const delay = Math.random() * 20; // Delay start by 0-20s
+        
+        // Assign random color class
+        const colorClasses = ['particle-blue', 'particle-purple', 'particle-green', 'particle-pink'];
+        const randomColorClass = colorClasses[Math.floor(Math.random() * colorClasses.length)];
+        particle.classList.add(randomColorClass);
+        
+        // Set styles
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${left}%`;
+        particle.style.animationDuration = `${duration}s`;
+        particle.style.animationDelay = `${delay}s`;
+        
+        driftBg.appendChild(particle);
+      }
+    }
+    
+    // Initialize particles when document is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      createParticles();
+      
+      // Other scripts from the original file
+      // Progress, toggles, sliders, tabs, etc.
+    });
+  </script>
+</body>
+</html> 

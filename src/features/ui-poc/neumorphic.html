@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetNow Advanced Neumorphic UI</title>
+  <style>
+    :root {
+      --primary-bg: #E0E5EC;
+      --primary-light: #FFFFFF;
+      --primary-dark: #A3B1C6;
+      --text-color: #6D7587;
+      --text-color-dark: #394050;
+      --accent-blue: #4a90e2;
+      --accent-purple: #9370DB;
+      --accent-green: #66bb6a;
+      --accent-red: #e57373;
+      --shadow-distance: 10px;
+      --glass-bg: rgba(255, 255, 255, 0.25);
+      --glass-border: rgba(255, 255, 255, 0.18);
+      --gradient-blue: linear-gradient(135deg, rgba(74, 144, 226, 0.8) 0%, rgba(59, 130, 246, 0.6) 100%);
+      --gradient-purple: linear-gradient(135deg, rgba(147, 112, 219, 0.8) 0%, rgba(124, 58, 237, 0.6) 100%);
+      --gradient-green: linear-gradient(135deg, rgba(102, 187, 106, 0.8) 0%, rgba(16, 185, 129, 0.6) 100%);
+      --gradient-pink: linear-gradient(135deg, rgba(236, 72, 153, 0.8) 0%, rgba(219, 39, 119, 0.6) 100%);
+      --hue-blue-light: rgba(74, 144, 226, 0.15);
+      --hue-purple-light: rgba(147, 112, 219, 0.15);
+      --hue-green-light: rgba(102, 187, 106, 0.15);
+      --hue-pink-light: rgba(236, 72, 153, 0.15);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--primary-bg);
+      color: var(--text-color);
+      min-height: 100vh;
+      padding: 30px 0;
+      background-image: 
+        radial-gradient(circle at 20% 20%, var(--hue-blue-light) 0%, transparent 30%),
+        radial-gradient(circle at 80% 40%, var(--hue-purple-light) 0%, transparent 30%),
+        radial-gradient(circle at 40% 70%, var(--hue-green-light) 0%, transparent 30%),
+        radial-gradient(circle at 70% 90%, var(--hue-pink-light) 0%, transparent 30%);
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 30px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 40px;
+      border-radius: 20px;
+      background: var(--primary-bg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, 
+        transparent 0%, 
+        rgba(74, 144, 226, 0.05) 25%, 
+        transparent 50%,
+        rgba(147, 112, 219, 0.05) 75%,
+        transparent 100%
+      );
+      animation: headerShimmer 15s linear infinite;
+      pointer-events: none;
+    }
+    
+    @keyframes headerShimmer {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .header h1 {
+      color: var(--text-color-dark);
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      padding-bottom: 15px;
+      position: relative;
+    }
+    
+    .header h1::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+      border-radius: 3px;
+    }
+    
+    .header p {
+      color: var(--text-color);
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      margin-bottom: 60px;
+    }
+    
+    .section-title {
+      color: var(--text-color-dark);
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      position: relative;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+      border-radius: 3px;
+    }
+    
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 30px;
+    }
+    
+    .component-block {
+      padding: 30px;
+      background: var(--primary-bg);
+      border-radius: 20px;
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.5s ease;
+    }
+    
+    .component-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        var(--hue-blue-light) 25%, 
+        transparent 50%
+      );
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+    
+    .component-block:nth-child(2n)::before {
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        var(--hue-purple-light) 25%, 
+        transparent 50%
+      );
+    }
+    
+    .component-block:nth-child(3n)::before {
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        var(--hue-green-light) 25%, 
+        transparent 50%
+      );
+    }
+    
+    .component-block:nth-child(4n)::before {
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        var(--hue-pink-light) 25%, 
+        transparent 50%
+      );
+    }
+    
+    .component-block:hover::before {
+      opacity: 1;
+    }
+    
+    .component-title {
+      margin-bottom: 20px;
+      color: var(--text-color-dark);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    /* Advanced Buttons */
+    .neu-button {
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-color);
+      background: var(--primary-bg);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .neu-button-raised {
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+    }
+    
+    .neu-button-pressed {
+      box-shadow: 
+        inset 5px 5px 10px var(--primary-dark),
+        inset -5px -5px 10px var(--primary-light);
+    }
+    
+    .neu-button-raised:hover {
+      box-shadow: 
+        calc(var(--shadow-distance) * 0.7) calc(var(--shadow-distance) * 0.7) calc(var(--shadow-distance)) var(--primary-dark),
+        calc(var(--shadow-distance) * -0.7) calc(var(--shadow-distance) * -0.7) calc(var(--shadow-distance)) var(--primary-light);
+    }
+    
+    .neu-button-raised:active {
+      box-shadow: 
+        inset 5px 5px 10px var(--primary-dark),
+        inset -5px -5px 10px var(--primary-light);
+    }
+    
+    .neu-button-pressed:hover {
+      box-shadow: 
+        inset 3px 3px 6px var(--primary-dark),
+        inset -3px -3px 6px var(--primary-light);
+    }
+    
+    .neu-button-glowing {
+      position: relative;
+      z-index: 1;
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+    }
+    
+    .neu-button-glowing::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      z-index: -1;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-blue));
+      background-size: 200%;
+      border-radius: 12px;
+      animation: glowing 3s linear infinite;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .neu-button-glowing:hover::before {
+      opacity: 1;
+    }
+    
+    .neu-button-glowing::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      background: var(--primary-bg);
+      border-radius: 10px;
+    }
+    
+    @keyframes glowing {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    .neu-button-pill {
+      border-radius: 50px;
+      box-shadow: 
+        7px 7px 12px var(--primary-dark),
+        -7px -7px 12px var(--primary-light);
+    }
+    
+    .neu-button-pill:hover {
+      box-shadow: 
+        5px 5px 10px var(--primary-dark),
+        -5px -5px 10px var(--primary-light);
+    }
+    
+    .neu-button-3d {
+      transform: perspective(800px) rotateX(0deg) rotateY(0deg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+      transition: all 0.5s ease;
+    }
+    
+    .neu-button-3d:hover {
+      transform: perspective(800px) rotateX(-5deg) rotateY(5deg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+    }
+    
+    /* Toggle Switch */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      border-radius: 15px;
+      background: var(--primary-bg);
+      box-shadow: 
+        inset 3px 3px 5px var(--primary-dark),
+        inset -3px -3px 5px var(--primary-light);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    
+    .toggle-switch::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--gradient-blue);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      box-shadow: 
+        2px 2px 5px var(--primary-dark),
+        -2px -2px 5px var(--primary-light);
+      transition: all 0.3s ease;
+      z-index: 1;
+    }
+    
+    .toggle-switch.active::before {
+      opacity: 0.8;
+    }
+    
+    .toggle-switch.active::after {
+      left: 33px;
+      background: white;
+      box-shadow: 
+        2px 2px 5px rgba(0, 0, 0, 0.2),
+        -2px -2px 5px rgba(255, 255, 255, 0.7);
+    }
+    
+    .toggle-label {
+      font-size: 0.9rem;
+      color: var(--text-color);
+    }
+    
+    /* Slider */
+    .slider-container {
+      width: 100%;
+      padding: 10px 0;
+    }
+    
+    .slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: var(--primary-bg);
+      box-shadow: 
+        inset 3px 3px 5px var(--primary-dark),
+        inset -3px -3px 5px var(--primary-light);
+      outline: none;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      box-shadow: 
+        2px 2px 5px var(--primary-dark),
+        -2px -2px 5px var(--primary-light);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .slider::-webkit-slider-thumb:hover {
+      background: var(--accent-blue);
+      box-shadow: 
+        2px 2px 5px rgba(0, 0, 0, 0.2),
+        -2px -2px 5px rgba(255, 255, 255, 0.7);
+    }
+    
+    .slider-value {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: var(--text-color);
+    }
+    
+    /* Input Fields */
+    .input-container {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    
+    .neu-input {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      outline: none;
+      color: var(--text-color);
+      font-size: 1rem;
+      border-radius: 10px;
+      background: var(--primary-bg);
+      box-shadow: 
+        inset 3px 3px 5px var(--primary-dark),
+        inset -3px -3px 5px var(--primary-light);
+      transition: all 0.3s ease;
+    }
+    
+    .neu-input:focus {
+      box-shadow: 
+        inset 4px 4px 6px var(--primary-dark),
+        inset -4px -4px 6px var(--primary-light);
+    }
+    
+    .neu-input::placeholder {
+      color: var(--primary-dark);
+    }
+    
+    /* Circular Progress */
+    .progress-circle {
+      position: relative;
+      width: 150px;
+      height: 150px;
+    }
+    
+    .progress-circle svg {
+      transform: rotate(-90deg);
+    }
+    
+    .progress-circle circle {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke: var(--primary-dark);
+    }
+    
+    .progress-circle .progress {
+      stroke: var(--accent-blue);
+      stroke-dasharray: 283;
+      stroke-dashoffset: 283;
+      transition: stroke-dashoffset 1s ease;
+    }
+    
+    .progress-circle .background {
+      stroke: rgba(0, 0, 0, 0.05);
+    }
+    
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-color-dark);
+    }
+    
+    /* Checkbox */
+    .checkbox-container {
+      position: relative;
+      padding-left: 35px;
+      cursor: pointer;
+      user-select: none;
+      line-height: 25px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .checkbox-container input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      height: 0;
+      width: 0;
+    }
+    
+    .checkmark {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 25px;
+      width: 25px;
+      background-color: var(--primary-bg);
+      border-radius: 6px;
+      box-shadow: 
+        inset 2px 2px 5px var(--primary-dark),
+        inset -2px -2px 5px var(--primary-light);
+      transition: all 0.3s ease;
+    }
+    
+    .checkbox-container:hover .checkmark {
+      box-shadow: 
+        inset 3px 3px 7px var(--primary-dark),
+        inset -3px -3px 7px var(--primary-light);
+    }
+    
+    .checkbox-container input:checked ~ .checkmark:after {
+      display: block;
+    }
+    
+    .checkmark:after {
+      content: "";
+      position: absolute;
+      display: none;
+      left: 9px;
+      top: 5px;
+      width: 5px;
+      height: 10px;
+      border: solid var(--accent-blue);
+      border-width: 0 3px 3px 0;
+      transform: rotate(45deg);
+    }
+    
+    /* Card with 3D effect */
+    .neu-card-3d {
+      width: 100%;
+      height: 220px;
+      border-radius: 15px;
+      background: var(--primary-bg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+      transition: all 0.5s ease;
+      transform-style: preserve-3d;
+      transform: perspective(1000px) rotateX(0) rotateY(0);
+      position: relative;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+    
+    .neu-card-3d::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, 
+        rgba(74, 144, 226, 0.1) 0%, 
+        rgba(147, 112, 219, 0.1) 50%, 
+        rgba(74, 144, 226, 0.1) 100%
+      );
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+    
+    .neu-card-3d:hover::before {
+      opacity: 1;
+    }
+    
+    .card-content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-color-dark);
+      margin-bottom: 10px;
+    }
+    
+    .card-text {
+      font-size: 0.9rem;
+      color: var(--text-color);
+      line-height: 1.5;
+    }
+    
+    .card-icon {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      box-shadow: 
+        4px 4px 8px var(--primary-dark),
+        -4px -4px 8px var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--accent-blue);
+    }
+    
+    /* Tab Panel */
+    .tabs-container {
+      width: 100%;
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      background: var(--primary-bg);
+      box-shadow: 
+        5px 5px 10px var(--primary-dark),
+        -5px -5px 10px var(--primary-light);
+      padding: 5px;
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--text-color);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .tab.active {
+      box-shadow: 
+        inset 3px 3px 5px var(--primary-dark),
+        inset -3px -3px 5px var(--primary-light);
+      color: var(--accent-blue);
+    }
+    
+    .tab-content {
+      padding: 15px;
+      border-radius: 10px;
+      background: var(--primary-bg);
+      box-shadow: 
+        inset 3px 3px 5px var(--primary-dark),
+        inset -3px -3px 5px var(--primary-light);
+      min-height: 100px;
+    }
+    
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    .tab-pane.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* Floating Action Button */
+    .fab {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 
+        6px 6px 12px var(--primary-dark),
+        -6px -6px 12px var(--primary-light);
+      transition: all 0.3s ease;
+      color: var(--accent-blue);
+      font-size: 1.5rem;
+      z-index: 100;
+    }
+    
+    .fab:hover {
+      box-shadow: 
+        8px 8px 16px var(--primary-dark),
+        -8px -8px 16px var(--primary-light);
+      transform: translateY(-5px);
+    }
+    
+    .fab-menu {
+      position: absolute;
+      bottom: 80px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 15px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    
+    .fab-menu.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .fab-item {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 
+        4px 4px 8px var(--primary-dark),
+        -4px -4px 8px var(--primary-light);
+      color: var(--text-color);
+      transform: scale(0);
+      transition: all 0.3s ease;
+    }
+    
+    .fab-menu.active .fab-item {
+      transform: scale(1);
+    }
+    
+    .fab-item:hover {
+      transform: scale(1.1);
+    }
+    
+    /* Animation Cards */
+    .breathe-card {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      border-radius: 15px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary-bg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+    }
+    
+    .breathe-circle {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: transparent;
+      box-shadow: 
+        0 0 20px rgba(74, 144, 226, 0.7);
+      animation: breathe 6s ease-in-out infinite;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .breathe-circle::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--gradient-blue);
+      opacity: 0.8;
+      z-index: -1;
+    }
+    
+    @keyframes breathe {
+      0%, 100% {
+        transform: scale(0.8);
+        box-shadow: 0 0 0 rgba(74, 144, 226, 0.3);
+      }
+      50% {
+        transform: scale(1.2);
+        box-shadow: 0 0 30px rgba(74, 144, 226, 0.7);
+      }
+    }
+    
+    /* Liquid Animation */
+    .liquid-container {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      border-radius: 15px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary-bg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+    }
+    
+    .liquid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 40%;
+      background: linear-gradient(to top, 
+        rgba(74, 144, 226, 0.8),
+        rgba(74, 144, 226, 0.4)
+      );
+      border-radius: 0 0 15px 15px;
+      animation: liquid 8s ease-in-out infinite;
+    }
+    
+    .liquid::after {
+      content: '';
+      position: absolute;
+      top: -15px;
+      left: 0;
+      width: 100%;
+      height: 15px;
+      background: rgba(74, 144, 226, 0.8);
+      border-radius: 50%;
+      animation: wave 5s linear infinite;
+    }
+    
+    .liquid::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(90deg, 
+          rgba(74, 144, 226, 0) 0%,
+          rgba(147, 112, 219, 0.3) 50%,
+          rgba(74, 144, 226, 0) 100%
+        );
+      animation: liquidShimmer 10s linear infinite;
+    }
+    
+    @keyframes liquidShimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    @keyframes liquid {
+      0%, 100% {
+        height: 40%;
+      }
+      50% {
+        height: 60%;
+      }
+    }
+    
+    @keyframes wave {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+    
+    /* Colorful Glass Card */
+    .glass-card {
+      width: 100%;
+      height: 180px;
+      position: relative;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      transition: all 0.5s ease;
+    }
+    
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 20%,
+        rgba(255, 255, 255, 0) 60%
+      );
+      transform: translateX(-100%);
+      transition: transform 0.7s ease;
+    }
+    
+    .glass-card:hover::before {
+      transform: translateX(100%);
+    }
+    
+    .glass-card-content {
+      position: relative;
+      z-index: 1;
+      padding: 20px;
+    }
+    
+    .glass-card-title {
+      color: var(--text-color-dark);
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .glass-card-text {
+      color: var(--text-color);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    
+    /* Hue Pulse Animation */
+    .hue-pulse {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      position: relative;
+      box-shadow: 
+        5px 5px 10px var(--primary-dark),
+        -5px -5px 10px var(--primary-light);
+      animation: huePulse 8s infinite ease-in-out;
+    }
+    
+    @keyframes huePulse {
+      0%, 100% {
+        box-shadow: 
+          5px 5px 15px rgba(74, 144, 226, 0.5),
+          -5px -5px 15px var(--primary-light);
+      }
+      25% {
+        box-shadow: 
+          5px 5px 15px rgba(147, 112, 219, 0.5),
+          -5px -5px 15px var(--primary-light);
+      }
+      50% {
+        box-shadow: 
+          5px 5px 15px rgba(102, 187, 106, 0.5),
+          -5px -5px 15px var(--primary-light);
+      }
+      75% {
+        box-shadow: 
+          5px 5px 15px rgba(236, 72, 153, 0.5),
+          -5px -5px 15px var(--primary-light);
+      }
+    }
+    
+    /* Glow Button */
+    .neu-button-glow {
+      background: var(--primary-bg);
+      color: var(--text-color-dark);
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-weight: 600;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      box-shadow: 
+        4px 4px 8px var(--primary-dark),
+        -4px -4px 8px var(--primary-light);
+    }
+    
+    .neu-button-glow::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      border-radius: 12px;
+      background: linear-gradient(
+        90deg,
+        rgba(74, 144, 226, 0),
+        rgba(74, 144, 226, 0.5),
+        rgba(147, 112, 219, 0.5),
+        rgba(236, 72, 153, 0.5),
+        rgba(74, 144, 226, 0)
+      );
+      z-index: -1;
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+    
+    .neu-button-glow:hover::before {
+      transform: translateX(100%);
+    }
+    
+    /* Color Shifting Animation */
+    .color-shift {
+      width: 100%;
+      height: 120px;
+      border-radius: 15px;
+      background: linear-gradient(90deg,
+        rgba(74, 144, 226, 0.5),
+        rgba(147, 112, 219, 0.5),
+        rgba(236, 72, 153, 0.5),
+        rgba(74, 144, 226, 0.5)
+      );
+      background-size: 400% 100%;
+      animation: colorShift 10s infinite linear;
+      box-shadow: 
+        4px 4px 8px rgba(0, 0, 0, 0.1),
+        -4px -4px 8px rgba(255, 255, 255, 0.5);
+    }
+    
+    @keyframes colorShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 400% 50%; }
+    }
+    
+    /* Breathing Shadow */
+    .breathing-shadow {
+      width: 100px;
+      height: 100px;
+      border-radius: 15px;
+      background: var(--primary-bg);
+      animation: shadowBreathe 5s infinite ease-in-out;
+    }
+    
+    @keyframes shadowBreathe {
+      0%, 100% {
+        box-shadow: 
+          5px 5px 15px var(--primary-dark),
+          -5px -5px 15px var(--primary-light);
+      }
+      50% {
+        box-shadow: 
+          15px 15px 30px var(--primary-dark),
+          -15px -15px 30px var(--primary-light);
+      }
+    }
+    
+    /* Floating Element Animation */
+    .floating-element {
+      width: 100px;
+      height: 100px;
+      border-radius: 10px;
+      background: var(--primary-bg);
+      box-shadow: 
+        5px 5px 10px var(--primary-dark),
+        -5px -5px 10px var(--primary-light);
+      animation: float 6s ease-in-out infinite;
+      position: relative;
+    }
+    
+    .floating-element::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(135deg, transparent, var(--hue-blue-light), transparent);
+      opacity: 0.5;
+    }
+    
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-15px);
+      }
+    }
+    
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      padding: 30px;
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Advanced Neumorphic UI</h1>
+      <p>Pushing the boundaries of soft UI with creative and unique components for MeetNow</p>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Enhanced Button Styles</h2>
+      <p>Advanced button components with unique effects and animations</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">3D Rotation Button</h3>
+          <button class="neu-button neu-button-3d">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Glowing Accent Button</h3>
+          <button class="neu-button neu-button-glowing">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Glassmorphic Button</h3>
+          <button class="neu-button neu-button-glass">Glass Effect</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Gradient Button</h3>
+          <button class="neu-button neu-button-gradient">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Prism Effect Button</h3>
+          <button class="neu-button neu-button-prism">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Pill Button</h3>
+          <button class="neu-button neu-button-pill">Pill Shape</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Interactive Controls</h2>
+      <p>Engaging input elements with smooth transitions and micro-interactions</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">Soft Toggle Switch</h3>
+          <div class="toggle-container">
+            <span class="toggle-label">Off</span>
+            <div class="toggle-switch" id="toggle1"></div>
+            <span class="toggle-label">On</span>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Smooth Slider</h3>
+          <div class="slider-container">
+            <input type="range" min="1" max="100" value="50" class="slider" id="slider1">
+            <div class="slider-value" id="slider-value">50</div>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Inset Input Field</h3>
+          <div class="input-container">
+            <input type="text" class="neu-input" placeholder="Type something...">
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Soft Checkbox</h3>
+          <label class="checkbox-container">
+            Remember me
+            <input type="checkbox">
+            <span class="checkmark"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Dynamic Components</h2>
+      <p>Components with movement, animation and interactive states</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">Circular Progress</h3>
+          <div class="progress-circle">
+            <svg width="150" height="150">
+              <circle class="background" cx="75" cy="75" r="45" />
+              <circle class="progress" cx="75" cy="75" r="45" id="progress-circle" />
+            </svg>
+            <div class="progress-text" id="progress-text">75%</div>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Tab Navigation</h3>
+          <div class="tabs-container">
+            <div class="tabs">
+              <div class="tab active" data-tab="tab1">First</div>
+              <div class="tab" data-tab="tab2">Second</div>
+              <div class="tab" data-tab="tab3">Third</div>
+            </div>
+            <div class="tab-content">
+              <div class="tab-pane active" id="tab1">
+                First tab content
+              </div>
+              <div class="tab-pane" id="tab2">
+                Second tab content
+              </div>
+              <div class="tab-pane" id="tab3">
+                Third tab content
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="component-block" style="position: relative; overflow: visible;">
+          <h3 class="component-title">Floating Action Button</h3>
+          <div class="fab" id="fab">+</div>
+          <div class="fab-menu" id="fab-menu">
+            <div class="fab-item">♡</div>
+            <div class="fab-item">✓</div>
+            <div class="fab-item">✎</div>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">3D Card</h3>
+          <div class="neu-card-3d" id="card3d">
+            <div class="card-content">
+              <div class="card-title">Interactive Card</div>
+              <div class="card-text">This card reacts to your mouse movement with a realistic 3D effect.</div>
+            </div>
+            <div class="card-icon">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Animated Elements</h2>
+      <p>Mesmerizing animations and dynamic user feedback</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">Breathing Animation</h3>
+          <div class="breathe-card">
+            <div class="breathe-circle"></div>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Liquid Animation</h3>
+          <div class="liquid-container">
+            <div class="liquid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Glassmorphism Components</h2>
+      <p>Combining neumorphism with transparency for modern UI elements</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">Glass Card</h3>
+          <div style="width: 100%; height: 180px; border-radius: 15px; background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--glass-border); padding: 20px; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent); pointer-events: none; transform: rotate(25deg);"></div>
+            <h4 style="color: var(--text-color-dark); margin-bottom: 10px; position: relative;">Glass Card Title</h4>
+            <p style="color: var(--text-color); font-size: 0.9rem; line-height: 1.5; position: relative;">This card uses glassmorphism for a modern transparent effect with subtle depth.</p>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Gradient Overlay</h3>
+          <div style="width: 100%; height: 180px; border-radius: 15px; background: var(--primary-bg); box-shadow: var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark), calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--gradient-purple); opacity: 0.15;"></div>
+            <div style="position: relative; padding: 20px;">
+              <h4 style="color: var(--text-color-dark); margin-bottom: 10px;">Gradient Overlay</h4>
+              <p style="color: var(--text-color); font-size: 0.9rem; line-height: 1.5;">Neumorphic style with subtle gradient color overlay for visual depth.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Colorful Shadows</h3>
+          <div style="width: 140px; height: 140px; border-radius: 15px; background: var(--primary-bg); position: relative;">
+            <div style="position: absolute; top: 8px; left: 8px; width: calc(100% - 16px); height: calc(100% - 16px); border-radius: 10px; background: var(--primary-bg); box-shadow: 5px 5px 15px rgba(74, 144, 226, 0.5), -5px -5px 15px rgba(147, 112, 219, 0.5);"></div>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Frosted Glass Menu</h3>
+          <div style="width: 100%; max-width: 250px; border-radius: 10px; background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--glass-border); overflow: hidden;">
+            <div style="padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-color-dark); font-weight: 600;">Menu Item 1</div>
+            <div style="padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-color-dark); background: rgba(74, 144, 226, 0.1); font-weight: 600;">Menu Item 2</div>
+            <div style="padding: 12px 15px; color: var(--text-color-dark); font-weight: 600;">Menu Item 3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Advanced Color Effects</h2>
+      <p>Subtle colorful hues with transparency for more visual impact</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">Color Shifting</h3>
+          <div class="color-shift"></div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Hue Pulse Effect</h3>
+          <div class="hue-pulse"></div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Glow Button</h3>
+          <button class="neu-button neu-button-glow">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Breathing Shadow</h3>
+          <div class="breathing-shadow"></div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Floating Element</h3>
+          <div class="floating-element"></div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Glass Card with Shimmer</h3>
+          <div class="glass-card">
+            <div class="glass-card-content">
+              <h4 class="glass-card-title">Glass Effect</h4>
+              <p class="glass-card-text">Hover over this card to see the shimmer animation effect with transparency.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    MeetNow &copy; 2023 - Advanced Neumorphic UI Components
+  </footer>
+  
+  <script>
+    // Progress Circle
+    const progressCircle = document.getElementById('progress-circle');
+    const progressText = document.getElementById('progress-text');
+    const progressValue = 75;
+    const progressCircumference = 2 * Math.PI * 45;
+    
+    progressCircle.style.strokeDashoffset = progressCircumference - (progressValue / 100 * progressCircumference);
+    
+    // Toggle Switches
+    document.querySelectorAll('.toggle-switch').forEach(toggle => {
+      toggle.addEventListener('click', function() {
+        this.classList.toggle('active');
+      });
+    });
+    
+    // Sliders
+    document.querySelectorAll('.slider').forEach(slider => {
+      const valueDisplay = document.getElementById('slider-value');
+      
+      slider.addEventListener('input', function() {
+        valueDisplay.textContent = this.value;
+      });
+    });
+    
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        // Add active class to clicked tab
+        this.classList.add('active');
+        
+        // Hide all tab panes
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        // Show corresponding tab pane
+        document.getElementById(this.getAttribute('data-tab')).classList.add('active');
+      });
+    });
+    
+    // Floating Action Button
+    const fab = document.getElementById('fab');
+    const fabMenu = document.getElementById('fab-menu');
+    
+    fab.addEventListener('click', function() {
+      fabMenu.classList.toggle('active');
+    });
+    
+    // 3D Card Effect
+    const card3d = document.getElementById('card3d');
+    
+    card3d.addEventListener('mousemove', function(e) {
+      const rect = this.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      const rotateY = (x - centerX) / 10;
+      const rotateX = (centerY - y) / 10;
+      
+      this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    });
+    
+    card3d.addEventListener('mouseleave', function() {
+      this.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+    });
+  </script>
+</body>
+</html> 

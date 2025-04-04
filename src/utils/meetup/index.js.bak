@@ -1,0 +1,56 @@
+export * from './operations';
+export * from './search';
+export * from './validation';
+export * from './error-handling';
+import { getSupabaseClient } from '../../supabase';
+import logger from '../Logger';
+import { getSignedUrlFromFullUrl } from '../wasabi-storage';
+import { handleMeetupError } from './error-handling';
+export async function getMeetupWithSignedImageUrl(meetupId) {
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Supabase client not initialized');
+        }
+        const { data, error } = await supabase.rpc('get_meetup', { p_meetup_id: meetupId });
+        if (error) {
+            throw error;
+        }
+        if (data.image_url) {
+            try {
+                const signedUrl = await getSignedUrlFromFullUrl(data.image_url);
+                return { ...data, signed_image_url: signedUrl };
+            }
+            catch (urlError) {
+                logger.error('LocationManager', 'Error getting signed URL for meetup image', urlError);
+            }
+        }
+        return data;
+    }
+    catch (error) {
+        const handledError = handleMeetupError(error, 'get meetup with signed image URL');
+        throw new Error(handledError.message);
+    }
+}
+export async function addSignedImageUrlsToMeetups(meetups) {
+    try {
+        const meetupsWithSignedUrls = await Promise.all(meetups.map(async (meetup) => {
+            if (meetup.image_url) {
+                try {
+                    const signedUrl = await getSignedUrlFromFullUrl(meetup.image_url);
+                    return { ...meetup, signed_image_url: signedUrl };
+                }
+                catch (urlError) {
+                    logger.error('LocationManager', 'Error getting signed URL for meetup image', urlError);
+                }
+            }
+            return meetup;
+        }));
+        return meetupsWithSignedUrls;
+    }
+    catch (error) {
+        const handledError = handleMeetupError(error, 'add signed image URLs to meetups');
+        throw new Error(handledError.message);
+    }
+}
+//# sourceMappingURL=index.js.map

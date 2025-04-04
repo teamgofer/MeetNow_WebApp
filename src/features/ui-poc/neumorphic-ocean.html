@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetNow Ocean Neumorphic UI</title>
+  <style>
+    :root {
+      --primary-bg: #E6EEF8;
+      --primary-light: #FFFFFF;
+      --primary-dark: #A3B1C6;
+      --text-color: #6D7587;
+      --text-color-dark: #394050;
+      --accent-blue: #4a90e2;
+      --accent-teal: #20C997;
+      --accent-purple: #9370DB;
+      --accent-gold: #FFD700;
+      --shadow-distance: 10px;
+      --glass-bg: rgba(255, 255, 255, 0.15);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --aqua-gradient: linear-gradient(135deg, rgba(32, 201, 151, 0.3) 0%, rgba(74, 144, 226, 0.3) 100%);
+      --prism-gradient: linear-gradient(135deg, 
+        rgba(255, 215, 0, 0.2),
+        rgba(147, 112, 219, 0.2),
+        rgba(32, 201, 151, 0.2),
+        rgba(74, 144, 226, 0.2)
+      );
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      min-height: 100vh;
+      padding: 30px 0;
+      position: relative;
+      overflow-x: hidden;
+      background-color: var(--primary-bg);
+    }
+    
+    /* Ocean-like Background Effect */
+    .ocean-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .ocean-wave {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(74, 144, 226, 0.03) 0%,
+        rgba(32, 201, 151, 0.03) 25%,
+        rgba(147, 112, 219, 0.03) 50%,
+        rgba(255, 215, 0, 0.03) 75%,
+        rgba(74, 144, 226, 0.03) 100%
+      );
+      opacity: 0.4;
+      filter: blur(60px);
+      transform-origin: center center;
+      animation: ocean-swell 40s ease-in-out infinite alternate;
+    }
+    
+    .ocean-wave:nth-child(2) {
+      animation-duration: 50s;
+      animation-delay: -5s;
+      opacity: 0.3;
+      filter: blur(70px);
+    }
+    
+    .ocean-wave:nth-child(3) {
+      animation-duration: 70s;
+      animation-delay: -15s;
+      opacity: 0.2;
+      filter: blur(80px);
+    }
+    
+    @keyframes ocean-swell {
+      0% {
+        transform: rotate(0deg) scale(1);
+      }
+      50% {
+        transform: rotate(3deg) scale(1.05);
+      }
+      100% {
+        transform: rotate(-2deg) scale(1.02);
+      }
+    }
+    
+    .ripple-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at center,
+        rgba(255, 255, 255, 0.4) 0%,
+        rgba(255, 255, 255, 0) 70%
+      );
+      transform: scale(0);
+      opacity: 0;
+    }
+    
+    .kaleidoscope {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(74, 144, 226, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 80% 30%, rgba(147, 112, 219, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 10% 60%, rgba(32, 201, 151, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 70%, rgba(255, 215, 0, 0.05) 0%, transparent 20%);
+      filter: blur(20px);
+      opacity: 0.8;
+      animation: kaleidoscope-drift 30s linear infinite;
+    }
+    
+    @keyframes kaleidoscope-drift {
+      0% {
+        background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+      }
+      25% {
+        background-position: 2% 1%, -2% 2%, 1% -1%, -1% -2%;
+      }
+      50% {
+        background-position: 0% 2%, 0% -2%, 2% 0%, -2% 0%;
+      }
+      75% {
+        background-position: -2% 1%, 2% 2%, -1% -1%, 1% -2%;
+      }
+      100% {
+        background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+      }
+    }
+    
+    .prism-reflection {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      border-radius: 50%;
+      background: linear-gradient(
+        45deg, 
+        rgba(255, 0, 0, 0.15),
+        rgba(255, 165, 0, 0.15),
+        rgba(255, 255, 0, 0.15),
+        rgba(0, 128, 0, 0.15),
+        rgba(0, 0, 255, 0.15),
+        rgba(75, 0, 130, 0.15),
+        rgba(238, 130, 238, 0.15)
+      );
+      filter: blur(5px);
+      mix-blend-mode: screen;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 30px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 40px;
+      border-radius: 20px;
+      background: var(--primary-bg);
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 200%;
+      height: 200%;
+      background: var(--aqua-gradient);
+      opacity: 0.4;
+      animation: gentle-flow 15s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    
+    @keyframes gentle-flow {
+      0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+      50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.05); }
+      100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+    }
+    
+    .header h1 {
+      color: var(--text-color-dark);
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      padding-bottom: 15px;
+      position: relative;
+    }
+    
+    .header h1::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: var(--aqua-gradient);
+      border-radius: 3px;
+    }
+    
+    .header p {
+      color: var(--text-color);
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      margin-bottom: 60px;
+    }
+    
+    .section-title {
+      color: var(--text-color-dark);
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      position: relative;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: var(--aqua-gradient);
+      border-radius: 3px;
+    }
+    
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 30px;
+    }
+    
+    .component-block {
+      padding: 30px;
+      background: var(--primary-bg);
+      border-radius: 20px;
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 2) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 2) var(--primary-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.7s ease;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    
+    .component-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 200%;
+      height: 200%;
+      background: var(--prism-gradient);
+      opacity: 0;
+      transition: opacity 0.7s ease;
+      animation: gentle-rotate 20s linear infinite;
+      transform-origin: center center;
+      pointer-events: none;
+    }
+    
+    @keyframes gentle-rotate {
+      0% { transform: translate(-25%, -25%) rotate(0deg); }
+      100% { transform: translate(-25%, -25%) rotate(360deg); }
+    }
+    
+    .component-block:hover::before {
+      opacity: 1;
+    }
+    
+    .component-title {
+      margin-bottom: 20px;
+      color: var(--text-color-dark);
+      font-size: 1.2rem;
+      font-weight: 600;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Ocean Buttons */
+    .ocean-button {
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-color);
+      background: var(--primary-bg);
+      transition: all 0.5s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .ocean-button-raised {
+      box-shadow: 
+        var(--shadow-distance) var(--shadow-distance) calc(var(--shadow-distance) * 1.5) var(--primary-dark),
+        calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * -1) calc(var(--shadow-distance) * 1.5) var(--primary-light);
+    }
+    
+    .ocean-button-raised:hover {
+      box-shadow: 
+        calc(var(--shadow-distance) * 0.7) calc(var(--shadow-distance) * 0.7) calc(var(--shadow-distance)) var(--primary-dark),
+        calc(var(--shadow-distance) * -0.7) calc(var(--shadow-distance) * -0.7) calc(var(--shadow-distance)) var(--primary-light);
+    }
+    
+    .ocean-button-ripple {
+      background: var(--glass-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
+      color: var(--text-color-dark);
+      box-shadow: 
+        4px 4px 10px rgba(0, 0, 0, 0.1),
+        -4px -4px 10px rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+    }
+    
+    .ocean-button-ripple::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.7) 0%,
+        rgba(255, 255, 255, 0) 70%
+      );
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      transition: transform 0.8s ease, opacity 0.8s ease;
+    }
+    
+    .ocean-button-ripple:hover::before {
+      transform: translate(-50%, -50%) scale(2);
+      opacity: 0.3;
+    }
+    
+    .ocean-button-shimmer {
+      position: relative;
+      color: var(--text-color-dark);
+      background: var(--primary-bg);
+      box-shadow: 
+        4px 4px 10px var(--primary-dark),
+        -4px -4px 10px var(--primary-light);
+      z-index: 1;
+      overflow: hidden;
+    }
+    
+    .ocean-button-shimmer::before {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: -100%;
+      width: 300%;
+      height: 300%;
+      background: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 25%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0.1) 75%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: rotate(45deg);
+      animation: shimmer-wave 6s linear infinite;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .ocean-button-shimmer:hover::before {
+      opacity: 1;
+    }
+    
+    @keyframes shimmer-wave {
+      0% {
+        transform: rotate(45deg) translateY(0%);
+      }
+      100% {
+        transform: rotate(45deg) translateY(100%);
+      }
+    }
+    
+    .ocean-button-refraction {
+      position: relative;
+      background: var(--glass-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
+      color: var(--text-color-dark);
+      overflow: hidden;
+    }
+    
+    .ocean-button-refraction::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        rgba(255, 0, 0, 0.05),
+        rgba(255, 165, 0, 0.05),
+        rgba(255, 255, 0, 0.05),
+        rgba(0, 128, 0, 0.05),
+        rgba(0, 0, 255, 0.05),
+        rgba(75, 0, 130, 0.05),
+        rgba(238, 130, 238, 0.05)
+      );
+      animation: prism-rotate 10s linear infinite;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      mix-blend-mode: screen;
+    }
+    
+    .ocean-button-refraction:hover::before {
+      opacity: 1;
+    }
+    
+    @keyframes prism-rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Glass Card with Ripple */
+    .water-card {
+      width: 100%;
+      height: 180px;
+      position: relative;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      transition: all 0.7s ease;
+    }
+    
+    .water-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(74, 144, 226, 0.1) 0%, transparent 30%),
+        radial-gradient(circle at 80% 40%, rgba(147, 112, 219, 0.1) 0%, transparent 30%),
+        radial-gradient(circle at 40% 70%, rgba(32, 201, 151, 0.1) 0%, transparent 30%),
+        radial-gradient(circle at 70% 90%, rgba(255, 215, 0, 0.1) 0%, transparent 30%);
+      opacity: 0.4;
+      animation: water-flow 15s ease-in-out infinite;
+    }
+    
+    @keyframes water-flow {
+      0% { background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%; }
+      25% { background-position: 3% 1%, -3% 2%, 1% -2%, -2% -3%; }
+      50% { background-position: 0% 3%, 0% -3%, 3% 0%, -3% 0%; }
+      75% { background-position: -3% 1%, 3% 2%, -1% -2%, 2% -3%; }
+      100% { background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%; }
+    }
+    
+    .water-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 
+        0 15px 30px rgba(0, 0, 0, 0.1),
+        0 8px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .water-card-content {
+      position: relative;
+      z-index: 1;
+      padding: 20px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    .water-card-title {
+      color: var(--text-color-dark);
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .water-card-text {
+      color: var(--text-color);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      padding: 30px;
+      color: var(--text-color);
+      font-size: 0.9rem;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+  </style>
+</head>
+<body>
+  <!-- Ocean-like Background -->
+  <div class="ocean-bg">
+    <div class="ocean-wave"></div>
+    <div class="ocean-wave"></div>
+    <div class="ocean-wave"></div>
+    <div class="kaleidoscope"></div>
+    <div class="ripple-container"></div>
+  </div>
+  
+  <div class="container">
+    <div class="header">
+      <h1>Ocean Neumorphic UI</h1>
+      <p>Immerse yourself in gentle waves, subtle ripples, and kaleidoscopic light effects</p>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Ocean-inspired Buttons</h2>
+      <p>Buttons with water-like ripples, waves, and light refraction effects</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">Gentle Ripple Button</h3>
+          <button class="ocean-button ocean-button-ripple">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Wave Shimmer Button</h3>
+          <button class="ocean-button ocean-button-shimmer">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Light Refraction Button</h3>
+          <button class="ocean-button ocean-button-refraction">Hover Me</button>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Soft Float Button</h3>
+          <button class="ocean-button ocean-button-raised">Hover Me</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Calm Water Cards</h2>
+      <p>Card components with flowing water-like motion and reflections</p>
+      
+      <div class="component-grid">
+        <div class="component-block">
+          <h3 class="component-title">Rippling Water Card</h3>
+          <div class="water-card">
+            <div class="water-card-content">
+              <h4 class="water-card-title">Gentle Currents</h4>
+              <p class="water-card-text">Hover to see subtle water-like movements and flowing gradients.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="component-block">
+          <h3 class="component-title">Prism Reflection Card</h3>
+          <div class="water-card">
+            <div class="water-card-content">
+              <h4 class="water-card-title">Light Refraction</h4>
+              <p class="water-card-text">Natural light patterns mimic sunlight through water.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    MeetNow &copy; 2023 - Ocean Neumorphic UI Components
+  </footer>
+  
+  <script>
+    // Create random ripples across the screen
+    function createRipples() {
+      const rippleContainer = document.querySelector('.ripple-container');
+      const maxRipples = 20;
+      
+      function addRipple() {
+        if (document.querySelectorAll('.ripple').length >= maxRipples) return;
+        
+        const ripple = document.createElement('div');
+        ripple.classList.add('ripple');
+        
+        // Random position
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight;
+        
+        // Random size
+        const size = Math.random() * 200 + 50;
+        
+        // Random duration
+        const duration = Math.random() * 5 + 3;
+        
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        ripple.style.width = `${size}px`;
+        ripple.style.height = `${size}px`;
+        
+        rippleContainer.appendChild(ripple);
+        
+        // Animate ripple
+        setTimeout(() => {
+          ripple.style.transform = 'scale(1)';
+          ripple.style.opacity = '0.3';
+          
+          setTimeout(() => {
+            ripple.style.opacity = '0';
+            setTimeout(() => {
+              ripple.remove();
+            }, 1000);
+          }, duration * 1000);
+        }, 10);
+      }
+      
+      // Add initial ripples
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          addRipple();
+        }, i * 1000);
+      }
+      
+      // Continue adding ripples periodically
+      setInterval(() => {
+        addRipple();
+      }, 3000);
+    }
+    
+    // Create random prism light reflections
+    function createPrismReflections() {
+      const container = document.querySelector('.container');
+      const maxReflections = 7;
+      
+      function addReflection() {
+        if (document.querySelectorAll('.prism-reflection').length >= maxReflections) return;
+        
+        const reflection = document.createElement('div');
+        reflection.classList.add('prism-reflection');
+        
+        // Random position within container bounds
+        const containerRect = container.getBoundingClientRect();
+        const x = Math.random() * containerRect.width;
+        const y = Math.random() * containerRect.height + window.scrollY;
+        
+        // Random size
+        const size = Math.random() * 120 + 30;
+        
+        // Random duration
+        const duration = Math.random() * 8 + 6;
+        const delay = Math.random() * 2;
+        
+        reflection.style.left = `${x}px`;
+        reflection.style.top = `${y}px`;
+        reflection.style.width = `${size}px`;
+        reflection.style.height = `${size}px`;
+        
+        container.appendChild(reflection);
+        
+        // Animate reflection
+        setTimeout(() => {
+          reflection.style.opacity = '0.4';
+          
+          // Slowly move the reflection
+          const finalX = x + (Math.random() * 100 - 50);
+          const finalY = y + (Math.random() * 100 - 50);
+          
+          reflection.style.transition = `opacity 1s ease, left ${duration}s ease, top ${duration}s ease`;
+          reflection.style.left = `${finalX}px`;
+          reflection.style.top = `${finalY}px`;
+          
+          setTimeout(() => {
+            reflection.style.opacity = '0';
+            setTimeout(() => {
+              reflection.remove();
+            }, 1000);
+          }, duration * 1000);
+        }, delay * 1000);
+      }
+      
+      // Add initial reflections
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          addReflection();
+        }, i * 2000);
+      }
+      
+      // Continue adding reflections periodically
+      setInterval(() => {
+        addReflection();
+      }, 5000);
+    }
+    
+    // Initialize when document is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      createRipples();
+      createPrismReflections();
+      
+      // Add ripple effect to buttons
+      const rippleButtons = document.querySelectorAll('.ocean-button-ripple');
+      rippleButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          const x = e.clientX - e.target.getBoundingClientRect().left;
+          const y = e.clientY - e.target.getBoundingClientRect().top;
+          
+          const ripple = document.createElement('div');
+          ripple.style.position = 'absolute';
+          ripple.style.width = '1px';
+          ripple.style.height = '1px';
+          ripple.style.background = 'rgba(255, 255, 255, 0.7)';
+          ripple.style.borderRadius = '50%';
+          ripple.style.transform = 'translate(-50%, -50%)';
+          ripple.style.left = x + 'px';
+          ripple.style.top = y + 'px';
+          ripple.style.pointerEvents = 'none';
+          
+          button.appendChild(ripple);
+          
+          // Animate the ripple
+          requestAnimationFrame(() => {
+            ripple.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+            ripple.style.width = button.offsetWidth * 2.5 + 'px';
+            ripple.style.height = button.offsetWidth * 2.5 + 'px';
+            ripple.style.opacity = '0';
+            
+            setTimeout(() => {
+              ripple.remove();
+            }, 600);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html> 

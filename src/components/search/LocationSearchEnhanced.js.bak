@@ -1,0 +1,357 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import React, { useState, useEffect, useRef } from 'react';
+import { IoLocationOutline, IoSearchOutline, IoCloseOutline, IoTimeOutline, IoStarOutline, IoStarSharp, IoChevronDownOutline, IoChevronUpOutline } from 'react-icons/io5';
+import { debounce } from '../../utils/helpers';
+import { reverseGeocode } from '../../utils/location-services';
+import './LocationSearch.css';
+const LocationSearchEnhanced = ({ onLocationSelect, initialQuery = '', placeholder = 'Search for a location', showCurrentLocation = true, autoFocus = false, showRecentLocations = true }) => {
+    const [query, setQuery] = useState(initialQuery);
+    const [searchResults, setSearchResults] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [selectedLocation, setSelectedLocation] = useState(null);
+    const [activeIndex, setActiveIndex] = useState(-1);
+    const [showResults, setShowResults] = useState(false);
+    const [animateSelection, setAnimateSelection] = useState(false);
+    const [recentLocations, setRecentLocations] = useState([]);
+    const [savedLocations, setSavedLocations] = useState([]);
+    const [showRecent, setShowRecent] = useState(false);
+    const [showSaved, setShowSaved] = useState(false);
+    const inputRef = useRef(null);
+    const resultsRef = useRef(null);
+    useEffect(() => {
+        const loadUserPreferences = async () => {
+            try {
+                const response = await fetch('/api/user-preferences');
+                if (response.ok) {
+                    const data = await response.json();
+                    setRecentLocations(data.recentSearches || []);
+                    setSavedLocations(data.locations || []);
+                }
+            }
+            catch (error) {
+                console.error('Error loading user preferences:', error);
+            }
+        };
+        loadUserPreferences();
+    }, []);
+    const debouncedSearch = useRef(debounce(async (searchQuery) => {
+        if (!searchQuery || searchQuery.length < 3) {
+            setSearchResults([]);
+            setIsLoading(false);
+            return;
+        }
+        try {
+            setIsLoading(true);
+            const response = await fetch(`/api/geocode?query=${encodeURIComponent(searchQuery)}`);
+            if (!response.ok) {
+                throw new Error(`Error searching for locations: ${response.statusText}`);
+            }
+            const data = await response.json();
+            setSearchResults(data.results || []);
+        }
+        catch (err) {
+            console.error('Location search error:', err);
+            setError(err.message || 'Failed to search for locations');
+            setSearchResults([]);
+        }
+        finally {
+            setIsLoading(false);
+        }
+    }, 300)).current;
+    const saveLocationToRecent = async (location) => {
+        try {
+            const response = await fetch('/api/user-preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    location,
+                    type: 'recent'
+                })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setRecentLocations(data.preferences.recentSearches || []);
+            }
+        }
+        catch (error) {
+            console.error('Error saving recent location:', error);
+        }
+    };
+    const toggleSavedLocation = async (location) => {
+        const isSaved = savedLocations.some(item => item.place_id === location.place_id);
+        try {
+            if (isSaved) {
+                const response = await fetch('/api/user-preferences', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        location,
+                        type: 'saved'
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setSavedLocations(data.preferences.locations || []);
+                }
+            }
+            else {
+                const response = await fetch('/api/user-preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        location,
+                        type: 'saved'
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setSavedLocations(data.preferences.locations || []);
+                }
+            }
+        }
+        catch (error) {
+            console.error('Error toggling saved location:', error);
+        }
+    };
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setQuery(value);
+        setError(null);
+        if (value.length >= 3) {
+            setIsLoading(true);
+            debouncedSearch(value);
+            setShowResults(true);
+            setShowRecent(false);
+            setShowSaved(false);
+        }
+        else if (value.length === 0 && showRecentLocations) {
+            setSearchResults([]);
+            setShowResults(false);
+            setShowRecent(true);
+        }
+        else {
+            setSearchResults([]);
+            setShowResults(false);
+        }
+        if (!value && selectedLocation) {
+            setSelectedLocation(null);
+        }
+    };
+    const handleSelectLocation = (location) => {
+        setSelectedLocation(location);
+        setAnimateSelection(true);
+        const displayName = location.display_name || location.name || '';
+        setTimeout(() => {
+            setQuery(displayName);
+            setShowResults(false);
+            setShowRecent(false);
+            setShowSaved(false);
+            saveLocationToRecent(location);
+            if (onLocationSelect) {
+                onLocationSelect(location);
+            }
+        }, 50);
+    };
+    useEffect(() => {
+        if (animateSelection) {
+            const timeout = setTimeout(() => {
+                setAnimateSelection(false);
+            }, 800);
+            return () => clearTimeout(timeout);
+        }
+    }, [animateSelection]);
+    const handleKeyDown = (e) => {
+        if (showResults && searchResults.length > 0) {
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    setActiveIndex((prevIndex) => {
+                        const newIndex = prevIndex < searchResults.length - 1 ? prevIndex + 1 : prevIndex;
+                        scrollToResult(newIndex);
+                        return newIndex;
+                    });
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    setActiveIndex((prevIndex) => {
+                        const newIndex = prevIndex > 0 ? prevIndex - 1 : 0;
+                        scrollToResult(newIndex);
+                        return newIndex;
+                    });
+                    break;
+                case 'Enter':
+                    if (activeIndex >= 0 && activeIndex < searchResults.length) {
+                        handleSelectLocation(searchResults[activeIndex]);
+                    }
+                    break;
+                case 'Escape':
+                    setShowResults(false);
+                    break;
+                default:
+                    break;
+            }
+        }
+        else if (showRecent && recentLocations.length > 0) {
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    setActiveIndex((prevIndex) => {
+                        const newIndex = prevIndex < recentLocations.length - 1 ? prevIndex + 1 : prevIndex;
+                        return newIndex;
+                    });
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    setActiveIndex((prevIndex) => {
+                        const newIndex = prevIndex > 0 ? prevIndex - 1 : 0;
+                        return newIndex;
+                    });
+                    break;
+                case 'Enter':
+                    if (activeIndex >= 0 && activeIndex < recentLocations.length) {
+                        handleSelectLocation(recentLocations[activeIndex]);
+                    }
+                    break;
+                case 'Escape':
+                    setShowRecent(false);
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+    const scrollToResult = (index) => {
+        if (resultsRef.current?.children[index]) {
+            resultsRef.current.children[index].scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
+        }
+    };
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (inputRef.current && !inputRef.current.contains(e.target) &&
+                resultsRef.current && !resultsRef.current.contains(e.target)) {
+                setShowResults(false);
+                setShowRecent(false);
+                setShowSaved(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+    useEffect(() => {
+        if (autoFocus && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [autoFocus]);
+    const handleFocus = () => {
+        if (query.length >= 3) {
+            setShowResults(true);
+        }
+        else if (query.length === 0 && showRecentLocations && recentLocations.length > 0) {
+            setShowRecent(true);
+        }
+    };
+    const handleGetCurrentLocation = async () => {
+        if (!navigator.geolocation) {
+            setError('Geolocation is not supported by your browser');
+            return;
+        }
+        try {
+            setIsLoading(true);
+            setError(null);
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                try {
+                    const { latitude, longitude } = position.coords;
+                    const result = await reverseGeocode(latitude, longitude);
+                    if (result) {
+                        const locationData = {
+                            ...result,
+                            lat: latitude,
+                            lon: longitude,
+                            display_name: result.display_name || `${latitude}, ${longitude}`
+                        };
+                        handleSelectLocation(locationData);
+                    }
+                    else {
+                        setError('Could not find address for your location');
+                    }
+                }
+                catch (err) {
+                    console.error('Reverse geocoding error:', err);
+                    setError('Failed to get address for your location');
+                }
+                finally {
+                    setIsLoading(false);
+                }
+            }, (err) => {
+                console.error('Geolocation error:', err);
+                setIsLoading(false);
+                setError(`Error getting your location: ${err.message}`);
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        }
+        catch (err) {
+            setIsLoading(false);
+            setError('An unexpected error occurred');
+            console.error('Unexpected geolocation error:', err);
+        }
+    };
+    const handleClearInput = () => {
+        setQuery('');
+        setSelectedLocation(null);
+        setSearchResults([]);
+        setShowResults(false);
+        if (showRecentLocations && recentLocations.length > 0) {
+            setShowRecent(true);
+        }
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+        if (onLocationSelect) {
+            onLocationSelect(null);
+        }
+    };
+    const toggleRecentLocations = () => {
+        setShowRecent(!showRecent);
+        if (showRecent) {
+            setActiveIndex(-1);
+        }
+        if (showSaved && !showRecent) {
+            setShowSaved(false);
+        }
+    };
+    const toggleSavedLocations = () => {
+        setShowSaved(!showSaved);
+        if (showSaved) {
+            setActiveIndex(-1);
+        }
+        if (showRecent && !showSaved) {
+            setShowRecent(false);
+        }
+    };
+    const isLocationSaved = (location) => {
+        return savedLocations.some(item => item.place_id === location.place_id);
+    };
+    return (_jsxs("div", { className: "location-search-container", children: [_jsxs("div", { className: "search-input-wrapper", children: [_jsx("div", { className: "search-icon", children: _jsx(IoSearchOutline, {}) }), _jsx("input", { ref: inputRef, type: "text", className: `location-search-input ${selectedLocation ? 'has-location' : ''} ${animateSelection ? 'location-selected-animation' : ''}`, value: query, onChange: handleInputChange, onKeyDown: handleKeyDown, onFocus: handleFocus, placeholder: placeholder, "aria-label": "Search for location", autoComplete: "off", "data-testid": "location-search-input" }), query && (_jsx("button", { className: "clear-button", onClick: handleClearInput, "aria-label": "Clear search", children: _jsx(IoCloseOutline, {}) })), showCurrentLocation && (_jsx("button", { className: "current-location-button", onClick: handleGetCurrentLocation, disabled: isLoading, "aria-label": "Use current location", title: "Use current location", children: _jsx(IoLocationOutline, {}) }))] }), isLoading && _jsx("div", { className: "search-loading", children: "Loading..." }), error && _jsx("div", { className: "search-error", children: error }), showResults && searchResults.length > 0 && (_jsx("ul", { ref: resultsRef, className: "search-results-list", "data-testid": "location-search-results", children: searchResults.map((result, index) => (_jsxs("li", { className: `search-result-item ${index === activeIndex ? 'active' : ''}`, onClick: () => handleSelectLocation(result), onMouseEnter: () => setActiveIndex(index), "data-testid": `location-result-${index}`, children: [_jsx("div", { className: "result-icon", children: _jsx(IoLocationOutline, {}) }), _jsxs("div", { className: "result-details", children: [_jsx("div", { className: "result-name", children: result.name || result.display_name }), result.address && (_jsxs("div", { className: "result-address", children: [result.address.road && `${result.address.road}, `, result.address.city && `${result.address.city}, `, result.address.state && `${result.address.state}, `, result.address.country] }))] }), _jsx("button", { className: "save-location-button", onClick: (e) => {
+                                e.stopPropagation();
+                                toggleSavedLocation(result);
+                            }, "aria-label": isLocationSaved(result) ? "Remove from saved" : "Save location", children: isLocationSaved(result) ? _jsx(IoStarSharp, {}) : _jsx(IoStarOutline, {}) })] }, `result-${result.place_id || index}`))) })), showRecentLocations && recentLocations.length > 0 && (_jsxs("div", { className: "location-section", children: [_jsxs("button", { className: "section-toggle", onClick: toggleRecentLocations, "aria-expanded": showRecent, children: [_jsxs("div", { className: "section-header", children: [_jsx(IoTimeOutline, { className: "section-icon" }), _jsx("span", { children: "Recent Locations" })] }), showRecent ? _jsx(IoChevronUpOutline, {}) : _jsx(IoChevronDownOutline, {})] }), showRecent && (_jsx("ul", { className: "location-list recent-locations", children: recentLocations.map((location, index) => (_jsxs("li", { className: `location-item ${index === activeIndex ? 'active' : ''}`, onClick: () => handleSelectLocation(location), onMouseEnter: () => setActiveIndex(index), children: [_jsx("div", { className: "location-item-icon", children: _jsx(IoTimeOutline, {}) }), _jsxs("div", { className: "location-item-details", children: [_jsx("div", { className: "location-item-name", children: location.name || location.display_name }), _jsx("div", { className: "location-item-time", children: new Date(location.timestamp).toLocaleString() })] }), _jsx("button", { className: "save-location-button", onClick: (e) => {
+                                        e.stopPropagation();
+                                        toggleSavedLocation(location);
+                                    }, "aria-label": isLocationSaved(location) ? "Remove from saved" : "Save location", children: isLocationSaved(location) ? _jsx(IoStarSharp, {}) : _jsx(IoStarOutline, {}) })] }, `recent-${location.place_id || index}`))) }))] })), savedLocations.length > 0 && (_jsxs("div", { className: "location-section", children: [_jsxs("button", { className: "section-toggle", onClick: toggleSavedLocations, "aria-expanded": showSaved, children: [_jsxs("div", { className: "section-header", children: [_jsx(IoStarSharp, { className: "section-icon" }), _jsx("span", { children: "Saved Locations" })] }), showSaved ? _jsx(IoChevronUpOutline, {}) : _jsx(IoChevronDownOutline, {})] }), showSaved && (_jsx("ul", { className: "location-list saved-locations", children: savedLocations.map((location, index) => (_jsxs("li", { className: "location-item", onClick: () => handleSelectLocation(location), children: [_jsx("div", { className: "location-item-icon saved", children: _jsx(IoStarSharp, {}) }), _jsxs("div", { className: "location-item-details", children: [_jsx("div", { className: "location-item-name", children: location.name || location.display_name }), location.address && (_jsxs("div", { className: "location-item-address", children: [location.address.road && `${location.address.road}, `, location.address.city && `${location.address.city}, `, location.address.country] }))] }), _jsx("button", { className: "save-location-button active", onClick: (e) => {
+                                        e.stopPropagation();
+                                        toggleSavedLocation(location);
+                                    }, "aria-label": "Remove from saved", children: _jsx(IoStarSharp, {}) })] }, `saved-${location.place_id || index}`))) }))] }))] }));
+};
+export default LocationSearchEnhanced;
+//# sourceMappingURL=LocationSearchEnhanced.js.map

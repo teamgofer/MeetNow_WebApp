@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proximity Chat Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    .test-page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .error-message {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .control-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+    }
+    
+    .connection-controls {
+      display: flex;
+      gap: 10px;
+    }
+    
+    input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    .status-panel {
+      text-align: right;
+    }
+    
+    .connected {
+      color: green;
+      font-weight: bold;
+    }
+    
+    .disconnected {
+      color: red;
+      font-weight: bold;
+    }
+    
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 400px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .message-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f9f9f9;
+    }
+    
+    .no-messages {
+      text-align: center;
+      color: #757575;
+      margin-top: 20px;
+    }
+    
+    .message {
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      max-width: 70%;
+    }
+    
+    .sent {
+      align-self: flex-end;
+      background-color: #e3f2fd;
+      margin-left: auto;
+    }
+    
+    .received {
+      align-self: flex-start;
+      background-color: #ffffff;
+      border: 1px solid #eeeeee;
+    }
+    
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      font-size: 0.8em;
+      color: #757575;
+    }
+    
+    .message-content {
+      word-break: break-word;
+    }
+    
+    .message-form {
+      display: flex;
+      padding: 10px;
+      background-color: #ffffff;
+    }
+    
+    .message-form input {
+      flex: 1;
+      margin-right: 10px;
+    }
+    
+    .nearby-users-panel {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+    }
+    
+    .nearby-users-panel h2 {
+      margin-top: 0;
+      font-size: 1.2em;
+    }
+    
+    .nearby-users-panel ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .nearby-users-panel li {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eeeeee;
+    }
+    
+    .nearby-users-panel li:last-child {
+      border-bottom: none;
+    }
+    
+    .user-id {
+      font-weight: bold;
+    }
+    
+    .distance {
+      color: #757575;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-page">
+    <h1>Proximity Chat Test</h1>
+    
+    <div id="error-container"></div>
+    
+    <div class="control-panel">
+      <div class="connection-controls">
+        <input type="text" id="session-id" placeholder="Session ID" value="">
+        <input type="number" id="radius" placeholder="Radius (meters)" value="100" min="50" max="1000">
+        
+        <button id="connect-btn">Connect</button>
+        <button id="update-radius-btn" style="display: none;">Update Radius</button>
+        <button id="disconnect-btn" style="display: none;">Disconnect</button>
+      </div>
+      
+      <div class="status-panel">
+        <p>Status: <span id="connection-status" class="disconnected">Disconnected</span></p>
+        <p>Nearby Users: <span id="nearby-users-count">0</span></p>
+      </div>
+    </div>
+    
+    <div class="chat-container">
+      <div class="message-list" id="message-list">
+        <p class="no-messages" id="no-messages">No messages yet.</p>
+      </div>
+      
+      <form class="message-form" id="message-form">
+        <input type="text" id="message-input" placeholder="Type a message..." disabled>
+        <button type="submit" id="send-btn" disabled>Send</button>
+      </form>
+    </div>
+    
+    <div class="nearby-users-panel">
+      <h2>Nearby Users</h2>
+      <div id="nearby-users-list">
+        <p>No users nearby.</p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Mock implementations for testing
+    class EventEmitter {
+      constructor() {
+        this.listeners = [];
+      }
+      
+      on(callback) {
+        this.listeners.push(callback);
+        return () => this.off(callback);
+      }
+      
+      off(callback) {
+        this.listeners = this.listeners.filter(listener => listener !== callback);
+      }
+      
+      emit(data) {
+        this.listeners.forEach(listener => {
+          try {
+            listener(data);
+          } catch (error) {
+            console.error('Error in event listener:', error);
+          }
+        });
+      }
+      
+      clear() {
+        this.listeners = [];
+      }
+    }
+    
+    // Mock WebSocket
+    class MockWebSocket {
+      constructor(url) {
+        this.url = url;
+        this.readyState = 0; // CONNECTING
+        this.CONNECTING = 0;
+        this.OPEN = 1;
+        this.CLOSING = 2;
+        this.CLOSED = 3;
+        
+        this.onopen = null;
+        this.onclose = null;
+        this.onmessage = null;
+        this.onerror = null;
+        
+        console.log("MockWebSocket created with URL:", url);
+        
+        // Auto-connect after a small delay
+        setTimeout(() => {
+          this.readyState = 1; // OPEN
+          if (this.onopen) this.onopen({ target: this });
+          console.log("MockWebSocket connected");
+        }, 500);
+      }
+      
+      send(data) {
+        console.log("MockWebSocket sent:", data);
+        
+        try {
+          const message = JSON.parse(data);
+          
+          // Simulate echo for messages
+          if (message.type === 'message') {
+            setTimeout(() => {
+              if (this.onmessage) {
+                this.onmessage({
+                  data: JSON.stringify({
+                    type: 'message',
+                    data: {
+                      ...message.data,
+                      id: 'msg_' + Date.now()
+                    }
+                  })
+                });
+              }
+            }, 300);
+            
+            // Simulate nearby users update after message for realism
+            this._simulateNearbyUsers();
+          }
+        } catch (e) {
+          console.error("Error processing mock message:", e);
+        }
+      }
+      
+      close() {
+        this.readyState = 3; // CLOSED
+        if (this.onclose) this.onclose({ code: 1000, reason: 'Normal closure', target: this });
+        console.log("MockWebSocket closed");
+      }
+      
+      // Helpers for simulation
+      _simulateNearbyUsers() {
+        setTimeout(() => {
+          if (this.onmessage) {
+            // Create random nearby users
+            const users = [];
+            const count = Math.floor(Math.random() * 5) + 1;
+            
+            for (let i = 0; i < count; i++) {
+              users.push({
+                sessionId: `user_${Math.floor(Math.random() * 1000)}`,
+                distance: Math.floor(Math.random() * 100) + 10
+              });
+            }
+            
+            this.onmessage({
+              data: JSON.stringify({
+                type: 'nearby_users',
+                data: users
+              })
+            });
+          }
+        }, 1000);
+      }
+    }
+    
+    // Override WebSocket with our mock
+    window.WebSocket = MockWebSocket;
+    
+    // Mock API constants
+    const API_ENDPOINTS = {
+      WEBSOCKET: 'wss://mock.meetnow.proximity-chat.dev/ws',
+      MESSAGES: 'https://mock.meetnow.proximity-chat.dev/messages',
+      USERS: 'https://mock.meetnow.proximity-chat.dev/users'
+    };
+    
+    const DEFAULTS = {
+      CHAT_RADIUS: 100,
+      MAX_CHAT_RADIUS: 1000
+    };
+    
+    // Mock fetch for API calls
+    window.fetch = function(url, options) {
+      console.log("Mock fetch:", url, options);
+      
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          // Generate mock messages for GET requests
+          if (url.includes('/messages') && (!options || options.method === 'GET')) {
+            resolve({
+              ok: true,
+              json: () => Promise.resolve({
+                messages: [
+                  {
+                    id: 'msg_' + Date.now() + 1,
+                    content: 'Welcome to the proximity chat test!',
+                    sessionId: 'system',
+                    timestamp: new Date().toISOString()
+                  },
+                  {
+                    id: 'msg_' + Date.now() + 2,
+                    content: 'Try sending a message to see it appear here.',
+                    sessionId: 'system',
+                    timestamp: new Date(Date.now() + 1000).toISOString()
+                  }
+                ]
+              })
+            });
+          } 
+          // Mock message sending for POST requests
+          else if (url.includes('/messages') && options && options.method === 'POST') {
+            const message = JSON.parse(options.body);
+            resolve({
+              ok: true,
+              json: () => Promise.resolve({
+                message: {
+                  ...message,
+                  id: 'msg_' + Date.now()
+                }
+              })
+            });
+          } else {
+            resolve({
+              ok: true,
+              json: () => Promise.resolve({ success: true })
+            });
+          }
+        }, 300);
+      });
+    };
+    
+    // Mock geolocation API
+    navigator.geolocation = {
+      getCurrentPosition: function(success) {
+        setTimeout(() => {
+          success({
+            coords: {
+              latitude: 37.7749,
+              longitude: -122.4194,
+              accuracy: 10
+            }
+          });
+        }, 500);
+      },
+      watchPosition: function(success) {
+        setTimeout(() => {
+          success({
+            coords: {
+              latitude: 37.7749,
+              longitude: -122.4194,
+              accuracy: 10
+            }
+          });
+        }, 500);
+        return 1;
+      },
+      clearWatch: function() {}
+    };
+    
+    // Mock implementations of our services
+    class WebSocketService {
+      constructor() {
+        this.socket = null;
+        this.sessionId = null;
+        this.endpoint = API_ENDPOINTS.WEBSOCKET;
+        
+        // Event emitters
+        this._messageEmitter = new EventEmitter();
+        this._nearbyUsersEmitter = new EventEmitter();
+        this._connectionStatusEmitter = new EventEmitter();
+        this._errorEmitter = new EventEmitter();
+      }
+      
+      async connect(options = {}) {
+        try {
+          this.sessionId = options.sessionId;
+          const wsUrl = `${this.endpoint}?sessionId=${options.sessionId}`;
+          
+          // Close existing connection if any
+          if (this.socket) {
+            this.socket.close();
+          }
+          
+          // Create new WebSocket connection
+          this.socket = new WebSocket(wsUrl);
+          
+          // Set up event handlers
+          this.socket.onopen = () => {
+            this._connectionStatusEmitter.emit(true);
+          };
+          
+          this.socket.onclose = () => {
+            this._connectionStatusEmitter.emit(false);
+          };
+          
+          this.socket.onerror = (err) => {
+            this._errorEmitter.emit(err);
+          };
+          
+          this.socket.onmessage = (event) => {
+            try {
+              const message = JSON.parse(event.data);
+              
+              switch (message.type) {
+                case 'message':
+                  this._messageEmitter.emit(message.data);
+                  break;
+                  
+                case 'nearby_users':
+                  this._nearbyUsersEmitter.emit(message.data);
+                  break;
+                  
+                case 'error':
+                  this._errorEmitter.emit(message.data);
+                  break;
+              }
+            } catch (error) {
+              console.error('Error parsing message:', error);
+            }
+          };
+          
+          // Wait for connection to establish
+          return new Promise((resolve) => {
+            const onOpen = () => {
+              this.socket.removeEventListener('open', onOpen);
+              resolve();
+            };
+            
+            this.socket.addEventListener('open', onOpen);
+          });
+        } catch (error) {
+          this._errorEmitter.emit(error);
+          throw error;
+        }
+      }
+      
+      disconnect() {
+        if (this.socket) {
+          this.socket.close();
+          this.socket = null;
+        }
+        
+        this._connectionStatusEmitter.emit(false);
+      }
+      
+      isConnected() {
+        return this.socket && this.socket.readyState === 1;
+      }
+      
+      async sendMessage(content, metadata = {}) {
+        if (!this.isConnected()) {
+          throw new Error('Not connected to WebSocket server');
+        }
+        
+        const message = {
+          type: 'message',
+          data: {
+            content,
+            sessionId: this.sessionId,
+            timestamp: new Date().toISOString(),
+            ...metadata
+          }
+        };
+        
+        this.socket.send(JSON.stringify(message));
+      }
+      
+      async updateLocation(location) {
+        if (this.isConnected()) {
+          const locationUpdate = {
+            type: 'location',
+            data: {
+              sessionId: this.sessionId,
+              ...location,
+              timestamp: location.timestamp || new Date().toISOString()
+            }
+          };
+          
+          this.socket.send(JSON.stringify(locationUpdate));
+        }
+      }
+      
+      async setTypingStatus(isTyping) {
+        if (this.isConnected()) {
+          const typingStatus = {
+            type: 'typing',
+            data: {
+              sessionId: this.sessionId,
+              isTyping,
+              timestamp: new Date().toISOString()
+            }
+          };
+          
+          this.socket.send(JSON.stringify(typingStatus));
+        }
+      }
+      
+      async updateRadius(radius) {
+        if (this.isConnected()) {
+          const radiusUpdate = {
+            type: 'update_radius',
+            data: {
+              sessionId: this.sessionId,
+              radius,
+              timestamp: new Date().toISOString()
+            }
+          };
+          
+          this.socket.send(JSON.stringify(radiusUpdate));
+        }
+      }
+      
+      onMessage(callback) {
+        return this._messageEmitter.on(callback);
+      }
+      
+      offMessage(callback) {
+        this._messageEmitter.off(callback);
+      }
+      
+      onNearbyUsers(callback) {
+        return this._nearbyUsersEmitter.on(callback);
+      }
+      
+      offNearbyUsers(callback) {
+        this._nearbyUsersEmitter.off(callback);
+      }
+      
+      onConnectionStatus(callback) {
+        return this._connectionStatusEmitter.on(callback);
+      }
+      
+      offConnectionStatus(callback) {
+        this._connectionStatusEmitter.off(callback);
+      }
+      
+      onError(callback) {
+        return this._errorEmitter.on(callback);
+      }
+      
+      offError(callback) {
+        this._errorEmitter.off(callback);
+      }
+    }
+    
+    class LocationService {
+      constructor() {
+        this._locationEmitter = new EventEmitter();
+        this._errorEmitter = new EventEmitter();
+        this._watchId = null;
+      }
+      
+      async getCurrentLocation() {
+        return new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const location = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                timestamp: position.timestamp || Date.now()
+              };
+              resolve(location);
+            },
+            (error) => {
+              this._errorEmitter.emit(error.message);
+              reject(error);
+            }
+          );
+        });
+      }
+      
+      async startTracking() {
+        if (this._watchId !== null) {
+          return;
+        }
+        
+        this._watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              timestamp: position.timestamp || Date.now()
+            };
+            this._locationEmitter.emit(location);
+          },
+          (error) => {
+            this._errorEmitter.emit(error.message);
+          }
+        );
+      }
+      
+      async stopTracking() {
+        if (this._watchId !== null) {
+          navigator.geolocation.clearWatch(this._watchId);
+          this._watchId = null;
+        }
+      }
+      
+      onLocationChange(callback) {
+        return this._locationEmitter.on(callback);
+      }
+      
+      offLocationChange(callback) {
+        this._locationEmitter.off(callback);
+      }
+      
+      onError(callback) {
+        return this._errorEmitter.on(callback);
+      }
+      
+      offError(callback) {
+        this._errorEmitter.off(callback);
+      }
+    }
+    
+    class MessageService {
+      constructor() {
+        this.apiEndpoint = API_ENDPOINTS.MESSAGES;
+      }
+      
+      async getMessages(options = {}) {
+        try {
+          const params = new URLSearchParams();
+          
+          if (options.sessionId) {
+            params.append('sessionId', options.sessionId);
+          }
+          
+          const response = await fetch(`${this.apiEndpoint}?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch messages: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          return data.messages || [];
+        } catch (error) {
+          console.error('Error fetching messages:', error);
+          throw error;
+        }
+      }
+      
+      async sendMessage(message) {
+        try {
+          if (!message.content) {
+            throw new Error('Message content is required');
+          }
+          
+          if (!message.sessionId) {
+            throw new Error('Session ID is required');
+          }
+          
+          const response = await fetch(this.apiEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(message)
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to send message: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          return data.message;
+        } catch (error) {
+          console.error('Error sending message:', error);
+          throw error;
+        }
+      }
+    }
+    
+    class ProximityChatService {
+      constructor({ webSocketService, locationService, messageService }) {
+        this.webSocketService = webSocketService;
+        this.locationService = locationService; 
+        this.messageService = messageService;
+        
+        // Event emitters
+        this._messagesEmitter = new EventEmitter();
+        this._nearbyUsersEmitter = new EventEmitter();
+        this._connectionStatusEmitter = new EventEmitter();
+        this._errorEmitter = new EventEmitter();
+        
+        // Bind methods that will be used as callbacks
+        this._handleLocationChange = this._handleLocationChange.bind(this);
+        this._handleMessages = this._handleMessages.bind(this);
+        this._handleNearbyUsers = this._handleNearbyUsers.bind(this);
+        this._handleConnectionStatus = this._handleConnectionStatus.bind(this);
+        this._handleWebSocketError = this._handleWebSocketError.bind(this);
+        this._handleLocationError = this._handleLocationError.bind(this);
+        
+        // State
+        this._connected = false;
+        this._currentUserId = null;
+        this._sessionOptions = null;
+      }
+      
+      async initialize(options = {}) {
+        try {
+          this._sessionOptions = options;
+          this._currentUserId = options.sessionId;
+          
+          // Register event handlers
+          this.webSocketService.onMessage(this._handleMessages);
+          this.webSocketService.onNearbyUsers(this._handleNearbyUsers);
+          this.webSocketService.onConnectionStatus(this._handleConnectionStatus);
+          this.webSocketService.onError(this._handleWebSocketError);
+          this.locationService.onLocationChange(this._handleLocationChange);
+          this.locationService.onError(this._handleLocationError);
+          
+          // Connect to WebSocket server
+          await this.webSocketService.connect({
+            sessionId: options.sessionId,
+            radius: options.radius,
+            initialLocation: await this.locationService.getCurrentLocation(),
+          });
+          
+          // Start tracking location
+          await this.locationService.startTracking();
+          
+          // Load message history
+          await this.loadMessageHistory();
+          
+          this._connected = true;
+        } catch (error) {
+          this._handleError(error);
+          throw error;
+        }
+      }
+      
+      async cleanup() {
+        try {
+          // Unregister event handlers
+          this.webSocketService.offMessage(this._handleMessages);
+          this.webSocketService.offNearbyUsers(this._handleNearbyUsers);
+          this.webSocketService.offConnectionStatus(this._handleConnectionStatus);
+          this.webSocketService.offError(this._handleWebSocketError);
+          this.locationService.offLocationChange(this._handleLocationChange);
+          this.locationService.offError(this._handleLocationError);
+          
+          // Disconnect and stop tracking
+          if (this.webSocketService) {
+            await this.webSocketService.disconnect();
+          }
+          
+          if (this.locationService) {
+            await this.locationService.stopTracking();
+          }
+          
+          this._connected = false;
+        } catch (error) {
+          this._handleError(error);
+          throw error;
+        }
+      }
+      
+      isConnected() {
+        return this._connected;
+      }
+      
+      async sendMessage(content, metadata = {}) {
+        try {
+          // Send message through WebSocket for real-time delivery
+          await this.webSocketService.sendMessage(content, metadata);
+          
+          // Also persist the message via the API
+          const message = await this.messageService.sendMessage({
+            content,
+            sessionId: this._currentUserId,
+            timestamp: new Date().toISOString(),
+            ...metadata
+          });
+          
+          return message;
+        } catch (error) {
+          this._handleError(error);
+          throw error;
+        }
+      }
+      
+      async setTypingStatus(isTyping) {
+        try {
+          await this.webSocketService.setTypingStatus(isTyping);
+        } catch (error) {
+          this._handleError(error);
+          throw error;
+        }
+      }
+      
+      async loadMessageHistory(options = {}) {
+        try {
+          const messages = await this.messageService.getMessages({
+            sessionId: this._currentUserId,
+            ...this._sessionOptions,
+            ...options
+          });
+          
+          if (messages && messages.length > 0) {
+            this._messagesEmitter.emit(messages);
+          }
+          
+          return messages;
+        } catch (error) {
+          this._handleError(error);
+          throw error;
+        }
+      }
+      
+      async updateRadius(radius) {
+        try {
+          await this.webSocketService.updateRadius(radius);
+          this._sessionOptions.radius = radius;
+        } catch (error) {
+          this._handleError(error);
+          throw error;
+        }
+      }
+      
+      onMessages(callback) {
+        return this._messagesEmitter.on(callback);
+      }
+      
+      onNearbyUsers(callback) {
+        return this._nearbyUsersEmitter.on(callback);
+      }
+      
+      onConnectionStatus(callback) {
+        return this._connectionStatusEmitter.on(callback);
+      }
+      
+      onError(callback) {
+        return this._errorEmitter.on(callback);
+      }
+      
+      _handleLocationChange(location) {
+        try {
+          this.webSocketService.updateLocation({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            accuracy: location.accuracy,
+            timestamp: location.timestamp
+          });
+        } catch (error) {
+          this._handleError(error);
+        }
+      }
+      
+      _handleMessages(data) {
+        try {
+          // Format might be a single message or an array
+          const messages = Array.isArray(data) ? data : [data];
+          this._messagesEmitter.emit(messages);
+        } catch (error) {
+          this._handleError(error);
+        }
+      }
+      
+      _handleNearbyUsers(users) {
+        try {
+          this._nearbyUsersEmitter.emit(users);
+        } catch (error) {
+          this._handleError(error);
+        }
+      }
+      
+      _handleConnectionStatus(isConnected) {
+        try {
+          this._connected = isConnected;
+          this._connectionStatusEmitter.emit(isConnected);
+        } catch (error) {
+          this._handleError(error);
+        }
+      }
+      
+      _handleWebSocketError(error) {
+        const message = typeof error === 'object' && error.data && error.data.message
+          ? error.data.message
+          : error;
+        
+        this._handleError(message);
+      }
+      
+      _handleLocationError(error) {
+        this._handleError(error);
+      }
+      
+      _handleError(error) {
+        console.error('ProximityChatService Error:', error);
+        this._errorEmitter.emit(error);
+      }
+    }
+    
+    // Main app entry point
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get UI elements
+      const sessionIdInput = document.getElementById('session-id');
+      const radiusInput = document.getElementById('radius');
+      const connectBtn = document.getElementById('connect-btn');
+      const updateRadiusBtn = document.getElementById('update-radius-btn');
+      const disconnectBtn = document.getElementById('disconnect-btn');
+      const connectionStatus = document.getElementById('connection-status');
+      const nearbyUsersCount = document.getElementById('nearby-users-count');
+      const messageList = document.getElementById('message-list');
+      const noMessagesElem = document.getElementById('no-messages');
+      const messageForm = document.getElementById('message-form');
+      const messageInput = document.getElementById('message-input');
+      const sendBtn = document.getElementById('send-btn');
+      const nearbyUsersList = document.getElementById('nearby-users-list');
+      const errorContainer = document.getElementById('error-container');
+      
+      // Generate random session ID
+      sessionIdInput.value = 'user_' + Math.floor(Math.random() * 10000);
+      
+      // Initialize services
+      const webSocketService = new WebSocketService();
+      const locationService = new LocationService();
+      const messageService = new MessageService();
+      
+      const proximityChatService = new ProximityChatService({
+        webSocketService,
+        locationService,
+        messageService
+      });
+      
+      // Event handlers for UI
+      function updateUIForConnection(isConnected) {
+        if (isConnected) {
+          connectionStatus.textContent = 'Connected';
+          connectionStatus.className = 'connected';
+          
+          connectBtn.style.display = 'none';
+          updateRadiusBtn.style.display = 'inline-block';
+          disconnectBtn.style.display = 'inline-block';
+          
+          sessionIdInput.disabled = true;
+          messageInput.disabled = false;
+          sendBtn.disabled = false;
+        } else {
+          connectionStatus.textContent = 'Disconnected';
+          connectionStatus.className = 'disconnected';
+          
+          connectBtn.style.display = 'inline-block';
+          updateRadiusBtn.style.display = 'none';
+          disconnectBtn.style.display = 'none';
+          
+          sessionIdInput.disabled = false;
+          messageInput.disabled = true;
+          sendBtn.disabled = true;
+          
+          nearbyUsersCount.textContent = '0';
+          nearbyUsersList.innerHTML = '<p>No users nearby.</p>';
+        }
+      }
+      
+      function addMessage(message) {
+        // Check if "no messages" element is visible and hide it
+        if (noMessagesElem.style.display !== 'none') {
+          noMessagesElem.style.display = 'none';
+        }
+        
+        const messageElem = document.createElement('div');
+        messageElem.className = `message ${message.sessionId === sessionIdInput.value ? 'sent' : 'received'}`;
+        
+        const headerElem = document.createElement('div');
+        headerElem.className = 'message-header';
+        
+        const senderElem = document.createElement('span');
+        senderElem.className = 'sender-id';
+        senderElem.textContent = message.sessionId === sessionIdInput.value ? 'You' : message.sessionId;
+        
+        const timestampElem = document.createElement('span');
+        timestampElem.className = 'timestamp';
+        timestampElem.textContent = new Date(message.timestamp).toLocaleTimeString();
+        
+        headerElem.appendChild(senderElem);
+        headerElem.appendChild(timestampElem);
+        
+        const contentElem = document.createElement('div');
+        contentElem.className = 'message-content';
+        contentElem.textContent = message.content;
+        
+        messageElem.appendChild(headerElem);
+        messageElem.appendChild(contentElem);
+        
+        messageList.appendChild(messageElem);
+        
+        // Scroll to bottom
+        messageList.scrollTop = messageList.scrollHeight;
+      }
+      
+      function updateNearbyUsers(users) {
+        nearbyUsersCount.textContent = users.length;
+        
+        if (users.length === 0) {
+          nearbyUsersList.innerHTML = '<p>No users nearby.</p>';
+          return;
+        }
+        
+        const listElem = document.createElement('ul');
+        
+        users.forEach(user => {
+          const listItem = document.createElement('li');
+          
+          const userIdElem = document.createElement('span');
+          userIdElem.className = 'user-id';
+          userIdElem.textContent = user.sessionId;
+          
+          const distanceElem = document.createElement('span');
+          distanceElem.className = 'distance';
+          distanceElem.textContent = `${user.distance}m away`;
+          
+          listItem.appendChild(userIdElem);
+          listItem.appendChild(distanceElem);
+          
+          listElem.appendChild(listItem);
+        });
+        
+        nearbyUsersList.innerHTML = '';
+        nearbyUsersList.appendChild(listElem);
+      }
+      
+      function showError(error) {
+        const errorMessage = typeof error === 'object' && error.message ? error.message : error;
+        
+        errorContainer.innerHTML = `
+          <div class="error-message">
+            <p>Error: ${errorMessage}</p>
+          </div>
+        `;
+        
+        // Auto-clear error after 5 seconds
+        setTimeout(() => {
+          errorContainer.innerHTML = '';
+        }, 5000);
+      }
+      
+      // Register event handlers for service
+      proximityChatService.onMessages(messages => {
+        messages.forEach(message => {
+          addMessage(message);
+        });
+      });
+      
+      proximityChatService.onNearbyUsers(users => {
+        updateNearbyUsers(users);
+      });
+      
+      proximityChatService.onConnectionStatus(status => {
+        updateUIForConnection(status);
+      });
+      
+      proximityChatService.onError(error => {
+        showError(error);
+      });
+      
+      // Register event handlers for UI
+      connectBtn.addEventListener('click', async () => {
+        try {
+          const sessionId = sessionIdInput.value.trim();
+          const radius = parseInt(radiusInput.value, 10);
+          
+          if (!sessionId) {
+            showError('Session ID is required');
+            return;
+          }
+          
+          await proximityChatService.initialize({
+            sessionId,
+            radius
+          });
+        } catch (error) {
+          showError(error);
+        }
+      });
+      
+      disconnectBtn.addEventListener('click', async () => {
+        try {
+          await proximityChatService.cleanup();
+        } catch (error) {
+          showError(error);
+        }
+      });
+      
+      updateRadiusBtn.addEventListener('click', async () => {
+        try {
+          const radius = parseInt(radiusInput.value, 10);
+          await proximityChatService.updateRadius(radius);
+          showError(`Radius updated to ${radius}m`); // Use error display as notification
+        } catch (error) {
+          showError(error);
+        }
+      });
+      
+      messageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const content = messageInput.value.trim();
+        
+        if (!content || !proximityChatService.isConnected()) {
+          return;
+        }
+        
+        try {
+          messageInput.disabled = true;
+          sendBtn.disabled = true;
+          
+          await proximityChatService.sendMessage(content);
+          
+          messageInput.value = '';
+        } catch (error) {
+          showError(error);
+        } finally {
+          messageInput.disabled = false;
+          sendBtn.disabled = false;
+          messageInput.focus();
+        }
+      });
+      
+      // Initialize UI
+      updateUIForConnection(false);
+    });
+  </script>
+</body>
+</html> 
